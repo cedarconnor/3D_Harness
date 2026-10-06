@@ -13,6 +13,8 @@ For the everyday workflow, a native pass is only one acceptance input. Use `fini
 
 For revisions, run the before/after comparison against the allowed fields and recheck required targets. State the coverage limits with preservation claims. Save evidence that identifies its source checkpoint hash and camera settings. A render file existing is not a visual review.
 
+For an external saved edit to an existing continuity project, read [external revision review](../../../docs/EXTERNAL_REVISIONS.md). `preview-revision` retains a frozen candidate and contract; inspect its actual content, shared users, handoff and decision updates. Accept only the intended preview hash, with a note attributing the review honestly. A passing contract does not require publication. Prepared previews do not block other work; resume before acceptance, and expect a stale-parent rejection if the project advanced. Never use this route to bypass an unresolved reserved edit.
+
 Reopen the native checkpoint in a fresh Blender process and regenerate the observation before claiming persistence. Use `--python-exit-code 1`, examine the process exit status and read the report; success text alone is insufficient. A render worker reads an immutable checkpoint and writes images/reports only.
 
 If unchanged inherited data fails comparison, reopen the unchanged source through the same evaluator before requesting an asset repair. Distinguish authored changes, evaluated numeric variability and validator defects. Retain the failed reports; any justified validator correction needs a versioned policy, negative tests and uniform re-evaluation of the baseline and candidates. Do not weaken a check solely to admit the preferred image.

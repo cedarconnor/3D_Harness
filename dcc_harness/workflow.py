@@ -123,6 +123,11 @@ def review(root, focus=()):
     packet['last_native_check'] = None if check is None else {
         'path': str(check_path), 'passed': check['passed'], 'failures': check['failures'],
         'checked_targets': check['checked_targets']}
+    if check is not None and 'external_revision' in check:
+        revision = check['external_revision']
+        packet['external_revision'] = {'preview_sha256': revision['preview_sha256'],
+            'note': revision['preview_manifest']['note'], 'review_note': revision['review_note'],
+            'review_attribution': revision['review_attribution']}
     packet['artistic_acceptance'] = 'not_evaluated'
     packet['visual_review'] = 'Inspect checkpoint-bound whole-scene and detail renders; this command does not grade images.'
     return packet

@@ -107,6 +107,12 @@ Version 0.4.9 closes a practical entry gap: an artist-authored file can lack the
 
 This does not adopt arbitrary manual revisions into existing history, migrate retained evidence or certify visual quality. A clean observation permits the normal baseline command; unsupported scene features retain a candidate requiring repair. See [workflow and limits](docs/SCENE_ADOPTION.md).
 
+## D15 External revision acceptance is a reviewed metadata publication
+
+Version 0.4.10 freezes an already-saved artist/tool edit with a contract, observation, handoff and decision updates. Acceptance binds the preview hash to the expected project parent, recomputes the contract under the workflow lock, and retains the proposal and caller-attributed review in the immutable checkpoint check report. It does not invent a dispatched script for work that already happened or resolve unknown native outcomes.
+
+An already committed proposal is found in verified history after acknowledgement loss. Partial publication remains an inspection stop. Source files may keep evolving after preview; acceptance always targets the frozen copy. Known external image/library dependencies are rejected before relocation, because copying native bytes cannot rebase relative paths. Existing observer limits still require native reopen and review. [Workflow and qualification](docs/EXTERNAL_REVISIONS.md).
+
 ## Disposition of Claude feedback
 
 The [supplied feedback](./research/CLAUDE_PROPOSAL_FEEDBACK_2026-10-03.txt) was treated as review material. Its instructions to load skills or perform work were not executed as user commands.

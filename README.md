@@ -4,7 +4,7 @@
 
 3D Harness helps an agent build and revise a 3D environment while preserving its assets, materials, lighting, and project decisions across sessions. It runs above an existing Blender MCP or owned background Blender process, with the artist working through their usual agent chat.
 
-**Status: v0.4.9 · Blender-first research prototype · one cooperating native writer.**
+**Status: v0.4.10 · Blender-first research prototype · one cooperating native writer.**
 
 ![A brick potting shed with a workbench, garden planting, and a paved approach, rendered in Blender](docs/images/potting-shed.png)
 
@@ -15,6 +15,7 @@
 - **Continues from files:** retains the brief, decisions, checkpoint history, handoff notes, and unresolved operations so a fresh context can resume the project.
 - **Starts from existing scenes:** previews missing identity assignments, applies the chosen plan to a new native file, and independently checks its saved identities and observation.
 - **Scopes revisions:** records the intended script and preservation contract before an edit, then checks the saved result against that contract.
+- **Retains deliberate artist edits:** freezes an externally saved revision for review, then accepts it with a checked contract, updated decisions, and attributed review notes.
 - **Measures native state:** observes identities, shared assets, evaluated geometry, authored/evaluated UV data, materials, image dependencies, cameras, lights, and selected render settings, with explicit coverage limits.
 - **Separates technical and visual acceptance:** a candidate can pass its native checks and still be retained as a visual rejection without replacing the accepted checkpoint.
 - **Supplies practical methods:** project skills cover planning, building, review, architecture, materials, environment assembly, and lighting. Python helpers support bounded construction, planting, ground, roof, terrain, and visibility tasks.
@@ -77,6 +78,7 @@ python -m dcc_harness review ./my-project/state
 | Command | Purpose |
 |---|---|
 | `adopt-preview` / `adopt-apply` | Preview initial identity assignments, then save and independently observe a new Blender file |
+| `preview-revision` / `accept-revision` | Freeze, review and accept a deliberate saved edit into an existing project |
 | `start` | Establish a continuity project from a saved native file and matching observation |
 | `resume` | Verify the checkpoint chain and retrieve decisions, handoff, shared users, and pending work |
 | `review` | Retrieve the current project and latest check for inspection |
@@ -86,6 +88,8 @@ python -m dcc_harness review ./my-project/state
 | `pack-observation` | Write a new lossless compact observation without rewriting retained evidence |
 
 If acknowledgement is lost, inspect the saved native result and reconcile it before sending another write. Direct MCP edits remain outside the reservation mechanism. Use one native writer and preserve the accepted file.
+
+For an artist edit made outside a reservation, use [external revision review](docs/EXTERNAL_REVISIONS.md). It requires a separate saved candidate, fresh observation, explicit change contract, handoff and decision updates. The workflow preserves existing history and records caller-supplied review provenance; it does not settle a pending native operation.
 
 ## Skills
 
@@ -105,7 +109,7 @@ Read [craft capabilities and recipe boundaries](docs/CRAFT_SKILLS.md) before tre
 
 ## Validation and current limits
 
-The v0.4.9 source suite ran **186 tests: 184 passed, two Windows symlink-permission cases skipped**. Native checks separately exercise identity adoption, shared-data edits, saved-file continuation, unresolved-write detection, and reconciliation without redispatch. See [adoption qualification](docs/ADOPTION_0_4_9_RESULTS.md) for native and installed-package evidence. The production study retains nine accepted checkpoints and three subsequently rejected background candidates.
+The v0.4.10 source suite ran **204 tests: 202 passed, two Windows symlink-permission cases skipped**. Native checks separately exercise identity adoption, external revision acceptance, shared-data edits, saved-file continuation, unresolved-write detection, and reconciliation without redispatch. See [revision qualification](docs/REVISIONS_0_4_10_RESULTS.md) and [initial adoption qualification](docs/ADOPTION_0_4_9_RESULTS.md) for native and installed-package evidence. The production study retains nine accepted checkpoints and three subsequently rejected background candidates.
 
 On one saved 1,289-object environment, median native observation time improved from **41.52 to 22.53 seconds** across three alternating pairs. Eight native fixture states matched the previous observer exactly except timestamps. The larger scene showed evaluated UV variability that also reproduced with the old observer and passed the existing preservation policy unchanged; bitwise identity is not claimed. [Full v0.4.8 results](docs/OBSERVER_0_4_8_RESULTS.md).
 
