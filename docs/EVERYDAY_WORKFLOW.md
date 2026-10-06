@@ -6,7 +6,7 @@ The host agent supplies reasoning and calls the existing Blender MCP or owned ba
 
 ## Start and resume
 
-Before `start`, save an owned `.blend`, then capture `dcc_harness.continuity_blender.observe()` inside Blender to a new JSON file. The observation must match the native hash, have no observation issues, and report `native_dirty: false`. A plain existing scene without stable identities needs a deliberately scoped identity/adoption step before observation; setup does not silently rewrite it.
+Before `start`, save an owned `.blend`, then capture `dcc_harness.continuity_blender.observe()` inside Blender to a new JSON file. The observation must match the native hash, have no observation issues, and report `native_dirty: false`. For a saved scene missing stable identities, version 0.4.9 adds [preview/apply adoption commands](SCENE_ADOPTION.md). They write a new native file and independently observe it; setup does not silently rewrite the input.
 
 ```powershell
 python -m dcc_harness start C:/project/state --checkpoint C:/project/baseline.blend --observation C:/project/baseline.json --brief-file C:/project/BRIEF.md --decisions C:/project/decisions.json --handoff C:/project/CONTINUE.md
@@ -49,7 +49,7 @@ After lost acknowledgement, quota exhaustion or an agent handoff, inspect the na
 
 A short `workflow.lock` serializes workflow metadata mutations. A crash can leave it behind; it never expires automatically. Inspect its PID, the original process, journal, edit folder and native outcome before manually releasing a stale lock. A partial reservation/publication remains an inspection stop. Do not delete pending evidence to make a command pass. The module cannot detect every external editor mutation between inspection and execution, and the caller still owns the native writer discipline.
 
-If the current saved file differs from the accepted native file, begin rejects it even if a supplied observation looks similar. Adopt a deliberate artist edit through a separately checked `Continuity.publish` transaction with an updated handoff/decisions, then resume. This conservative first release has no automatic adoption command. Unsaved manual edits require a saved copy and observation before adoption.
+If the current saved file differs from the accepted native file, begin rejects it even if a supplied observation looks similar. Adopt a deliberate artist edit through a separately checked `Continuity.publish` transaction with an updated handoff/decisions, then resume. There is no automatic command for adopting revisions into an existing history; the initial identity helper addresses new projects only. Unsaved manual edits require a saved copy and observation before adoption.
 
 Observations and render receipts remain trusted producer claims; hashes detect changes, not dishonest producers. Native checks do not grant artistic acceptance. The existing observer's topology, UV, modifier and animation coverage limits remain in force.
 

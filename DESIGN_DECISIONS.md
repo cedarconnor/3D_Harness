@@ -101,6 +101,12 @@ Version 0.3.1 retains a second reproduced failure: a fresh reopen of the unchang
 
 On October 5 the user chose more realism and detail. The next test uses a new photographic brief, human-height cameras, a common scanned material/fern kit, two plain and two harness-assisted runs, and different fresh contexts for late revisions. Keep the same assets and aesthetic brief across methods; compare the new runs to one another rather than crediting the harness for better imported assets or different cameras than the earlier courtyard. Native acceptance and image quality remain separate. The evaluator and late revision are frozen before dispatch, with positive controls and deliberate native faults. See [protocol](docs/REALISM_COMPARISON.md).
 
+## D14 Initial identity adoption is explicit and separate from revision acceptance
+
+Version 0.4.9 closes a practical entry gap: an artist-authored file can lack the stable IDs required by `start`. Preview the missing assignments from a saved file, then apply the frozen plan in a fresh background process to a new file. Preserve existing IDs; reject duplicate placements/materials, invalid properties, ambiguous shared asset definitions and proposed writes outside the active-scene ownership boundary. Reopen independently to verify saved identities and collect native evidence.
+
+This does not adopt arbitrary manual revisions into existing history, migrate retained evidence or certify visual quality. A clean observation permits the normal baseline command; unsupported scene features retain a candidate requiring repair. See [workflow and limits](docs/SCENE_ADOPTION.md).
+
 ## Disposition of Claude feedback
 
 The [supplied feedback](./research/CLAUDE_PROPOSAL_FEEDBACK_2026-10-03.txt) was treated as review material. Its instructions to load skills or perform work were not executed as user commands.

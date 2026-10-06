@@ -4,7 +4,7 @@
 
 3D Harness helps an agent build and revise a 3D environment while preserving its assets, materials, lighting, and project decisions across sessions. It runs above an existing Blender MCP or owned background Blender process, with the artist working through their usual agent chat.
 
-**Status: v0.4.8 · Blender-first research prototype · one cooperating native writer.**
+**Status: v0.4.9 · Blender-first research prototype · one cooperating native writer.**
 
 ![A brick potting shed with a workbench, garden planting, and a paved approach, rendered in Blender](docs/images/potting-shed.png)
 
@@ -13,6 +13,7 @@
 ## What it does
 
 - **Continues from files:** retains the brief, decisions, checkpoint history, handoff notes, and unresolved operations so a fresh context can resume the project.
+- **Starts from existing scenes:** previews missing identity assignments, applies the chosen plan to a new native file, and independently checks its saved identities and observation.
 - **Scopes revisions:** records the intended script and preservation contract before an edit, then checks the saved result against that contract.
 - **Measures native state:** observes identities, shared assets, evaluated geometry, authored/evaluated UV data, materials, image dependencies, cameras, lights, and selected render settings, with explicit coverage limits.
 - **Separates technical and visual acceptance:** a candidate can pass its native checks and still be retained as a visual rejection without replacing the accepted checkpoint.
@@ -63,7 +64,7 @@ Execute the retained script once → save a new native file → observe and revi
 Publish the checked result, or retain the rejection → write the next handoff
 ```
 
-For a new project, first save an owned `.blend` and create a clean saved-state observation inside Blender with `dcc_harness.continuity_blender.observe()`. Existing objects and materials need stable harness identities; `start` does not silently assign them. See the [everyday workflow](docs/EVERYDAY_WORKFLOW.md) for preparation and exact edit commands.
+For a new project, first save an owned `.blend` and create a clean saved-state observation inside Blender with `dcc_harness.continuity_blender.observe()`. If the scene lacks stable harness identities, use [initial scene adoption](docs/SCENE_ADOPTION.md): `adopt-preview` lists proposed assignments, then `adopt-apply` writes and independently observes a new file. Existing IDs are preserved; ambiguous identities block adoption. See the [everyday workflow](docs/EVERYDAY_WORKFLOW.md) for preparation and exact edit commands.
 
 Example commands below assume you have prepared your own baseline, observation, brief, decisions, and handoff files. They are not bundled demo files.
 
@@ -75,6 +76,7 @@ python -m dcc_harness review ./my-project/state
 
 | Command | Purpose |
 |---|---|
+| `adopt-preview` / `adopt-apply` | Preview initial identity assignments, then save and independently observe a new Blender file |
 | `start` | Establish a continuity project from a saved native file and matching observation |
 | `resume` | Verify the checkpoint chain and retrieve decisions, handoff, shared users, and pending work |
 | `review` | Retrieve the current project and latest check for inspection |
@@ -103,7 +105,7 @@ Read [craft capabilities and recipe boundaries](docs/CRAFT_SKILLS.md) before tre
 
 ## Validation and current limits
 
-The v0.4.8 source and installed-package suites each ran **171 tests: 169 passed, two Windows symlink-permission cases skipped**. Native checks separately exercised shared-data edits, saved-file continuation, unresolved-write detection, and reconciliation without redispatch. The production study retains nine accepted checkpoints and three subsequently rejected background candidates.
+The v0.4.9 source suite ran **186 tests: 184 passed, two Windows symlink-permission cases skipped**. Native checks separately exercise identity adoption, shared-data edits, saved-file continuation, unresolved-write detection, and reconciliation without redispatch. See [adoption qualification](docs/ADOPTION_0_4_9_RESULTS.md) for native and installed-package evidence. The production study retains nine accepted checkpoints and three subsequently rejected background candidates.
 
 On one saved 1,289-object environment, median native observation time improved from **41.52 to 22.53 seconds** across three alternating pairs. Eight native fixture states matched the previous observer exactly except timestamps. The larger scene showed evaluated UV variability that also reproduced with the old observer and passed the existing preservation policy unchanged; bitwise identity is not claimed. [Full v0.4.8 results](docs/OBSERVER_0_4_8_RESULTS.md).
 
