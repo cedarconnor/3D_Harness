@@ -17,6 +17,11 @@ def main():
     p = sub.add_parser("diff"); p.add_argument("before"); p.add_argument("after"); p.add_argument("--allow"); p.add_argument("--out")
     p = sub.add_parser("pack-observation", help="Write a new lossless compact observation; never rewrite retained evidence")
     p.add_argument("source"); p.add_argument("destination")
+    for command in ("adopt-preview", "adopt-apply"):
+        p = sub.add_parser(command, help="Preview or apply initial identities in fresh background Blender")
+        p.add_argument("input", help="Saved .blend for preview; plan.json for apply")
+        p.add_argument("--blender", required=True, help="Path to Blender executable")
+        p.add_argument("--output-dir", required=True, help="New folder; existing folders are never reused")
     p = sub.add_parser("start", help="Start continuity from a saved native checkpoint")
     p.add_argument("project"); p.add_argument("--checkpoint", required=True); p.add_argument("--observation", required=True)
     p.add_argument("--brief-file", required=True); p.add_argument("--decisions", required=True); p.add_argument("--handoff"); p.add_argument("--out")
@@ -32,7 +37,11 @@ def main():
     p.add_argument("--updates", required=True); p.add_argument("--reconciled", action="store_true"); p.add_argument("--out")
     p.add_argument("--reject-reason", help="Retain this candidate without publication, even if native checks pass")
     args = parser.parse_args()
-    if args.command == 'pack-observation':
+    if args.command in ('adopt-preview', 'adopt-apply'):
+        from . import adoption
+        action = adoption.preview if args.command == 'adopt-preview' else adoption.apply
+        result = action(args.input, args.output_dir, args.blender)
+    elif args.command == 'pack-observation':
         from .evidence import file_hash
         source = Path(args.source); source_hash = file_hash(source)
         observation = read_json(source)
