@@ -1,0 +1,67 @@
+{
+  "schema": "dcc.environment.workflow.v1",
+  "id": "environment",
+  "version": 1,
+  "status": "draft_not_implemented",
+  "description": "Build or revise a detailed Blender environment through existing skills and checkpoint evidence.",
+  "default_review_policy": "agent_within_brief",
+  "artist_acceptance": "not_evaluated",
+  "stages": [
+    {
+      "id": "direction",
+      "after": [],
+      "skills": ["dcc-plan-environment"],
+      "deliverables": ["brief", "references", "style_record", "preserved_features", "review_views", "permissions"],
+      "evidence": ["direction_record"],
+      "review": "agent_within_brief"
+    },
+    {
+      "id": "blockout",
+      "after": ["direction"],
+      "skills": ["dcc-build-revise", "dcc-environment-assembly"],
+      "deliverables": ["spatial_layout", "scale", "major_silhouettes"],
+      "evidence": ["native_contract", "whole_scene_render", "visual_review"],
+      "review": "agent_within_brief"
+    },
+    {
+      "id": "assets",
+      "after": ["blockout"],
+      "skills": ["dcc-build-revise", "dcc-architecture"],
+      "deliverables": ["editable_construction", "shared_asset_identities"],
+      "evidence": ["native_contract", "shared_user_report", "detail_render", "visual_review"],
+      "review": "agent_within_brief"
+    },
+    {
+      "id": "materials",
+      "after": ["assets"],
+      "skills": ["dcc-build-revise", "dcc-materials"],
+      "deliverables": ["material_families", "texture_scale", "controlled_variation"],
+      "evidence": ["native_contract", "dependency_report", "detail_render", "visual_review"],
+      "review": "agent_within_brief"
+    },
+    {
+      "id": "assembly",
+      "after": ["materials"],
+      "skills": ["dcc-build-revise", "dcc-environment-assembly"],
+      "deliverables": ["grounded_placement", "circulation", "purposeful_dressing"],
+      "evidence": ["native_contract", "whole_scene_render", "detail_render", "visual_review"],
+      "review": "agent_within_brief"
+    },
+    {
+      "id": "lighting",
+      "after": ["assembly"],
+      "skills": ["dcc-lighting-review"],
+      "deliverables": ["motivated_lighting", "readable_composition", "consistent_review_views"],
+      "evidence": ["native_contract", "whole_scene_render", "visual_review"],
+      "review": "agent_within_brief"
+    },
+    {
+      "id": "delivery",
+      "after": ["lighting"],
+      "skills": ["dcc-review-continue"],
+      "deliverables": ["editable_checkpoint", "review_package", "continuation_handoff"],
+      "evidence": ["native_reopen", "native_contract", "feedback_reconciliation", "whole_scene_render", "visual_review", "handoff"],
+      "review": "agent_within_brief"
+    }
+  ]
+}

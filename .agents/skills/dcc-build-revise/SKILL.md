@@ -9,6 +9,8 @@ Read the project's brief, `CONTINUE.md`, latest observation and `docs/PILOT_USAG
 
 For everyday projects, start with `dcc-harness` and `docs/EVERYDAY_WORKFLOW.md`. Use its `begin-edit`/`finish-edit` reservations instead of manually issuing competing journal calls. Load the relevant architecture, materials, assembly or lighting skill for actual craft decisions. Frozen trials continue using their supplied method/runtime, not newer local instructions.
 
+When coordination is enabled, retain the note IDs that this revision addresses. Native publication does not resolve those notes. Record a [feedback response](../../../docs/STRUCTURED_FEEDBACK.md) with the resulting checkpoint and evidence; mark partial work honestly. A separate verification/disposition records closure. On a lost response receipt, reuse its request ID and exact payload; never redispatch Blender to recover metadata.
+
 If the live connection is unavailable, an authorized owned checkpoint may be processed in background Blender. Record that execution mode and preserve the user's editor. Background execution does not qualify the live MCP integration.
 
 For a new deliverable, check its intended identity and meaningful requirements first; record an expected missing-target failure. For an edit, record the passing baseline and allowed delta. Never break an existing asset merely to create a failing check.

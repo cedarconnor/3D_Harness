@@ -96,7 +96,7 @@ def resume(root, focus=()):
                                              if mesh is not None and x.get('mesh_datablock') == mesh]
         selected[iid]['material_users'] = {m: state['registry']['materials'][m]['users']
                                            for m in set(o['material_ids'])}
-    return {
+    packet = {
         'schema': 'dcc.resume.v1', 'project': str(store.root), 'active': active,
         'status': 'RECONCILE' if state['pending'] or unresolved or lock_exists else 'READY_FOR_INSPECTION',
         'brief': state['brief'], 'decisions': state['decisions'],
@@ -113,6 +113,12 @@ def resume(root, focus=()):
                        else 'Inspect the saved checkpoint and scope a contract before begin-edit',
         'limits': 'Saved-file packet only; live scene freshness and artistic acceptance are not established. '
                   'Direct MCP writes and legacy APIs bypass workflow reservations.'}
+    from .coordination import read
+    events = read(store.root)
+    if events:
+        from .environment_workflow import summary
+        packet['coordination'] = summary(events, state)
+    return packet
 
 
 def review(root, focus=()):

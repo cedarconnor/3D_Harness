@@ -4,7 +4,7 @@
 
 3D Harness helps an agent build and revise a 3D environment while preserving its assets, materials, lighting, and project decisions across sessions. It runs above an existing Blender MCP or owned background Blender process, with the artist working through their usual agent chat.
 
-**Status: v0.4.10 · Blender-first research prototype · one cooperating native writer.**
+**Status: v0.5.0 · Blender-first research prototype · one cooperating native writer.**
 
 ![A brick potting shed with a workbench, garden planting, and a paved approach, rendered in Blender](docs/images/potting-shed.png)
 
@@ -93,6 +93,8 @@ For an artist edit made outside a reservation, use [external revision review](do
 
 ## Skills
 
+Version 0.5.0 adds [structured feedback and environment stages](docs/STRUCTURED_FEEDBACK.md). Notes retain their checkpoint/object/view anchors across sessions; implementation claims, verification and artist acceptance remain separate. A pinned seven-stage workflow routes existing skills and requires current evidence before completion. Use `workflow-template` to inspect the packaged manifest. Coordination is optional and adds no background agent or MCP server.
+
 | Skill | Use |
 |---|---|
 | [`dcc-harness`](.agents/skills/dcc-harness/SKILL.md) | Start, resume, review, and route ordinary work |
@@ -108,6 +110,8 @@ For an artist edit made outside a reservation, use [external revision review](do
 Read [craft capabilities and recipe boundaries](docs/CRAFT_SKILLS.md) before treating a skill as a general-purpose geometry or artistic-quality validator.
 
 ## Validation and current limits
+
+The v0.5.0 source and installed suites each ran **233 tests: 231 passed, two Windows permission cases skipped**. The [qualification report](docs/FEEDBACK_0_5_0_RESULTS.md) covers feedback retention, evidence binding, all seven workflow stages, native revision tests and fresh-agent handoff findings. The first fresh agent exposed a missing view-definition artifact; the corrected package retains actual settings alongside their digest. This tests continuity mechanisms, not general visual-quality improvement.
 
 The v0.4.10 source suite ran **204 tests: 202 passed, two Windows symlink-permission cases skipped**. Native checks separately exercise identity adoption, external revision acceptance, shared-data edits, saved-file continuation, unresolved-write detection, and reconciliation without redispatch. See [revision qualification](docs/REVISIONS_0_4_10_RESULTS.md) and [initial adoption qualification](docs/ADOPTION_0_4_9_RESULTS.md) for native and installed-package evidence. The production study retains nine accepted checkpoints and three subsequently rejected background candidates.
 
@@ -158,6 +162,7 @@ Downloaded asset kits, private photographic references, large `.blend` checkpoin
 ## Further reading
 
 - [Everyday workflow](docs/EVERYDAY_WORKFLOW.md) and [continuity APIs](docs/CONTINUITY_USAGE.md)
+- [Structured feedback and environment stages](docs/STRUCTURED_FEEDBACK.md)
 - [Reference-led quality loop](docs/QUALITY_LOOP_USAGE.md)
 - [Craft skills](docs/CRAFT_SKILLS.md) and [terrain study](docs/TERRAIN_0_4_7_RESULTS.md)
 - [Active build plan](DCC_HARNESS_BUILD_PLAN.md) and [design decisions](DESIGN_DECISIONS.md)

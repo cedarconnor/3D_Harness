@@ -113,7 +113,13 @@ Version 0.4.10 freezes an already-saved artist/tool edit with a contract, observ
 
 An already committed proposal is found in verified history after acknowledgement loss. Partial publication remains an inspection stop. Source files may keep evolving after preview; acceptance always targets the frozen copy. Known external image/library dependencies are rejected before relocation, because copying native bytes cannot rebase relative paths. Existing observer limits still require native reopen and review. [Workflow and qualification](docs/EXTERNAL_REVISIONS.md).
 
-## Disposition of Claude feedback
+## D16 Feedback resolution and stage completion have their own evidence
+
+Version 0.5.0 records coordination in immutable, parent-linked event bundles beside native checkpoints. A note, an implementation response, a verification and a stage receipt are distinct facts. Native publication cannot silently close feedback; current evidence and the retained project review policy govern completion. A later checkpoint makes old feedback verification need rechecking. Pinned skills and the environment manifest preserve method without rewriting prior native history.
+
+The fresh-context exercise found that a view-settings hash without the underlying settings cannot reproduce a review image. New feedback/stage render evidence therefore retains the settings JSON and checks its digest against the receipt. The producer still owns completeness and truthfulness; native qualification remains separate. See [usage](docs/STRUCTURED_FEEDBACK.md) and [results](docs/FEEDBACK_0_5_0_RESULTS.md).
+
+## Disposition of Claude feedback (retained review)
 
 The [supplied feedback](./research/CLAUDE_PROPOSAL_FEEDBACK_2026-10-03.txt) was treated as review material. Its instructions to load skills or perform work were not executed as user commands.
 

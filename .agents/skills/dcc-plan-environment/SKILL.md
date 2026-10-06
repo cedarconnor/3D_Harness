@@ -7,6 +7,8 @@ description: Plan a bounded Blender environment build or revision with explicit 
 
 Work from the user's brief and the active build plan. Read `docs/PILOT_USAGE.md` in the harness repository for actual commands. This skill supports the advisory pilot; it does not start a background agent.
 
+For a coordinated project, use the pinned environment manifest to identify this stage's deliverables and review policy. [Structured feedback](../../../docs/STRUCTURED_FEEDBACK.md) describes the optional binding. Inherit earlier work explicitly with its evidence gaps; do not invent prior approvals or rebuild accepted work just to fill a stage list. Keep preferences in the project direction and record actionable notes against the actual checkpoint.
+
 Inspect the live document and connection first. Preserve unsaved work in a recovery copy before creating an owned test scene. Identify the active file/scene and what may change.
 
 Write a brief with the intended composition, six to eight asset families where appropriate, dimensions in meters, shared material families, lighting intent, and three fixed review views. Classify references as dimension evidence, construction evidence or mood guidance; mark inferred dimensions. Do not use image overlap against a mood board as a dimensional requirement.

@@ -9,6 +9,22 @@ from .project import Project
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
+    coordination_commands = {
+        'feedback-add': ('feedback.add', 'note'), 'feedback-respond': ('feedback.respond', 'response'),
+        'feedback-verify': ('feedback.verify', 'verification'), 'feedback-decide': ('feedback.decide', 'decision'),
+        'workflow-bind': ('workflow.bind', 'binding'), 'stage-submit': ('stage.submit', 'submission'),
+        'stage-complete': ('stage.complete', 'review'), 'stage-reopen': ('stage.reopen', 'decision')}
+    for name, (kind, argument) in coordination_commands.items():
+        p = sub.add_parser(name)
+        p.add_argument('project'); p.add_argument('--' + argument, required=True)
+        p.add_argument('--expected-revision', required=True); p.add_argument('--request-id', required=True)
+        p.add_argument('--evidence-root', help='Base for relative input artifacts; defaults to input JSON folder')
+        p.add_argument('--out')
+        if name == 'workflow-bind':
+            p.add_argument('--manifest', help='Optional override of the packaged environment template')
+        if name == 'stage-complete':
+            p.add_argument('--submission-id', required=True)
+    p = sub.add_parser('workflow-template'); p.add_argument('--out')
     p = sub.add_parser("init"); p.add_argument("project"); p.add_argument("--brief", required=True)
     p = sub.add_parser("status"); p.add_argument("project")
     p = sub.add_parser("begin"); p.add_argument("project"); p.add_argument("script"); p.add_argument("--label", required=True)
@@ -46,7 +62,21 @@ def main():
     p.add_argument("--updates", required=True); p.add_argument("--reconciled", action="store_true"); p.add_argument("--out")
     p.add_argument("--reject-reason", help="Retain this candidate without publication, even if native checks pass")
     args = parser.parse_args()
-    if args.command in ('preview-revision', 'accept-revision'):
+    if args.command in coordination_commands:
+        from . import feedback, environment_workflow
+        kind, argument = coordination_commands[args.command]
+        source = Path(getattr(args, argument))
+        payload = read_json(source)
+        if kind == 'workflow.bind':
+            payload = {'manifest': read_json(args.manifest) if args.manifest else environment_workflow.default_manifest(), 'binding': payload}
+        elif kind == 'stage.complete':
+            payload = {'submission_id': args.submission_id, 'review': payload}
+        module = feedback if kind.startswith('feedback.') else environment_workflow
+        result = module.apply(args.project, kind, payload, args.expected_revision, args.request_id, args.evidence_root or source.absolute().parent)
+    elif args.command == 'workflow-template':
+        from .environment_workflow import default_manifest
+        result = default_manifest()
+    elif args.command in ('preview-revision', 'accept-revision'):
         from . import revisions
         if args.command == 'preview-revision':
             result = revisions.preview_revision(args.project, args.parent, args.checkpoint, args.observation,

@@ -1,0 +1,32 @@
+{
+  "schema": "dcc.feedback.note.v1",
+  "id": "4ce4430d-809d-4e92-9b38-56f842c754fa",
+  "source": {
+    "role": "agent",
+    "author": "synthetic-example",
+    "reference": "Planning example only; not a real review or artist request."
+  },
+  "stage_id": "materials",
+  "category": "visual",
+  "priority": "blocking",
+  "text": "The vertical timber grain reads horizontally on the front post.",
+  "acceptance": "Inspect the same front-post detail view after the revision: the grain follows the post's long axis, while geometry, placement and lighting retain their declared preservation checks.",
+  "anchor": {
+    "checkpoint_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "checkpoint_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "instance_ids": ["example.shed.front_post"],
+    "material_ids": ["example.material.timber"],
+    "render": {
+      "receipt": {
+        "path": "evidence/before/render-receipt.json",
+        "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "view_id": "REVIEW_FRONT_POST",
+      "image": {
+        "path": "evidence/before/front-post.png",
+        "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "pin": {"x": 0.36, "y": 0.48}
+    }
+  }
+}
