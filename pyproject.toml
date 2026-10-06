@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dcc-harness"
+version = "0.4.8"
+description = "Blender-first advisory skills, observations and checkpoint evidence"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/cedarconnor/3D_Harness"
+Documentation = "https://github.com/cedarconnor/3D_Harness/blob/main/README.md"
+
+[project.scripts]
+dcc-harness = "dcc_harness.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["dcc_harness*"]
+

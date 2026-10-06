@@ -1,0 +1,273 @@
+# Blender First DCC Harness Build Plan
+
+Prepared October 3, 2026. Status: proposed implementation plan, based on document review, current source research, and the user's clarified priorities. No runtime implementation or DCC qualification was performed for this review.
+
+Build a persistent production system that can plan, execute, inspect, revise, and resume creative projects. Start with a detailed Blender environment whose assets and lighting remain consistent through long runs and later changes. Quality and continuity take priority over minimizing model calls.
+
+The central product is the project record: what the scene should become, what exists now, which versions are approved, what changed, and which evidence remains valid. Models supply planning and creative judgment; a deterministic runtime controls state transitions and native application writes.
+
+The artist enters through a plugin in Claude Code, Codex or Cursor. The host agent remains the default planner, while a shared local runtime preserves project continuity and executes through existing MCP servers. Background creative work adds an optional agent runner behind the same interface.
+
+Companion documents:
+
+- [Architecture and skill review](./DCC_HARNESS_DOCUMENT_REVIEW.md)
+- [Research and adoption decisions](./DCC_HARNESS_RESEARCH.md)
+- [Skill system and motion design expansion](./DCC_HARNESS_SKILL_SYSTEM.md)
+- [db-lyon UE-MCP review and implications](./DCC_HARNESS_UE_MCP_REVIEW.md)
+- [Packaging, activation and client integration](./DCC_HARNESS_PACKAGING_AND_ENTRY_POINTS.md)
+
+## Recommended implementation
+
+Use a shared local service, thin client plugins, and adapters to existing DCC MCP servers. Start and review work in the user's normal agent chat; add a local review page when visual comparisons need it. Keep Blender as the editable authoring application. A Blender fork would make the first release depend on maintaining an entire application and would complicate expansion.
+
+Evaluate the current `dcc-mcp/dcc-mcp-core` and its Blender adapter first for discovery, transport, typed skills, and host dispatch. Place them behind a harness-owned adapter contract. Compare with a thin adapter over the upstream Blender Lab MCP. Select the implementation by live recovery and correctness tests, not tool count. The current core already documents workflow persistence and explicit resume facilities; it is more capable than the supplied notes describe, but those facilities do not establish atomicity of native scene edits. [DCC-MCP workflows](https://github.com/dcc-mcp/dcc-mcp-core/blob/b617caa1e35d314f663651f438c42296d014100b/docs/guide/workflows.md)
+
+Own the project model, creative specifications, change propagation, evidence, and publication rules. These are the differentiating components and must remain portable if an adapter changes.
+
+| Component | Proposed initial choice | Why |
+|---|---|---|
+| Product service | Python, Pydantic schemas, FastAPI, CLI | Fits Blender and pipeline tooling; makes contracts inspectable |
+| Project persistence | SQLite in WAL mode, one coordinating writer, migrations and backups | Suitable for a local workstation; avoids introducing a distributed database immediately |
+| Artifact storage | Immutable native scene versions and content-hashed files on disk | Recoverable scenes, renders, source scripts, textures, and evidence |
+| Entry point | Shared skills and connector with Codex, Claude Code and Cursor packaging | Fits the artist's existing chat workflow |
+| Agent execution | Host agent first; optional supported SDK/CLI backend for detached jobs | Reuses the chosen agent while keeping project state independent |
+| DCC access | Harness adapter contract; DCC-MCP candidate, Blender Lab fallback | Reuses infrastructure while retaining replacement options |
+| Native worker supervision | Separate owned Blender processes and project files | Contains crashes and allows reliable restart; one writer per worker |
+| Review interface | Chat evidence and artifact links first; optional local TypeScript review UI | Adds comparison and timeline controls without requiring a new daily interface |
+| Verification | Typed validators plus native render and sequence review | Measures technical properties and evaluates visual intent separately |
+| Interchange | Native files first; qualified USD and texture packages later | Preserves editability while developing a tested portable subset |
+
+The host agent's conversation is a reasoning session; the project database remains authoritative for tasks, receipts and publication. Resume with a compact packet built from project state. LangGraph is optional for a future custom agent backend, not a required layer around the user's existing agent.
+
+Do not enable a second independent top-level scheduler inside the adapter framework. Initially use its host and tool services. Reuse its workflow engine only if the initial evaluation shows that it can become the sole task executor behind the product's contracts. This prevents two retry systems from replaying the same mutation.
+
+The additional db-lyon UE-MCP review makes it the leading third-party Unreal candidate and an immediate adapter-design reference. Retain its Node/native integration behind the product interface; the Python core need not reimplement it. Its workflow recovery remains subject to qualification, including a reproduced failure in its optional Git restore command. See the [focused review](./DCC_HARNESS_UE_MCP_REVIEW.md) for pinned source evidence and limits.
+
+## Activation and host integration
+
+Package a small set of entry skills, a connector and optional host hooks. The connector may expose project operations through MCP for compatibility, while consuming the existing DCC MCP servers downstream. A CLI exposes the same runtime for setup and diagnostics. This is a harness for those integrations; it does not require rebuilding their native tool libraries.
+
+Start with interactive operation: the current chat's agent plans and critiques while the runtime journals and executes. Closed-chat continuity has two levels. The runtime can preserve state and finish admitted work; continuing to make new creative decisions requires an explicitly configured background agent. Record controller ownership and transfer it without concurrent writers.
+
+Advisory skills can initially accompany direct MCP calls, but managed production jobs must route writes through the runtime to enforce receipts, revisions and leases. Do not rely on client hooks to observe every possible mutation. Installers should preserve existing server settings and verify the intended live DCC instance. Full design and client-specific sources are in the [packaging plan](./DCC_HARNESS_PACKAGING_AND_ENTRY_POINTS.md).
+
+## Capability-driven adapter contract
+
+Make discovery and observation first-class alongside execution. Each adapter identifies the application instance, project/document, loaded binary, schema fingerprint and current capabilities. Keep advertised capabilities separate from capabilities observed in the running application. A reconnect or plugin rebuild invalidates cached assumptions.
+
+| Contract | Required behavior |
+|---|---|
+| Discover and describe | Search a compact capability catalog; retrieve precise schemas and native prerequisites on demand |
+| Inspect target | Return stable bindings, current values, writable properties, constraints and an observed revision |
+| Prepare operation | Resolve target IDs, units, frame of reference, effects, preconditions and required evidence |
+| Execute | Enforce scope and write ownership; return applied, unchanged, partial, failed or unknown outcome with receipts |
+| Observe | Return structured native state and reproducible capture metadata tied to the exact revision |
+| Recover | Query durable receipts, reconcile effects, reopen qualified checkpoints and report recovery limits |
+
+Preserve native extensions such as `unreal.pcg.*` and `blender.geometry_nodes.*`. Portable intent can select different implementations without pretending their graph types are interchangeable. The proposed operation names are design examples, not existing APIs.
+
+Classify effects explicitly as read, mutate or unknown. A new object is a mutation even if it does not alter an existing file. Unknown effects require a task policy that permits them and an isolated execution context; hiding a tool from discovery is not enforcement. All execution routes, including recipes and external generation jobs, remain inside the same ownership and audit rules.
+
+Separate skills, executable recipes and durable jobs. Pin the fully resolved recipe and schema hashes for a run. Start with individual native calls; enable adapter flows only when child effects and failures are visible and reconcilable. Do not treat a flow's overall success, or an asset's pre-existence, as proof that desired state holds. Mandatory checkpoint failure blocks dependent writes.
+
+Observation records should include native revision, object bindings, camera transform and projection, dimensions, frame/time, renderer, exposure, color configuration and available simulation/cache state. Unsupported fields must be explicit. For temporal work, use rational time and map native endpoint conventions deliberately. Numeric readback and visual review answer different acceptance questions.
+
+## System structure
+
+```mermaid
+flowchart TB
+    User[Artist brief and revisions] --> Chat[Claude Code, Codex or Cursor]
+    Chat --> Plugin[Entry skills and harness connector]
+    Plugin --> Core[Project service and task scheduler]
+    UI[Optional review page and CLI] --> Core
+    Core <--> State[Specifications, versions, decisions and event database]
+    Core <--> Files[Native checkpoints and artifact store]
+    Chat --> Agents[Host planner, specialist and critic sessions]
+    Core --> Background[Optional background agent runner]
+    Background --> Agents
+    Agents --> Gate[Typed operations and execution policy]
+    Gate --> Core
+    Core --> Adapter[Adapters to existing DCC MCP servers]
+    Adapter --> Blender[Owned Blender workers]
+    Adapter --> Later[Later C4D, Unreal and generation adapters]
+    Blender --> Evidence[Measurements, renders and scene observations]
+    Later --> Evidence
+    Evidence --> Verify[Technical and visual verification]
+    Verify --> Core
+    Core --> Chat
+    Core --> UI
+```
+
+Use roles before adding concurrency. The first version can run one specialist and one independent review session sequentially. Later, workers can construct independent assets in separate processes while one assembly worker owns the environment. A fresh agent for every primitive adds overhead without addressing the main risks.
+
+## What consistency means
+
+Consistency has several independent dimensions. Store and check each explicitly.
+
+| Dimension | Persistent contract | How it is checked |
+|---|---|---|
+| Intent | Brief, priorities, exclusions, accepted decisions | Task and result compared with the current specification |
+| Asset identity | Stable asset and instance IDs, immutable versions, native bindings | Registry resolution and dependency checks; names remain editable labels |
+| Spatial continuity | Units, world coordinates, anchors, adjacency, clearance, terrain and zone boundaries | Measurements, collision queries, coverage cameras, traversal previews |
+| Visual language | Shape vocabulary, palette roles, material families, detail density, references | Calibrated multi-view comparisons and artist review |
+| Lighting | Environment rig, exposure policy, color configuration, per-shot overrides | Rig readback, diagnostic renders, approved view comparisons |
+| Time | Rational frame rate, frame ranges, tracks, seeds, cache versions | Curve sampling, sequence playback, event timing and cache checks |
+| Method | Pinned workflow, skill versions and applicable lessons | Resume packet and step preconditions |
+| Delivery | Required formats, editable sources, renderer, dependency manifest | Clean reopen and target-application import tests |
+
+If the environment is divided into spatial sectors, define shared boundary anchors, road and terrain continuity, exclusion volumes, and shared asset versions. If “sectors” means production departments, the same dependency graph connects modeling, materials, lighting, animation, and rendering.
+
+Do not encode all creative requirements as numeric constraints. Mark each requirement as a hard technical condition, an aesthetic target, or an optional preference. Record intentional exceptions such as open surfaces, mirrored UVs, stylized scale, or animated discontinuities.
+
+## Project model and authority
+
+Use versioned schemas, starting with the following records. Human-readable Markdown views can be generated from them; Markdown completion lines should not drive the scheduler.
+
+| Record | Essential content |
+|---|---|
+| Project specification | Goals, outputs, quality policy, permissions, budget ceilings, version pins |
+| Environment specification | Zones, anchors, layout constraints, camera coverage, asset dependencies |
+| Style specification | Reference images, desired traits, rejected directions, palette and material rules |
+| Asset specification | Identity, dimensions, role, provenance, topology policy, editability and export needs |
+| Material specification | Surface intent, physical texture scale, channels, color roles, native recipes and fallback bake |
+| Lighting specification | Rig identity, environment, exposure, color pipeline and permitted overrides |
+| Sequence specification | Shots, rational timing, animation and motion language; introduced when motion is scheduled |
+| Task | Inputs with exact versions, outputs, dependencies, authorized changes, validation, retry policy |
+| Operation receipt | Operation ID, payload hash, worker identity, expected revision, observed changes, status |
+| Evidence | Input hashes, scene revision, validator version, camera, frame, renderer and results |
+| Decision | Choice, scope, reason, alternatives, reversibility and originating instruction |
+
+Separate desired state from observed native state. An operation may finish without fulfilling the specification, and a manually edited scene may diverge from the last stored observation.
+
+Persistent identity should survive a rename. Store harness IDs in native custom properties plus a registry binding; detect and repair duplicated IDs when objects are copied or imported. Keep shared asset identity distinct from instance identity. This also needs explicit USD prim-path bindings: USD does not supply the harness's global identity system. [USD identity and composition](https://openusd.org/release/intro.html)
+
+Track dependencies at meaningful granularity: mesh topology, UV layout, material recipe, texture version, lighting rig, camera and simulation cache. A topology change invalidates dependent bakes and caches; a lighting change invalidates relevant render reviews, not every mesh measurement. Shared-library edits create new asset versions and identify all consumers before promotion.
+
+## Execution and recovery
+
+Implement recovery before unattended creative runs. Even one agent can send duplicate or stale work after a timeout or restart.
+
+Each modifying request carries a project ID, task ID, operation ID, payload hash, worker ID, process incarnation, document ID, expected revision, write lease, and deadline. Validate the lease and revision immediately before native execution, not only when the request enters the queue.
+
+Use an explicit lifecycle:
+
+```text
+planned -> dispatched -> observed -> verified -> checkpointed -> committed
+                         |              |
+                         +-> failed     +-> needs_revision
+dispatched -> unknown_outcome -> reconcile -> observed / safely_retryable / recovery_required
+```
+
+The coordinator journals the request before dispatch. The adapter journals admission and returns an observed result with affected IDs. After validation, save a new native version and manifest to temporary paths, flush and finalize them, then atomically update the committed project pointer in the database. An unreferenced candidate may exist after a crash; a partially written file must never become the committed version.
+
+There is no general transaction spanning a database, Blender memory, filesystem saves, and remote services. Handle the gap explicitly:
+
+1. On a lost response, query the operation receipt and current worker incarnation. Do not blindly repeat a mutating script.
+2. If a durable candidate exists, verify its manifest and reopen it before reconciling the project record.
+3. If a crash erased an unsaved mutation, restart from the last committed native checkpoint and rerun only an operation classified as safe from that state.
+4. Reconcile exported files and external generation receipts separately. Reopening a `.blend` cannot undo those side effects.
+5. If state remains ambiguous, stop that dependency branch with a precise recovery issue. Other independent work may continue.
+
+Keep idempotency receipts for the supported recovery horizon. Reject reuse of an operation ID with a different payload. Prefer semantic operations such as ensuring an asset version exists over sequences that repeatedly create unnamed objects. Do not promise universal exactly-once execution.
+
+Use native undo for quick local iteration, and saved checkpoints for durable recovery. Preserve native sources, textures, linked libraries, fonts and caches as a dependency manifest. Test reopening from a clean worker. Code and manifests belong in Git; large immutable artifacts belong in an artifact store, with Git LFS or studio storage considered when collaboration is added.
+
+On Windows, supervise only harness-owned processes, capture their logs, and separate model credentials from DCC workers. UI workers use the application's main-thread dispatch; background workers need a tested background execution path. A timeout stops further dispatch but does not prove the native operation has stopped. After a grace period, terminate an unresponsive owned worker and reconcile its state. Do not terminate an artist's attached session automatically.
+
+Treat AST checks as lint and defense in depth. Arbitrary Python with native application access is not a strong security sandbox. For generated scripts, use a dedicated OS identity or disposable environment with scoped project access; keep credentials in the broker. Imported files and embedded scripts also need an explicit execution policy. Blender's own MCP documentation warns that generated code is unguarded. [Blender Lab MCP](https://www.blender.org/lab/mcp-server/)
+
+## Working alongside the artist
+
+Default to a harness-owned project branch. Attaching to an existing scene starts with inspection and creates a working copy for generation. Provide an explicit handoff for manual editing: pause new writes, settle in-flight operations, save state, and transfer ownership. On resume, observe the changed scene, increment its revision, invalidate affected evidence, and replan.
+
+Native change notifications help detect edits but may not reconstruct the exact manual action or intent. Supplement them with periodic fingerprints and checkpoint comparisons. If capture misses an event, revision reconciliation must still prevent stale writes.
+
+The interface should expose current work, accepted results, candidate alternatives, changed objects, valid evidence, spend, and the reason for any stop. Provide pause, cancel, resume, compare, restore, lock asset, and request revision. Annotations can refer to an asset ID, camera, frame and image region; topology-index annotations should expire after topology changes.
+
+## First environment benchmark
+
+Proposed pilot: a detailed courtyard or compact campus environment with three connected zones. The exact art direction is selected during implementation kickoff; these quantities are engineering test targets, not creative requirements imposed on the user.
+
+- 12–20 reusable asset definitions with repeated instances, a few hero assets, and 4–6 shared material families.
+- One approved daylight rig, a named alternate lighting state, and six fixed inspection cameras covering front, back, zone boundaries and important sightlines.
+- Editable native geometry and materials, saved source recipes where applicable, packaged dependencies and final stills. A short camera traversal is added after still-scene stability.
+- At least 50 meaningful modifying operations across several task checkpoints, with forced context resets and worker or coordinator restarts.
+- A late request to change a shared material family, one hero-asset dimension, and one zone's layout. Unrelated assets and the approved lighting must remain stable.
+- A manual edit inserted between checkpoints. The harness detects it and preserves or explicitly reconciles it before continuing.
+
+Build from a mixture of procedural models, licensed library assets and, later, generated candidates. Choose per asset according to silhouette, repeatability, editability and effort. A generated mesh still needs intake checks and may require replacement; text-to-3D output is not presumed production-ready.
+
+Proposed exit conditions: all mandatory technical checks pass; no unexplained changes outside authorized task scope; no duplicate committed operation effects under the injected failures; all files reopen cleanly; and all six views meet the approved direction. Record actual artist intervention, elapsed time, model cost, render time and recovery failures. A pilot pass qualifies that configuration and project class only.
+
+## Verification and evaluation
+
+Use four kinds of checks:
+
+| Check | Examples | Limits |
+|---|---|---|
+| Structural | IDs, transforms, hierarchy, evaluated geometry, resources and dependencies | Correct structure does not imply a good image |
+| Visual | Silhouette, material response, focal hierarchy, unwanted intersections and style coherence | VLM judgments need calibration and can miss defects |
+| Temporal | Full preview playback, sampled curves, loop seams, contacts, flicker and cache stability | Sparse stills cannot establish motion quality |
+| Delivery | Native reopen, target import, render regeneration and editable controls | A source-application round trip alone does not prove target compatibility |
+
+Measurements specify object space or world space, units, evaluated or base geometry, modifier state, instance handling and tolerances. Unknown, unsupported and not-applicable results must be distinct from pass. Render evidence pins the camera, frame, lighting, color transform, engine settings and scene version; compare like with like.
+
+Create defect fixtures for wrong units, missing texture, shared-material drift, duplicated IDs, unintentional UV overlap, boundary gaps, stale cache and unauthorized object edits. Test validators against known passing and failing scenes. Avoid an unconditional ban on ngons, open meshes or intentional mirrored UVs.
+
+For creative evaluation, compare candidates against approved reference views, including rejected examples. Use pairwise comparisons, randomized candidate order and an explicit tie/uncertain result. Keep hard constraints outside the aesthetic score. A critic may propose a change; an independent verifier checks the resulting revision. Ask the artist to calibrate disagreement on representative examples before unattended aesthetic decisions.
+
+Compare three configurations on the same briefs and model budgets: direct MCP prompting, the supplied process skills, and the full harness. Use several independent runs and at least one unseen environment brief. Report completion rate, preservation of locked features, revision effort, recoverability, artistic preference and total cost. The research papers motivate these patterns; they do not establish multi-day production reliability for this system.
+
+Qualify duration progressively: a two-hour pilot, an eight-hour overnight environment run, then a 24-hour run after recovery is stable. These are proposed test durations, not promises of autonomous quality. Include agent-context replacement, coordinator restart, Blender crash, lost response after a write, unavailable model service, render failure, disk-pressure handling and manual intervention. Track duplicated effects, lost accepted work, invalid completion claims, recovery time and required human interventions. Repeat the fault cases; one successful long run is insufficient.
+
+Long jobs also need a progress policy. Checkpoint before expensive work, retry transient failures with bounded backoff, and change strategy after repeated semantic failures. When candidate quality stops improving, retain the best verified candidate and surface the remaining issue. The scheduler should not spend an entire night repeating equivalent unsuccessful edits.
+
+## Build phases and gates
+
+Estimates below are planning ranges for one experienced pipeline engineer with recurring artist review. They are not delivery promises. Re-estimate after the adapter evaluation and first recovery prototype. Environment alpha through Phase 4 is approximately 7–13 engineering weeks, plus the added 1–2 day cross-host contract exercise; creative iteration and large renders can extend elapsed time.
+
+That baseline did not separately estimate qualification of three client packages and a detached agent runner. Include the Codex entry prototype early, then re-estimate broader packaging and background execution after its installation and handoff tests. See the [packaging implementation order](./DCC_HARNESS_PACKAGING_AND_ENTRY_POINTS.md#implementation-order-and-acceptance).
+
+| Phase | Estimate | Deliverable | Exit gate |
+|---|---|---|---|
+| 0 Foundations and adapter evaluation | 4–7 days | Pilot brief, pinned Blender candidates, native smoke harness, small Unreal contract comparison | Pass Blender smoke gates; test that identity, discovery, inspection and observation contracts also fit Unreal; clearly label schema-only evidence |
+| 1 Project state and minimal workflow | 1–2 weeks baseline | Schemas, registry, SQLite, manifests, CLI, Codex entry skill and connector prototype | Start a two-task asset job from normal chat; resume in a fresh context; reject stale input revisions |
+| 2 Durable Blender execution | 2–3 weeks | Worker supervisor, write leases, receipts, native checkpoints, reconciliation, typed baseline operations | Pass crash, lost-response, duplicate-call, stale-writer and manual-edit tests before unattended work |
+| 3 Environment production loop | 2–3 weeks | Layout, modular modeling, materials, lighting, assembly and review skills | Produce and revise the pilot blockout and detailed assets while preserving accepted versions |
+| 4 Quality and usable alpha | 1–4 weeks baseline | Chat review, optional review page, defect fixtures, critic, artist calibration and pilot evidence | Complete pilot and held-out brief; recover from faults; demonstrate late revisions and clean handoff; qualify additional client packages separately |
+| 5 Temporal workflow and motion design | 2–3 weeks | Sequence contracts, previews, timing tools, environmental animation and first mograph exercises | Camera move and animated elements remain stable; motion evaluated in playback; controls survive reopening |
+| 6 Second DCC and interoperability | 2–3 weeks | C4D or Unreal adapter, portable asset subset, fidelity report | Transfer a representative environment subset, revise it, and verify identity, dimensions, timing and look within declared limits |
+| 7 Broader production operation | 3–5 weeks initially | More adapters, isolated asset concurrency, generation queue, larger soak suite | Repeatable sustained runs under resource pressure with measured recovery and revision performance |
+
+Resource scheduling begins in Phase 2: classify tasks by interactive CPU, batch CPU, GPU memory and render cost. Start conservatively with one heavy GPU task at a time. Increase concurrency only after measuring the actual machine. Quality-first still needs upper limits on retries, total spend, disk growth and stalled work.
+
+## First ten implementation tasks
+
+1. Write the pilot specification and acceptance rubric, including locked features and six review views.
+2. Inventory the actual Blender version, extensions, GPU memory, storage and rendering backend. Record a reproducible environment manifest.
+3. Run the same disposable-scene probe through DCC-MCP Blender and upstream Blender Lab. Select and pin one. Use a small db-lyon UE-MCP contract exercise to challenge Blender-specific assumptions without bringing Unreal production into the first milestone.
+4. Implement project, asset, task, operation and evidence schemas with migrations and a small example project.
+5. Implement native identity bindings, duplicate detection, observed revision tracking and compact dependency queries.
+6. Build the single-worker supervisor and request journal, including unknown-outcome handling.
+7. Implement native save/reopen checkpoints and test crashes before mutation, after mutation, during save and before database commit.
+8. Add the smallest typed operation set needed for blockout, reusable asset placement, material assignment, lighting and review renders.
+9. Package the first environment skills with structural and visual checks, then run a blockout-to-review loop.
+10. Exercise a late revision and manual edit, record the actual failures, and use those results to size the next phase.
+
+## Expansion to other tools
+
+Blender proves the core first. Then prioritize C4D if motion graphics and procedural animation are the next production need, or Unreal if interactive environments and real-time cinematics take precedence. Current C4D has a vendor MCP interface; Unreal 5.8 has an experimental vendor MCP and Toolset Registry. Qualify both against the exact installed versions. [Maxon MCP](https://www.maxon.net/en/cinema-4d/features/mcp-server), [Epic MCP](https://dev.epicgames.com/documentation/unreal-engine/unreal-mcp-in-unreal-editor)
+
+For Unreal, evaluate db-lyon UE-MCP first among third-party adapters and compare its integration with direct Epic access. Its wrapper can expose Epic tools too; select one route per capability and avoid duplicate registrations with ambiguous semantics. Qualify environment import, assembly, lighting, cameras and capture before expanding to PCG, Niagara or Sequencer. [UE-MCP adoption review](./DCC_HARNESS_UE_MCP_REVIEW.md)
+
+Model common intent and expose native extensions. An adapter reports supported operations and fidelity limits; it does not pretend that Geometry Nodes, MoGraph, Houdini networks and Unreal PCG are interchangeable. Specify the portable subset first: geometry, transforms, instances, cameras, selected animation and supported materials. Preserve native procedural graphs and use baked fallbacks where needed.
+
+USD is a useful scene exchange and composition layer. It does not carry every native rig, shader or procedural behavior automatically. Keep a transfer manifest with stable IDs, coordinate conversions, units, color configuration, frame rate, material substitutions and losses. Test coordinate handedness, normals, camera framing and texture scale in the destination. Use a pinned OpenColorIO configuration where supported and calibrate renderer differences; matching numeric light values is insufficient. [OpenUSD](https://openusd.org/release/intro.html), [OpenColorIO](https://opencolorio.readthedocs.io/en/main/)
+
+Add ComfyUI or another generation service through asynchronous submit/status/cancel/collect operations. Store prompt, workflow, model versions, seed and returned artifact hashes. A seed is provenance, not a guarantee of identical output across runtimes. Import only a collected, validated result. Use OpenTimelineIO for editorial cuts and media references when sequences grow; retain native animation and simulation data separately. [OpenTimelineIO](https://opentimelineio.readthedocs.io/en/latest/)
+
+## Boundaries for the first release
+
+The first release should demonstrate detailed environment generation and controlled revision, durable recovery, and useful artist review. Full character acting, general simulation authoring, simultaneous writers in one scene, arbitrary cross-DCC graph translation, model training, a skill marketplace and a replacement DCC interface are later work.
+
+Keep a reviewed baseline. Promote newly learned techniques or upgraded skills only after they pass held-out tasks and do not degrade recovery or editability. Longer execution is valuable when it produces a better verified project; elapsed time and operation count are not quality metrics by themselves.

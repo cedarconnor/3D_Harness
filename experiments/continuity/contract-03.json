@@ -1,0 +1,410 @@
+{
+  "schema": "dcc.continuity.contract.v1",
+  "spec": {
+    "schema": "dcc.spec.v1",
+    "required": {
+      "hero.seat": {
+        "type": "MESH",
+        "dimensions": [
+          2.1,
+          0.5,
+          0.12
+        ],
+        "tolerance": 0.001
+      },
+      "camera.hero": {
+        "type": "CAMERA"
+      },
+      "camera.reverse": {
+        "type": "CAMERA"
+      },
+      "camera.detail": {
+        "type": "CAMERA"
+      },
+      "camera.overview": {
+        "type": "CAMERA"
+      },
+      "camera.garden": {
+        "type": "CAMERA"
+      },
+      "camera.forecourt": {
+        "type": "CAMERA"
+      },
+      "ext.forecourt.ground": {
+        "type": "MESH",
+        "min_triangles": 12,
+        "dimensions": [
+          14.5,
+          4.5,
+          0.12
+        ],
+        "tolerance": 0.015
+      },
+      "ext.garden.path": {
+        "type": "MESH",
+        "min_triangles": 12,
+        "dimensions": [
+          1.4,
+          6,
+          0.12
+        ],
+        "tolerance": 0.015
+      },
+      "ext.bed.a": {
+        "type": "MESH",
+        "min_triangles": 12,
+        "dimensions": [
+          2.2,
+          1.6,
+          0.5
+        ],
+        "tolerance": 0.015,
+        "material_ids": [
+          "stone"
+        ]
+      },
+      "ext.bed.b": {
+        "type": "MESH",
+        "min_triangles": 12,
+        "dimensions": [
+          2.2,
+          1.6,
+          0.5
+        ],
+        "tolerance": 0.015,
+        "material_ids": [
+          "stone"
+        ]
+      },
+      "ext.table.top": {
+        "type": "MESH",
+        "min_triangles": 12,
+        "dimensions": [
+          2.8,
+          0.8,
+          0.1
+        ],
+        "tolerance": 0.015,
+        "material_ids": [
+          "wood"
+        ]
+      },
+      "ext.stool.01.seat": {
+        "type": "MESH",
+        "min_triangles": 12,
+        "dimensions": [
+          0.5,
+          0.4,
+          0.08
+        ],
+        "tolerance": 0.015,
+        "material_ids": [
+          "wood"
+        ]
+      },
+      "ext.stool.02.seat": {
+        "type": "MESH",
+        "min_triangles": 12,
+        "dimensions": [
+          0.5,
+          0.4,
+          0.08
+        ],
+        "tolerance": 0.015,
+        "material_ids": [
+          "wood"
+        ]
+      },
+      "ext.stool.03.seat": {
+        "type": "MESH",
+        "min_triangles": 12,
+        "dimensions": [
+          0.5,
+          0.4,
+          0.08
+        ],
+        "tolerance": 0.015,
+        "material_ids": [
+          "wood"
+        ]
+      },
+      "ext.stool.04.seat": {
+        "type": "MESH",
+        "min_triangles": 12,
+        "dimensions": [
+          0.5,
+          0.4,
+          0.08
+        ],
+        "tolerance": 0.015,
+        "material_ids": [
+          "wood"
+        ]
+      },
+      "ext.pergola.beam": {
+        "type": "MESH",
+        "min_triangles": 12,
+        "dimensions": [
+          3.5,
+          0.18,
+          0.22
+        ],
+        "tolerance": 0.015
+      },
+      "ext.planter.01.pot": {
+        "type": "MESH",
+        "min_triangles": 12,
+        "dimensions": [
+          0.55,
+          0.55,
+          0.6
+        ],
+        "tolerance": 0.015,
+        "material_ids": [
+          "terracotta"
+        ]
+      },
+      "ext.planter.02.pot": {
+        "type": "MESH",
+        "min_triangles": 12,
+        "dimensions": [
+          0.55,
+          0.55,
+          0.6
+        ],
+        "tolerance": 0.015,
+        "material_ids": [
+          "terracotta"
+        ]
+      },
+      "ext.planter.03.pot": {
+        "type": "MESH",
+        "min_triangles": 12,
+        "dimensions": [
+          0.55,
+          0.55,
+          0.6
+        ],
+        "tolerance": 0.015,
+        "material_ids": [
+          "terracotta"
+        ]
+      },
+      "ext.planter.04.pot": {
+        "type": "MESH",
+        "min_triangles": 12,
+        "dimensions": [
+          0.55,
+          0.55,
+          0.6
+        ],
+        "tolerance": 0.015,
+        "material_ids": [
+          "terracotta"
+        ]
+      },
+      "ext.birdbath.bowl": {
+        "type": "MESH",
+        "min_triangles": 12,
+        "dimensions": [
+          0.75,
+          0.75,
+          0.16
+        ],
+        "tolerance": 0.015,
+        "material_ids": [
+          "stone"
+        ]
+      },
+      "ext.tool.watering_can": {
+        "type": "MESH",
+        "min_triangles": 12
+      },
+      "ext.tool.seed_tray": {
+        "type": "MESH",
+        "min_triangles": 12
+      },
+      "ext.tool.trowel": {
+        "type": "MESH",
+        "min_triangles": 12
+      },
+      "ext.sign.panel": {
+        "type": "MESH",
+        "min_triangles": 12,
+        "dimensions": [
+          0.7,
+          0.06,
+          0.35
+        ],
+        "tolerance": 0.015
+      },
+      "ext.tool.fork": {
+        "type": "MESH",
+        "min_triangles": 12
+      }
+    },
+    "min_asset_definitions": 14,
+    "required_materials": [
+      "stone",
+      "wood",
+      "terracotta",
+      "bronze",
+      "paint"
+    ],
+    "material_nodes": {
+      "stone": {
+        "Principled BSDF": {
+          "Base Color": [
+            0.46,
+            0.42,
+            0.34,
+            1
+          ]
+        }
+      }
+    }
+  },
+  "allowed_object_prefixes": {
+    "ext.table.": [
+      "geometry_hash",
+      "bounds",
+      "dimensions",
+      "uv_hash",
+      "vertices",
+      "triangles",
+      "source_mesh_hash",
+      "source_uv_hash",
+      "evaluated_uv_values"
+    ],
+    "ext.stool.": [
+      "geometry_hash",
+      "bounds",
+      "dimensions",
+      "uv_hash",
+      "vertices",
+      "triangles",
+      "source_mesh_hash",
+      "source_uv_hash",
+      "evaluated_uv_values"
+    ]
+  },
+  "allowed_material_inputs": {
+    "stone": {
+      "Principled BSDF": {
+        "Base Color": [
+          0.46,
+          0.42,
+          0.34,
+          1
+        ]
+      }
+    }
+  },
+  "allowed_new_prefixes": [
+    "ext.sign."
+  ],
+  "centers": {
+    "ext.forecourt.ground": [
+      3.25,
+      -5.75,
+      -0.06
+    ],
+    "ext.garden.path": [
+      5.3,
+      0,
+      -0.06
+    ],
+    "ext.bed.a": [
+      8.3,
+      -1.3,
+      0.25
+    ],
+    "ext.bed.b": [
+      8.3,
+      1.3,
+      0.25
+    ],
+    "ext.table.top": [
+      8,
+      -6,
+      0.9
+    ],
+    "ext.stool.01.seat": [
+      6,
+      -5.35,
+      0.5
+    ],
+    "ext.stool.02.seat": [
+      7,
+      -5,
+      0.5
+    ],
+    "ext.stool.03.seat": [
+      9,
+      -5,
+      0.5
+    ],
+    "ext.stool.04.seat": [
+      10,
+      -5,
+      0.5
+    ],
+    "ext.pergola.beam": [
+      8.25,
+      0,
+      2.7
+    ],
+    "ext.planter.01.pot": [
+      0,
+      -7,
+      0.3
+    ],
+    "ext.planter.02.pot": [
+      2,
+      -7,
+      0.3
+    ],
+    "ext.planter.03.pot": [
+      4,
+      -7,
+      0.3
+    ],
+    "ext.planter.04.pot": [
+      6,
+      -7,
+      0.3
+    ],
+    "ext.birdbath.bowl": [
+      8.3,
+      0,
+      1
+    ],
+    "ext.sign.panel": [
+      3.5,
+      -4.3,
+      1.2
+    ]
+  },
+  "center_tolerance": 0.015,
+  "preserve_centers": [
+    "ext.stool.01.seat",
+    "ext.stool.02.seat",
+    "ext.stool.03.seat",
+    "ext.stool.04.seat"
+  ],
+  "exact_asset_counts": {},
+  "sharing_groups": [
+    [
+      "ext.stool.01.seat",
+      "ext.stool.02.seat",
+      "ext.stool.03.seat",
+      "ext.stool.04.seat"
+    ],
+    [
+      "ext.planter.01.pot",
+      "ext.planter.02.pot",
+      "ext.planter.03.pot",
+      "ext.planter.04.pot"
+    ]
+  ]
+}

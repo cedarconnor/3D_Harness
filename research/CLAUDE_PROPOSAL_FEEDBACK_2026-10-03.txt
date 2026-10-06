@@ -1,0 +1,40 @@
+I'll start by loading the architecture-review skill, then read every design document in the folder before writing up critical feedback.
+
+The skill's "evaluate a design" mode fits. Now let me read all the documents.
+
+I've read all seven design documents and the six skill files. Here is the critical feedback.
+
+**Overall verdict:** the second-generation documents correctly diagnose the first generation's weak points, then overcorrect into a distributed-systems project. The plan now spends its first five to eight weeks on leases, receipts, process incarnations and three client installers before any geometry quality is tested. The riskiest unknown in this project is not exactly-once mutation. It is whether an LLM with assert and measure tools can produce an environment an artist will accept. Nothing in the plan de-risks that until Phase 3.
+
+## Biggest issue: durability is scheduled before evidence
+
+- **The baseline experiment is buried.** The [build plan](DCC_HARNESS_BUILD_PLAN.md:219) proposes comparing direct MCP prompting, the process skills, and the full harness on the same briefs. That is the most important item in the whole corpus, and it is placed after Phase 4. Run it in week one with the Blender MCP already connected to this machine. The result either justifies every later phase or kills them, and the plan never says what result would cancel the harness.
+- **Phase gates measure plumbing, not output.** Phase 1 exits on "resume in a fresh context; reject stale input revisions." Phase 2 exits on crash and duplicate-call tests. The first creative deliverable is the Phase 3 blockout, roughly weeks five to eight. For a single agent, saving a .blend after each task plus an operations log gives most of the recovery value at a tiny fraction of the cost.
+- **The first-generation priority list was closer to right.** Items one through three in the [architecture note](llm-dcc-agent-architecture.md:325) are spec files, measure and assert, and a diff-based result wrapper. The [document review](DCC_HARNESS_DOCUMENT_REVIEW.md:15) is correct that undo is not crash recovery, but wrong that full recovery infrastructure must be the first execution milestone.
+
+## Design problems in the current proposals
+
+- **The "thin adapter over existing MCP servers" promise does not hold.** Every differentiating feature needs code running inside Blender: before/after scene diffs, identity bindings in custom properties, measure, fingerprints, change capture. Forwarding a generic execute-code call through a proxy adds a lease and a receipt but cannot report affected objects. The [packaging doc](DCC_HARNESS_PACKAGING_AND_ENTRY_POINTS.md:107) obscures this. You are writing a Blender add-on either way, so plan for one.
+- **Managed mode conflicts with the chosen entry point.** The host agent in Claude Code or Codex will see both the harness connector and the direct Blender tools. The packaging doc says to disable direct write routes, which discards the tool libraries the plan wanted to reuse. Pick one honestly: either the harness re-exposes a curated tool set, or the harness is advisory and the write-ordering guarantees are dropped.
+- **Three retrying actors remain.** The build plan forbids a second scheduler in the adapter framework, but the host agent retries on its own, the background runner has its own loop, and UE-MCP flows have retries. An LLM that gets a timeout will call the tool again. The idempotency key only works if the API forces reuse, for example a prepare step that issues the operation ID and an execute step that requires it. That detail is the whole mechanism and it is not specified.
+- **Identity under procedural instancing is unspecified.** Shift+D in Blender copies custom properties, so duplicate IDs occur every time the artist duplicates. Geometry Nodes instances have no object identity at all, yet the procedural distribution skill depends on an "instance registry." The environment benchmark centers on repeated instances, so this gap sits exactly where the pilot lives.
+- **Two Blender processes on one file is unaddressed at the file level.** Owned headless workers build, the artist's GUI Blender reviews. Last save wins. Library linking from per-asset files into a master file is the standard Blender answer and should be named as the integration mechanism. The review doc rejects scene-per-job isolation but never names the replacement.
+- **Headless workers break the review loop.** Viewport renders and screenshots need a GUI session. Eevee in background mode on Windows is possible but fragile. The plan says background execution must be "tested" without acknowledging that review rendering may need a different process than building.
+- **Dcc-mcp-core evaluation looks like negative value.** The plan refuses its workflow engine and writes its own adapter contract. What remains is discovery and transport, which Blender Lab MCP plus an add-on already covers. A three-to-five day evaluation may cost more than it returns.
+- **Multi-client packaging and the background runner are premature.** One artist, one Windows machine, and this session runs in Claude Code. The packaging doc nonetheless says "Codex first" and budgets for Cursor. The controller-lease handoff between an interactive host and an SDK runner designs for a workflow nobody has validated. A scheduled headless Claude Code run that reads project state covers most of the need.
+
+## Overcorrections, inconsistencies and gaps
+
+- **Assert-first was weakened too far.** The review is right that forcing existing constraints to fail is artificial. But watching a RED on a new deliverable's existence rule is what proves the assert names the right object. Keep RED for new deliverables and baselines for everything else.
+- **Tool-mode filtering was dropped rather than reclassified.** Mode-filtered tool sets are not enforcement, as the review says, but they are very effective steering. Keep them as UX and enforce separately.
+- **Hedging swamps the decisions.** Nearly every paragraph in the second-generation docs carries a disclaimer. Move those into one status section per document so the actual choices are readable.
+- **Zero usable skills exist.** The [skill system](DCC_HARNESS_SKILL_SYSTEM.md:97) lists 13 first-release skills, each with schemas, evaluators, fixtures and a Blender implementation, while the drafted skills in `dcc-skills/` are shelved as research inputs. Write three skills in the existing format, test them against plain MCP, and let the manifest emerge from what they need.
+- **No cost or render budget.** Six cameras, before and after, every task, plus reviewer agents and scene observations. A 50-operation job could cost anywhere from tens to hundreds of dollars and hours of GPU time. The benchmark cannot be interpreted without this.
+- **No texturing path.** Material authoring is a first-priority skill with no implementation route. Procedural nodes, painted textures, bakes and generated textures each need different tooling.
+- **No asset sourcing.** "Licensed library assets" appears with no concrete source or intake pipeline.
+- **The first-generation note still carries stale claims** such as no first-party Unreal MCP. Both generations sit in the folder with equal authority. Mark the earlier note superseded or correct it in place.
+- **The recovery lifecycle is restated in three documents.** Collapse into one decision log, one build plan, and one research appendix.
+
+Worth keeping as written: desired versus observed state, evidence pinned to revision and camera and color config, dependency-aware invalidation, requirement profiles instead of universal topology bans, unknown-outcome as a first-class state, the reproduced Git defect in the [UE-MCP review](DCC_HARNESS_UE_MCP_REVIEW.md:54), and the rulings-not-stalls rule from the first generation.
+
+I can write this up as a page or a review document in the folder if you want to pass it along.

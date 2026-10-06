@@ -1,0 +1,18 @@
+{
+  "schema": "dcc.spec.v1",
+  "units": {"system": "METRIC", "scale_length": 1.0},
+  "min_asset_definitions": 8,
+  "required_materials": ["stone", "teal-paint", "wood", "bronze", "terracotta", "foliage"],
+  "required": {
+    "arcade.pier.0": {"type": "MESH", "asset_id": "arcade", "dimensions": [0.6, 0.62, 3.9], "tolerance": 0.0001, "min_triangles": 24},
+    "arcade.voussoir.1.06": {"type": "MESH", "asset_id": "arcade", "material_ids": ["stone"], "min_triangles": 24},
+    "bench.seat.0": {"type": "MESH", "asset_id": "bench", "dimensions": [1.9, 0.071, 0.035], "tolerance": 0.0001, "min_triangles": 24, "material_ids": ["wood"]},
+    "planter.0": {"type": "MESH", "asset_id": "planter", "min_triangles": 400},
+    "plant.leaves.0": {"type": "MESH", "asset_id": "plant", "min_triangles": 700},
+    "door.panel": {"type": "MESH", "asset_id": "door", "material_ids": ["teal-paint"]},
+    "camera.hero": {"type": "CAMERA"},
+    "camera.reverse": {"type": "CAMERA"},
+    "camera.detail": {"type": "CAMERA"},
+    "light.sun": {"type": "LIGHT"}
+  }
+}

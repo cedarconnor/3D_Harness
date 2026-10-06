@@ -1,0 +1,14 @@
+{
+  "schema": "dcc.spec.v1",
+  "required": {
+    "hero.seat": {"type": "MESH", "asset_id": "bench", "dimensions": [1.9, 0.5, 0.12], "tolerance": 0.005, "min_triangles": 12},
+    "camera.hero": {"type": "CAMERA"},
+    "camera.reverse": {"type": "CAMERA"},
+    "camera.detail": {"type": "CAMERA"},
+    "light.sun": {"type": "LIGHT"}
+  },
+  "min_asset_definitions": 6,
+  "required_materials": ["stone"],
+  "units": {"system": "METRIC", "scale_length": 1.0},
+  "material_nodes": {"stone": {"Principled BSDF": {"Base Color": [0.55, 0.47, 0.36, 1.0]}}}
+}
