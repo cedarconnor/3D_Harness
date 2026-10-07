@@ -1,7 +1,22 @@
 import copy
+from pathlib import Path
+import tempfile
+import unittest
 
 from coordination_helpers import Fixture
 from dcc_harness import environment_workflow as ew, workflow, coordination as c
+
+
+class RuntimeStampTests(unittest.TestCase):
+    def test_source_digest_ignores_checkout_line_endings_but_not_content(self):
+        with tempfile.TemporaryDirectory() as temp:
+            sources = {'lf': b'x = 1\ny = 2\n', 'crlf': b'x = 1\r\ny = 2\r\n', 'changed': b'x = 1\ny = 3\n'}
+            for name, data in sources.items():
+                (Path(temp) / name).mkdir()
+                (Path(temp) / name / 'module.py').write_bytes(data)
+            digests = {name: ew.runtime_stamp(Path(temp) / name)['source_digest'] for name in sources}
+        self.assertEqual(digests['lf'], digests['crlf'])
+        self.assertNotEqual(digests['lf'], digests['changed'])
 
 
 class EnvironmentWorkflowTests(Fixture):

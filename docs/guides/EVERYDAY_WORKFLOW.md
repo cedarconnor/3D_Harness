@@ -37,7 +37,7 @@ python -m dcc_harness begin-edit C:/project/state --parent PARENT_ID --current C
 python -m dcc_harness finish-edit C:/project/state EDIT_ID --checkpoint C:/project/revised.blend --observation C:/project/revised.json --handoff C:/project/CONTINUE-revised.md --updates C:/project/decision-updates.json
 ```
 
-`PARENT_ID` is `active.id` from resume; `EDIT_ID` is `edit` from begin-edit. These are placeholders in this example, not literal commands to paste unchanged. `updates` may be `{}`. Every `--out` is an exclusively created optional report file; choose a new name and inspect outcomes before retrying if report export itself fails.
+`PARENT_ID` is `active.id` from resume; `EDIT_ID` is `edit` from begin-edit. These are placeholders in this example, not literal commands to paste unchanged. `updates` may be `{}`. Every `--out` is an exclusively created optional report file. Since 0.5.1 the result is printed before the file is written. If the path already exists, nothing is overwritten and the command exits with status 2, but the printed result and any committed change stand. Never rerun a committed command just to obtain a receipt.
 
 Begin checks parent identity, exact current saved-file bytes, a matching clean observation and observed preservation against the accepted baseline. It then retains script/contract bytes and starts a durable pending journal operation. Another cooperating begin cannot reserve concurrently or while that edit is pending. Execute the returned retained script, not an earlier source path that may have changed.
 

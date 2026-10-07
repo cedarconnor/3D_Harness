@@ -16,10 +16,10 @@ Earlier plans are archived verbatim in [archive/plans](archive/plans/). The Octo
 
 | | |
 |---|---|
-| Version | 0.5.0 on `main` |
-| Active | M1: version 0.5.1 correctness maintenance |
-| Next | P1: lower the cost of each step |
-| Waiting on the user | E1–E3 artist review session; E4 decision on the realistic comparison |
+| Version | 0.5.1 on `main` |
+| Active | P1: lower the cost of each step ([plan](plans/P1_LOWER_STEP_COST.md)) |
+| Next | E5 fresh-agent continuation, then P2 |
+| Waiting on the user | E1–E3 artist review session; E4 decision on the realistic comparison; GitHub write access for R1 |
 | Investment gate | Open |
 
 ## Tracker
@@ -40,7 +40,7 @@ These need artist time or a user decision rather than new code. Every stage afte
 
 | ID | Item | Owner | Status | Exit criteria |
 |---|---|---|---|---|
-| M1 | Version 0.5.1 correctness fixes ([details](#m1-version-051-correctness-maintenance)) | Agent | active | A regression test per defect, source and installed suites, native fixtures, and a 0.5.1 report |
+| M1 | Version 0.5.1 correctness fixes ([details](#m1-version-051-correctness-maintenance)) | Agent | done | A regression test per defect, source and installed suites, native fixtures, and a [0.5.1 report](archive/releases/MAINTENANCE_0_5_1_RESULTS.md) |
 | M2 | Consolidate duplicated helpers: file hashing, link rejection, JSON writers, copy-then-verify | Agent | todo | No behavior change; suites and native fixtures pass |
 | M3 | Separate experiment tooling (`blind`, `blind_review`, `continuity_trial`, `continuity_review`) from the pinned runtime digest | Agent | todo | Experiment edits no longer invalidate workflow bindings; frozen packets are unaffected |
 | M4 | Shared launcher helper for the qualification orchestrators | Agent | todo | `qualify_*` and `run_*` scripts share one helper; evaluators copied into packets stay self-contained |
@@ -51,7 +51,7 @@ Ranked by expected effect on the gate. Each ships as its own version.
 
 | ID | Item | Owner | Status | Exit criteria |
 |---|---|---|---|---|
-| P1 | Lower the cost of each step: an `observe` command and a payload hash helper ([details](#p1-lower-the-cost-of-each-step)) | Agent | todo | The 0.5.0 micro-fixture revision repeated by a fresh agent with fewer manual steps; elapsed time compared with 372.6 s |
+| P1 | Lower the cost of each step: an `observe` command and a payload hash helper ([plan](plans/P1_LOWER_STEP_COST.md)) | Agent | active | The 0.5.0 micro-fixture revision repeated by a fresh agent with fewer manual steps; elapsed time compared with 372.6 s |
 | P2 | Relationship checks with evidence reliability and repair history | Agent | todo | One relation family qualified natively; a fresh continuation avoids repeating an ineffective repair |
 | P3 | Collection instances and linked libraries | Agent | todo | Instanced scenes can `start`; D5 publishing model decided; positive and negative native fixtures |
 | P4 | Before/after review page over immutable checkpoints | Agent | todo | Changed objects by stable ID with bound renders and linked notes, checked against reopened checkpoints |
@@ -64,7 +64,7 @@ Ranked by expected effect on the gate. Each ships as its own version.
 
 | ID | Item | Owner | Status | Exit criteria |
 |---|---|---|---|---|
-| R1 | Merge the feature branches into `main` | Agent | done | `main` contains 0.4.9 through 0.5.0; merged branches deleted |
+| R1 | Merge the feature branches into `main` | Agent | blocked: GitHub write access | Local `main` contains 0.4.9 through 0.5.0 and local branches are deleted. Pushing `main` and deleting the remote branches failed: the git credential's account, `Cedar-Sphere`, cannot write to `cedarconnor/3D_Harness`. |
 | R2 | Organize documentation into active and archive folders; make this plan trackable | Agent | done | No broken relative links; index updated |
 | R3 | Tag released versions | Agent | todo | Tags for 0.4.8 through the current version, pushed with user approval |
 
@@ -86,6 +86,8 @@ Revisit each against a named, measured gap.
 ## Item details
 
 ### M1: Version 0.5.1 correctness maintenance
+
+Done in 0.5.1; see the [report](archive/releases/MAINTENANCE_0_5_1_RESULTS.md). `finish-edit` still verifies twice, before and after publication; incremental verification is future work.
 
 These defects were confirmed during the October 6 review. Each fix needs a regression test. The version bump changes the pinned runtime digest, so projects bound under 0.5.0 need that runtime for workflow mutations.
 
@@ -194,7 +196,10 @@ Capture fixed views at blockout, surface and lighting completion, pre-revision a
 
 Newest first. One line per status change.
 
+- **2026-10-06:** P1 started; [implementation plan](plans/P1_LOWER_STEP_COST.md) written.
+- **2026-10-06:** M1 done. Version 0.5.1 fixes six defects, with eleven new tests; native exercises passed against source and installed runtimes.
+- **2026-10-06:** R1 blocked. Pushing `main` was refused for the `Cedar-Sphere` credential; the merge exists locally.
 - **2026-10-06:** M1 started.
 - **2026-10-06:** R2 done. Documentation reorganized into active folders (`guides/`, `recipes/`, `studies/`, `reference/`) and `archive/`; this plan converted to a tracker.
-- **2026-10-06:** R1 done. `codex/manual-revision` (0.4.10) and `codex/structured-feedback-workflow` (0.5.0) merged into `main`; the stacked feature branches retired.
+- **2026-10-06:** R1 merged locally. `codex/manual-revision` (0.4.10) and `codex/structured-feedback-workflow` (0.5.0) merged into `main`; the local feature branches were deleted.
 - **2026-10-06:** Plan rewritten from the October 3 week-one plan; previous text archived.

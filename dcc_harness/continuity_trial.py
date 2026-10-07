@@ -22,7 +22,7 @@ from .project import Project
 
 SCHEMA = "dcc.continuity-trial.v1"
 RUN_ID = re.compile(r"t-[0-9a-f]{12}\Z")
-HELPER_FILES = ("__init__.py", "evidence.py", "project.py", "blender.py",
+HELPER_FILES = ("__init__.py", "evidence.py", "observation_storage.py", "project.py", "blender.py",
                 "uv_guard.py", "continuity.py", "continuity_blender.py",
                 "continuity_checks.py")
 STAGES = (1, 2, 3, 4)

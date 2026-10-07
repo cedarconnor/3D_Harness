@@ -72,7 +72,11 @@ def _reservations(root):
 
 def resume(root, focus=()):
     store = Continuity(root)
-    state = store.status()
+    return _packet(store, store.status(), focus)
+
+
+def _packet(store, state, focus=()):
+    """Build the resume packet from a status() that the caller just verified."""
     active = state['active']
     obs = read_json(active['observation'])
     reservations = _reservations(store.root)
@@ -151,12 +155,14 @@ def begin_edit(root, expected_parent, current, observation, script, contract, la
     fresh = _clean_observation(observation, current)
     evaluate(fresh, rules['spec'])  # Validate supported spec syntax; missing future deliverables may fail now.
     with writer_guard(root):
-        packet = resume(root)
-        # The current caller owns this short metadata lock.
+        # The current caller owns this short metadata lock; verify the chain once under it.
+        store = Continuity(root)
+        state = store.status()
+        packet = _packet(store, state)
         if packet['pending'] or packet['unresolved_edits']:
             raise RuntimeError('Unresolved edit; inspect and reconcile before another write')
         active = packet['active']
-        if label in {h['step_id'] for h in Continuity(root).status()['task_history']}:
+        if label in {h['step_id'] for h in state['task_history']}:
             raise ValueError('Edit label has already been published; choose a new step ID')
         if expected_parent != active['id']:
             raise ValueError('Stale parent; resume the current project')
@@ -181,7 +187,7 @@ def begin_edit(root, expected_parent, current, observation, script, contract, la
                    'label': label, 'checkpoint_sha256': active['checkpoint_sha256'],
                    'files': {n: file_hash(edit / n) for n in ('script.py', 'contract.json')}}
         write_json(edit / 'request.json', request)
-        operation = Continuity(root).project.begin(label, edit / 'script.py')
+        operation = store.project.begin(label, edit / 'script.py')
         write_json(edit / 'operation.json', {'id': operation})
     return {'edit': edit.name, 'operation': operation, 'script': str(edit / 'script.py'),
             'contract': str(edit / 'contract.json'), 'status': 'RESERVED_NOT_EXECUTED',
@@ -220,7 +226,7 @@ def finish_edit(root, edit_id, checkpoint, observation, handoff, updates, *, rec
         accepted = None
         if check['passed'] and reject_reason is None:
             accepted = store.publish(request['label'], request['expected_parent'], checkpoint, observation,
-                                     handoff, updates, edit / 'check.json')['active']
+                                     handoff, updates, edit / 'check.json', verified=state)['active']
         outcome = {'schema': 'dcc.edit.outcome.v1', 'passed': accepted is not None,
                    'native_check_passed': check['passed'], 'review_rejection': reject_reason,
                    'status': 'PUBLISHED' if accepted else ('REJECTED_VISUAL' if check['passed'] and reject_reason else 'REJECTED_RETAINED'),

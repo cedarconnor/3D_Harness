@@ -14,6 +14,8 @@ python -m dcc_harness feedback-add PROJECT --note INPUT/note.json --expected-rev
 
 Use a new canonical UUID for each new logical request, retained for a retry. Replace `none` with `coordination.revision` after the first event. Other uppercase terms here are placeholders. A lost acknowledgement may be retried with the exact request ID and payload; `ALREADY_COMMITTED` returns the original result without adding an event or executing Blender. Changed content under an old request ID is rejected. A partial bundle or stale workflow lock requires inspection.
 
+Since 0.5.1, a committed result whose `result.passed` is false exits with status 1, like a rejected `finish-edit`; examples include a `fail` or `uncertain` verification. The event is still committed, and a retry returns the same result and status. Status 2 means the result was printed but its `--out` receipt could not be written.
+
 An input note has no `id`; the runtime allocates it:
 
 ```json

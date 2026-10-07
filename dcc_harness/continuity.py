@@ -11,6 +11,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import stat
 
 from .evidence import canonical, digest, file_hash, read_json, validate_observation
 from .project import Project, now
@@ -27,11 +28,18 @@ LIMITS = (
 
 
 def _plain(path):
-    """Reject redirecting files/directories before resolving a retained path."""
+    """Reject redirecting files/directories before resolving a retained path.
+
+    lstat() inspects each component itself: stat() would follow a Windows
+    junction and report its target, letting the junction pass.
+    """
     path = Path(path).absolute()
     for part in (path, *path.parents):
-        if part.is_symlink() or (part.exists() and
-                getattr(part.stat(), "st_file_attributes", 0) & 0x400):
+        try:
+            info = part.lstat()
+        except (FileNotFoundError, NotADirectoryError):
+            continue
+        if stat.S_ISLNK(info.st_mode) or getattr(info, "st_file_attributes", 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT:
             raise ValueError(f"Links/reparse points are not supported: {part}")
     return path
 
@@ -279,15 +287,26 @@ class Continuity:
             self.project.init(brief)
         return self._publish(step_id, None, checkpoint, observation, handoff, decisions, None, brief)
 
-    def publish(self, step_id, expected_parent, checkpoint, observation, handoff, decision_updates, check):
-        """Accept one step; expected_parent is status()['active']['id'], not a path."""
-        return self._publish(step_id, expected_parent, checkpoint, observation, handoff, decision_updates, check)
+    def publish(self, step_id, expected_parent, checkpoint, observation, handoff, decision_updates, check, *, verified=None):
+        """Accept one step; expected_parent is status()['active']['id'], not a path.
 
-    def _publish(self, step_id, expected_parent, checkpoint, observation, handoff, updates, check, brief=None):
+        A caller holding the workflow lock may pass the status() it already
+        verified under that lock, avoiding a second full-chain pass. The newly
+        published chain is still verified in full before returning.
+        """
+        return self._publish(step_id, expected_parent, checkpoint, observation, handoff, decision_updates, check,
+                             verified=verified)
+
+    def _publish(self, step_id, expected_parent, checkpoint, observation, handoff, updates, check, brief=None,
+                 verified=None):
         if not isinstance(step_id, str) or not step_id.strip():
             raise ValueError("Step ID must be nonempty text")
         updates = _mapping(updates, "Decision updates")
-        previous = self.status() if self._bundles() else None
+        bundles = self._bundles()
+        if verified is not None and (not bundles or len(bundles) != verified["active"]["sequence"] or
+                                     file_hash(bundles[-1] / "manifest.json") != verified["active"]["id"]):
+            raise RuntimeError("Verified state is stale; resume before publishing")
+        previous = (verified or self.status()) if bundles else None
         if previous:
             if expected_parent != previous["active"]["id"]:
                 raise ValueError("Stale parent: inspect current continuity state before publishing")

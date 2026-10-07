@@ -1,10 +1,11 @@
 """One pinned environment workflow, with evidence-backed stage receipts."""
+import hashlib
 from importlib.resources import files
 from pathlib import Path
 import re
 
 from . import coordination as c, coordination_evidence as evidence, feedback
-from .evidence import digest, file_hash, read_json
+from .evidence import digest, read_json
 
 
 def default_manifest():
@@ -12,11 +13,17 @@ def default_manifest():
     return json.loads(files('dcc_harness').joinpath('data/environment-workflow.v1.json').read_text(encoding='utf-8'))
 
 
-def runtime_stamp():
+def runtime_stamp(root=None):
+    """Version plus a source digest of this package, or of another source tree for comparison.
+
+    Line endings are normalized so CRLF and LF checkouts of the same sources pin
+    the same runtime; any other byte change alters the digest.
+    """
     from . import __version__
-    root = Path(__file__).parent
-    return {'version': __version__, 'source_digest': digest({p.relative_to(root).as_posix(): file_hash(p)
-                                                          for p in sorted(root.rglob('*.py'))})}
+    root = Path(root) if root is not None else Path(__file__).parent
+    return {'version': __version__, 'source_digest': digest({
+        p.relative_to(root).as_posix(): hashlib.sha256(p.read_bytes().replace(b'\r\n', b'\n')).hexdigest()
+        for p in sorted(root.rglob('*.py'))})}
 
 
 def validate_manifest(value):

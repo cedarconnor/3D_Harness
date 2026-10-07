@@ -70,9 +70,14 @@ class Project:
 
     def status(self):
         meta = read_json(self.root / "project.json")
-        checkpoints = sorted((self.root / "checkpoints").glob("*.blend"))
-        return {"project":meta,"pending":list(self.pending().values()),
-                "checkpoints":[str(p) for p in checkpoints],
-                "continuation":str(self.root / "CONTINUE.md"),
-                "limits":"Advisory; no interception, concurrency control, or automatic replay."}
+        folder = self.root / "checkpoints"
+        bundles = sorted(folder.glob("*/checkpoint.blend"))
+        result = {"project":meta,"pending":list(self.pending().values()),
+                  "checkpoints":[str(p) for p in sorted(folder.glob("*.blend")) + bundles],
+                  "continuation":str(self.root / "CONTINUE.md"),
+                  "limits":"Advisory; no interception, concurrency control, or automatic replay."}
+        if bundles:
+            result["continuity"] = ("Continuity store: run resume to verify its checkpoint chain; "
+                                    "this legacy status does not verify it.")
+        return result
 

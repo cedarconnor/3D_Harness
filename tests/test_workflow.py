@@ -6,8 +6,10 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 from dcc_harness import workflow
+from dcc_harness.project import Project
 from dcc_harness.evidence import digest, file_hash, read_json, write_json
 from test_continuity_checks import observation, contract
 
@@ -125,6 +127,43 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(packet['status'], 'READY_FOR_INSPECTION')
         with self.assertRaisesRegex(RuntimeError, 'already recorded'):
             workflow.finish_edit(self.root, edit['edit'], native, obs, self.handoff, {})
+
+    def count_chain_verifications(self, action):
+        original = workflow.Continuity.status
+        with mock.patch.object(workflow.Continuity, 'status', autospec=True, side_effect=original) as status:
+            result = action()
+        return result, status.call_count
+
+    def test_begin_edit_verifies_the_chain_once(self):
+        edit, verifications = self.count_chain_verifications(self.begin)
+        self.assertEqual(edit['status'], 'RESERVED_NOT_EXECUTED')
+        self.assertEqual(verifications, 1)
+
+    def test_finish_edit_verifies_only_before_and_after_publication(self):
+        edit = self.begin()
+        native, obs = self.candidate()
+        result, verifications = self.count_chain_verifications(
+            lambda: workflow.finish_edit(self.root, edit['edit'], native, obs, self.handoff, {}))
+        self.assertEqual(result['status'], 'PUBLISHED')
+        self.assertEqual(verifications, 2)
+        self.assertEqual(workflow.resume(self.root)['active']['sequence'], 2)
+
+    def test_publish_refuses_a_verified_state_that_the_chain_has_moved_past(self):
+        store = workflow.Continuity(self.root)
+        stale = store.status()
+        edit = self.begin()
+        native, obs = self.candidate()
+        workflow.finish_edit(self.root, edit['edit'], native, obs, self.handoff, {})
+        with self.assertRaisesRegex(RuntimeError, 'stale'):
+            store.publish('late-step', stale['active']['id'], native, obs, self.handoff, {},
+                          self.base / 'check.json', verified=stale)
+        self.assertEqual(workflow.resume(self.root)['active']['sequence'], 2)
+
+    def test_legacy_status_lists_continuity_checkpoints_and_points_to_resume(self):
+        status = Project(self.root).status()
+        self.assertEqual([Path(p).resolve() for p in status['checkpoints']],
+                         [Path(self.packet['active']['checkpoint']).resolve()])
+        self.assertIn('resume', status['continuity'])
 
     def test_failed_preservation_retains_candidate_and_parent(self):
         edit = self.begin()

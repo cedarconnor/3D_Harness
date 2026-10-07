@@ -2,8 +2,18 @@
 
 Each version is a bounded increment with its own qualification report. Test counts are portable-suite results on Windows; the two skips in each count are host symlink-permission cases. Native qualification uses Blender 5.1.1 on Windows. Studies are listed with the versions they exercised. The [build plan](docs/BUILD_PLAN.md) explains what remains open, and reports that link into `runs/` refer to local evidence excluded from Git.
 
-## Unreleased
+## 0.5.1 — October 6, 2026
 
+Correctness maintenance, build-plan item M1, plus the repository reorganization.
+
+- **Fixed:** the path guard now rejects Windows directory junctions. It followed them with `stat()`, so a junction anywhere in a retained path passed the check.
+- **Fixed:** trial packets from `dcc_harness.blind` and `dcc_harness.continuity_trial` now include `observation_storage.py`. Without it, their helper copies could not read JSON.
+- **Fixed:** the pinned workflow runtime digest normalizes line endings, so CRLF and LF checkouts of the same sources pin the same runtime.
+- **Changed:** results print before an `--out` receipt is written. An existing receipt path now exits 2 without hiding a committed result. Coordination commands whose result did not pass, such as a `fail` or `uncertain` verification, exit 1.
+- **Changed:** `begin-edit` verifies the checkpoint chain once instead of twice, and `finish-edit` twice instead of three times. Publication refuses a stale pre-verified state.
+- **Changed:** the legacy pilot commands are labeled in help. Legacy `status` lists continuity checkpoints and points to `resume`.
+- **Compatibility:** the runtime digest changed, so projects bound under 0.5.0 need the 0.5.0 runtime for workflow mutations.
+- **Qualification:** 244 tests, 242 passed, from both source and installed wheel. Native revisions, adoption and feedback-workflow exercises passed against both runtimes, which now pin the same digest. One full chain verification of the nine-checkpoint production store takes about 30 s under either version, so each edit command saves one such pass. [Report](docs/archive/releases/MAINTENANCE_0_5_1_RESULTS.md)
 - **Documentation:** `docs/` is organized into active folders (`guides/`, `recipes/`, `studies/`, `reference/`) and `docs/archive/` for addressed work: release reports, completed studies, implemented plans and superseded inputs, including the former root `research/` and `dcc-skills/` folders. Links are rewritten and verified. The [build plan](docs/BUILD_PLAN.md) is now a tracker with IDs, owners, statuses, exit criteria and a log; the previous plans are archived. This changelog, a [documentation index](docs/README.md), a [scripts index](scripts/README.md) and an [artist review session guide](docs/studies/ARTIST_REVIEW_SESSION.md) are new.
 - **Branches:** versions 0.4.10 and 0.5.0 were merged into `main`; development continues there.
 - **Decision log:** a status table and D17, which records the October 5 authorization for bounded increments.

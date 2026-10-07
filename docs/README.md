@@ -1,6 +1,6 @@
 # Documentation index
 
-Updated October 6, 2026, for version 0.5.0. Start with the repository [README](../README.md), then the [everyday workflow](guides/EVERYDAY_WORKFLOW.md). The [build plan](BUILD_PLAN.md) tracks current status and next work; the [changelog](../CHANGELOG.md) lists what each version delivered.
+Updated October 6, 2026, for version 0.5.1. Start with the repository [README](../README.md), then the [everyday workflow](guides/EVERYDAY_WORKFLOW.md). The [build plan](BUILD_PLAN.md) tracks current status and next work; the [changelog](../CHANGELOG.md) lists what each version delivered.
 
 Documents are split by whether they are still in use:
 
@@ -11,7 +11,7 @@ Documents are split by whether they are still in use:
 | [`recipes/`](recipes/) | Bounded construction helpers used by the craft skills |
 | [`studies/`](studies/) | Open evaluation work: the interrupted realistic comparison and the artist review session |
 | [`reference/`](reference/) | Research and designs behind upcoming stages |
-| `plans/` | Implementation plans for tracked items, created when work starts |
+| [`plans/`](plans/) | Implementation plans for tracked items, created when work starts; currently [P1](plans/P1_LOWER_STEP_COST.md) |
 | [`archive/`](archive/) | Work already addressed: release reports, completed studies, implemented plans and superseded inputs |
 
 Archived documents stay as written. They remain the evidence for the claims in the plan, README and changelog; only their links were updated when files moved.
@@ -72,6 +72,7 @@ One report per version. The [changelog](../CHANGELOG.md) summarizes counts and n
 | 0.4.9 | [Adoption](archive/releases/ADOPTION_0_4_9_RESULTS.md) |
 | 0.4.10 | [External revisions](archive/releases/REVISIONS_0_4_10_RESULTS.md) |
 | 0.5.0 | [Structured feedback](archive/releases/FEEDBACK_0_5_0_RESULTS.md) |
+| 0.5.1 | [Correctness maintenance](archive/releases/MAINTENANCE_0_5_1_RESULTS.md) |
 
 ## Archive: completed studies
 

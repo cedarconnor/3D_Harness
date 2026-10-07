@@ -350,5 +350,25 @@ print(json.dumps(result))
         self.assertIn("verification failed", bad.stderr)
 
 
+@unittest.skipUnless(os.name == "nt", "Directory junctions are a Windows feature")
+class JunctionTests(unittest.TestCase):
+    """Junctions need no privilege, unlike the skipped symlink cases on this host."""
+
+    def test_junction_ancestor_is_rejected_like_a_symlink(self):
+        import _winapi
+        from dcc_harness.continuity import _plain
+        with tempfile.TemporaryDirectory() as temp:
+            target, link = Path(temp) / "target", Path(temp) / "link"
+            target.mkdir()
+            _winapi.CreateJunction(str(target), str(link))
+            try:
+                with self.assertRaisesRegex(ValueError, "Links/reparse points"):
+                    _plain(link / "observation.json")
+                with self.assertRaisesRegex(ValueError, "Links/reparse points"):
+                    Continuity(link / "store")
+            finally:
+                os.rmdir(link)
+
+
 if __name__ == "__main__":
     unittest.main()

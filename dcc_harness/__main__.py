@@ -25,10 +25,14 @@ def main():
         if name == 'stage-complete':
             p.add_argument('--submission-id', required=True)
     p = sub.add_parser('workflow-template'); p.add_argument('--out')
-    p = sub.add_parser("init"); p.add_argument("project"); p.add_argument("--brief", required=True)
-    p = sub.add_parser("status"); p.add_argument("project")
-    p = sub.add_parser("begin"); p.add_argument("project"); p.add_argument("script"); p.add_argument("--label", required=True)
-    p = sub.add_parser("finish"); p.add_argument("project"); p.add_argument("operation"); p.add_argument("evidence"); p.add_argument("--reconciled", action="store_true")
+    p = sub.add_parser("init", help="Legacy pilot journal: create a journal-only project")
+    p.add_argument("project"); p.add_argument("--brief", required=True)
+    p = sub.add_parser("status", help="Legacy pilot journal: list status; use resume for continuity projects")
+    p.add_argument("project")
+    p = sub.add_parser("begin", help="Legacy pilot journal: record a planned script before dispatch")
+    p.add_argument("project"); p.add_argument("script"); p.add_argument("--label", required=True)
+    p = sub.add_parser("finish", help="Legacy pilot journal: record observed or reconciled evidence")
+    p.add_argument("project"); p.add_argument("operation"); p.add_argument("evidence"); p.add_argument("--reconciled", action="store_true")
     p = sub.add_parser("check"); p.add_argument("observation"); p.add_argument("spec"); p.add_argument("--out")
     p = sub.add_parser("diff"); p.add_argument("before"); p.add_argument("after"); p.add_argument("--allow"); p.add_argument("--out")
     p = sub.add_parser("pack-observation", help="Write a new lossless compact observation; never rewrite retained evidence")
@@ -118,9 +122,17 @@ def main():
         Project(args.project).finish(args.operation,args.evidence,args.reconciled); result = {"observed":args.operation}
     elif args.command == "check": result = evaluate(read_json(args.observation), read_json(args.spec))
     else: result = compare(read_json(args.before),read_json(args.after),read_json(args.allow) if args.allow else None)
-    if getattr(args,"out",None): write_json(args.out,result)
+    # Print before exporting: a committed result must stay visible even if the receipt cannot be written.
     print(json.dumps(result, indent=2, allow_nan=False))
-    if result.get("passed") is False: raise SystemExit(1)
+    if getattr(args, "out", None):
+        try:
+            write_json(args.out, result)
+        except OSError as exc:
+            parser.exit(2, f"Result printed above was not written to --out ({exc}). Any committed change "
+                           "stands; do not repeat the command to get a receipt.\n")
+    nested = result.get("result")
+    if result.get("passed") is False or (isinstance(nested, dict) and nested.get("passed") is False):
+        raise SystemExit(1)
 
 
 if __name__ == "__main__": main()

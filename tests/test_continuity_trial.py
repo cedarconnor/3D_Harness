@@ -291,5 +291,14 @@ class ContinuityTrialTests(unittest.TestCase):
             issue_stage(self.root, run_id, 2)
 
 
+class HelperPackageTests(unittest.TestCase):
+    def test_packet_helper_files_read_evidence_without_the_full_runtime(self):
+        from isolated_package import run_isolated
+        result = run_isolated(HELPER_FILES, "from dcc_harness import continuity, continuity_checks\n"
+                                            "from dcc_harness.evidence import read_json\nprint(read_json('value.json'))")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), "{'value': 1}")
+
+
 if __name__ == "__main__":
     unittest.main()

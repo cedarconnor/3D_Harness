@@ -21,7 +21,7 @@ from typing import Any
 
 SCHEMA = "dcc.blind-round.v1"
 RUN_ID = re.compile(r"t-[0-9a-f]{12}\Z")
-HELPER_FILES = ("__init__.py", "__main__.py", "evidence.py", "blender.py", "project.py")
+HELPER_FILES = ("__init__.py", "__main__.py", "evidence.py", "observation_storage.py", "blender.py", "project.py")
 POLICY = """Work only in this context folder and its included inputs. Do not read
 parent directories, other task folders, repository source, previous chats, or
 files outside this packet. The host may display a global skill catalog; only
