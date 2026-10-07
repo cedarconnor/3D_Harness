@@ -15,11 +15,13 @@ Version 0.6.0, October 6, 2026, is [build-plan](../../BUILD_PLAN.md) item P1, fo
 |---|---|
 | Source suite | 260 tests: 258 passed, two Windows symlink-permission skips. Sixteen tests are new: six for `observe`, ten for `fill-hashes`. |
 | Installed-wheel suite | Same result, from a standalone install of the final wheel |
-| Wheel integrity | All 38 runtime and template files byte-identical to source. Final SHA-256 `922a9bdecef7831159fff37723680fb22f17b6f2ccde318c28e22dbbd8cf051e` |
+| Wheel integrity | All 38 runtime and template files byte-identical to the committed sources. Final SHA-256 `32a65f7541cef5b1db60063d68628748ee437ca1f8addd23a0ca2cf8df6a97f8` |
 | Native `observe`, source and installed | A clean scene and a copy at a path containing spaces reported `READY`. A missing asset ID (`Missing asset ID: ProbeCube`) and a collection instancer (`Unsupported instancer: ProbeInstancer`) reported `HAS_ISSUES`. An existing output folder was refused before Blender started. The fresh-process observation's revision equalled an in-process observation of the same saved file exactly. Source files were unchanged, and `start` accepted the command's output directly. |
 | Native adoption, source and installed | Passed after the launcher moved |
 
 The native exercises and the comparison used the first 0.6.0 build (`5320916d…`). The final wheel differs from it only in `payloads.py`, which now checks the destination for links and junctions before writing. That fix came from a failing test written after the first build, and both suites were rerun on the final wheel.
+
+**Line-ending correction.** The 0.5.1 wheel (`0749c9b9…`) and the first two 0.6.0 builds packaged CRLF copies of `adoption.py` and `_adoption_blender.py`. Those copies came from a checkout made before `.gitattributes` existed. The committed sources are LF, and the runtime digest normalizes line endings since 0.5.1, so pinning was unaffected. The final wheel above was rebuilt from LF files byte-identical to the commit, and the installed suite passed again on it. A wheel rebuilt from a clean checkout of 0.5.1 will therefore not reproduce the hash in that report.
 
 ## Fresh-agent comparison
 
