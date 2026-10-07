@@ -1,38 +1,22 @@
 # Artist review session
 
-Prepared October 6, 2026, for build-plan items E1–E3. The investment gate needs artist judgments that do not exist yet: scores, repair time and preferences. This session collects them from finished work, without running new trials. Budget about two hours.
+Updated October 6, 2026, for build-plan items E1–E3. The whole session now runs in one private review page: [Courtyard and Shed Review](https://claude.ai/artifact/3pWckj3MYMRxfrWzMqHNRJ). It shows one large image at a time, opens any image full screen with zoom to 200%, and saves each answer as you give it, so you can stop and resume on any device.
 
-A coordinator, either an agent or the user, prepares anonymous copies and keeps the method mapping private. The artist does not read method labels, build logs or this repository's results before scoring. Frozen galleries, score forms and native evidence stay unchanged; every output goes into a new folder.
+It takes about 25 minutes, plus an optional 40:
 
-## Materials
+1. **Workflows, 4 screens.** Each anonymous courtyard after four requests in a row. Rate the final result on the original five-point scale, and say whether it stayed true to the shared starting courtyard. A stage selector and a hold-to-compare button show every stage against the start.
+2. **Quick picks, 10 screens.** Two versions from the same camera. Flip between them in place, then pick one on a five-step scale from "A clearly" to "B clearly".
+3. **Potting shed, 1 screen.** Rate production checkpoint 9 from four cameras and name the first fix.
+4. **Optional timed fix.** Open two anonymous final scenes in Blender with the page's timer running, stopping at 20 minutes each, and record what you fixed and what remains.
 
-All of these are local and excluded from Git.
+## What changed from the earlier protocol
 
-| Item | Location |
-|---|---|
-| Short comparison gallery and blank score form | `runs/blind-round-2026-10-03/review/index.html` and `scores.json` |
-| Continuity gallery and blank score form | `runs/continuity-round-2026-10-04/review/index.html` and `scores.json`; see the [review guide](../archive/studies/CONTINUITY_REVIEW.md) |
-| Continuity final scenes | `runs/continuity-round-2026-10-04/private/accepted/<run>/s04/scene.blend`; one workflow ends at `s02`. This folder reveals run IDs, so only the coordinator opens it. |
-| Production checkpoint 9 | `runs/shed-production-2026-10-05/project/checkpoints/000009/checkpoint.blend` and the [README render](../images/potting-shed.png) |
+- The old continuity form asked for 96 separate scores (4 workflows × 4 stages × 6 criteria) across 102 small images. Each workflow now gets two answers.
+- The short comparison's gallery is left out. You already gave preferences there and have seen two of its method assignments, so it is no longer blind.
+- The picks are built from decisions agents already made: the three rejected terrain studies against the unchanged scene, the rejected vegetation and planting passes against their accepted versions, and all three overnight canopy candidates against each other. Your choices show how often you agree with those decisions.
 
-## E1: scores, about 45 minutes
+## For the coordinator
 
-Score every anonymous entry in both galleries before seeing any method label. Use five points: 1 unusable, 2 needs major rework, 3 a useful foundation needing substantial refinement, 4 usable with minor cleanup, 5 accepted without cleanup. Consider composition, proportion, material coherence, lighting and, for the continuity gallery, whether later stages still belong to the original environment.
-
-Save filled copies of the score forms under new names, keeping the blank originals. Score checkpoint 9 separately against its realistic brief, in `runs/shed-production-2026-10-05/BRIEF.md`.
-
-## E2: timed repair, about 45 minutes
-
-The coordinator copies one complete plain-MCP final and one complete continuity final to anonymous names, such as `repair-A.blend` and `repair-B.blend`, in random order. The artist opens each in Blender and repairs it until they would accept it for the workflow's final request. Stop at 20 minutes per scene.
-
-For each scene, record the minutes spent, the defects fixed, the defects left and whether it reached acceptance. This is a repair-effort baseline on a brief the harness has already seen, not the held-out gate comparison.
-
-## E3: ranked pairs, about 20 minutes
-
-The coordinator prepares about twenty pairs of same-view images from existing renders: gallery entries plus accepted and rejected production candidates. Left/right order is randomized and the key is kept private. The artist picks the better image for the stated brief and marks confidence: sure, lean or tie.
-
-These choices become a held-out calibration set. Agent critics are later scored against them, so never show the choices to a critic.
-
-## Recording
-
-Save everything to a new folder, `runs/artist-review-YYYY-MM-DD/`: filled score files, repair timings, ranked-pair choices and the coordinator's private key. Summarize the results in a new `docs/studies/ARTIST_REVIEW_RESULTS.md`, then mark E1–E3 in the [build plan](../BUILD_PLAN.md).
+- `runs/artist-review-2026-10-06/build_review.py` built the page's images, anonymous labels, pair order and sides, and the repair copies. Its `private/key.json` maps workflows, pairs and repair scenes back to their sources and methods. Do not show the key to the reviewer before every answer is saved.
+- Answers live in the page's `answers` collection, one document per screen, and can be read with the artifact data tool. Write the summary to `docs/studies/ARTIST_REVIEW_RESULTS.md` and update E1–E3 in the [build plan](../BUILD_PLAN.md).
+- The page's images are 960 × 540 for the courtyards and up to 1680 × 945 for the shed, converted from PNG to high-quality JPEG. Full screen enlarges them, but cannot add detail the renders don't have.
