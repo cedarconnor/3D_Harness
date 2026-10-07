@@ -17,4 +17,4 @@ Worked review: the shed context camera crops the roof while the detail view expl
 
 Ask narrow questions of each view: Does the glass read as glass? Does the focal tool separate from the bench? Does the foreground meet the distant scene plausibly? Is wetness consistent with shelter and drainage? Attribute findings to a specific view/object; prefer a concrete diagnosis over 'more cinematic'.
 
-Render unchanged and revised candidates with matching settings for the variable under test. Retain ties and uncertainty. Record artist preference separately from numerical checks and agent critique. Motion needs full-speed playback and temporal checks; a still-lighting review does not qualify an animation. See [qualification](../../../docs/CRAFT_SKILLS.md).
+Render unchanged and revised candidates with matching settings for the variable under test. Retain ties and uncertainty. Record artist preference separately from numerical checks and agent critique. Motion needs full-speed playback and temporal checks; a still-lighting review does not qualify an animation. See [qualification](../../../docs/guides/CRAFT_SKILLS.md).

@@ -33,7 +33,7 @@ Scripts marked *launcher* run under system Python and start Blender themselves, 
 | `benchmark_resume.py` | Fresh-process `resume` timing with store-integrity checks (0.4.2). |
 | `probe_visibility.py` | Read-only visibility queries against a saved file (Blender). |
 | `render_checkpoint.py` | Reopen, observe and render fixed cameras from an immutable checkpoint (Blender). It uses the pilot observer. |
-| `assemble_quality_round.py`, `evaluate_quality_candidate.py`, `run_quality_stage.py` | Quality-loop round assembly and evaluation, documented in [QUALITY_LOOP_USAGE](../docs/QUALITY_LOOP_USAGE.md). Packets copy these evaluators; keep them self-contained. |
+| `assemble_quality_round.py`, `evaluate_quality_candidate.py`, `run_quality_stage.py` | Quality-loop round assembly and evaluation, documented in [QUALITY_LOOP_USAGE](../docs/guides/QUALITY_LOOP_USAGE.md). Packets copy these evaluators; keep them self-contained. |
 
 ## Study tooling
 
@@ -41,12 +41,12 @@ These scripts are retained so finished studies remain reproducible. Many hardcod
 
 | Study | Scripts |
 |---|---|
-| Pilot, October 3 ([usage](../docs/PILOT_USAGE.md)) | `fetch_pilot_assets.py`, `make_review.py`, `pack_checkpoint.py`, `native_fault_probes.py`, `unknown_outcome_probe.py`, `resume_fixture.py` (which imports `examples/courtyard.py`) |
-| Short comparison ([protocol](../docs/BLIND_TRIALS.md)) | `blind_starter.py`, `blind_evaluator_probe.py`, `blind_uv_probe.py`, `blind_uv_snapshot.py`, `evaluate_blind_checkpoint.py` |
-| Continuity comparison ([protocol](../docs/CONTINUITY_EXPERIMENT.md)) | `prepare_continuity_starter.py`, `inject_continuity_event.py`, `evaluate_continuity_checkpoint.py` |
-| Quality loop, 0.2.0 ([results](../docs/QUALITY_LOOP_RESULTS.md)) | `prepare_quality_courtyard.py`, `quality_courtyard_native.py`, `run_quality_fixture.py`, `qualify_quality_preflight.py` |
-| Overnight study, 0.3.x ([evaluation](../docs/OVERNIGHT_EVALUATION.md)) | `prepare_canopy_study.py`, `prepare_birdbath_study.py`, `prepare_foreground_study.py`, `prepare_activity_study.py`, `prepare_tool_study.py`, `build_canopy_candidates.py`, `build_birdbath_candidates.py`, `evaluate_worker_stage.py`, `publish_quality_stage.py`, `prepare_anonymous_quality_review.py`, `render_quality_presentation.py`, `qualify_quality_deletion.py` |
-| Realistic comparison, interrupted ([protocol](../docs/REALISM_COMPARISON.md)) | `fetch_realism_assets.py`, `prepare_realism_comparison.py`, `manage_realism_comparison.py`, `realism_starter.py`, `evaluate_realism_checkpoint.py`, `qualify_realism_evaluator.py`, `export_realism_review.py` (requires Pillow) |
+| Pilot, October 3 ([usage](../docs/archive/historical/PILOT_USAGE.md)) | `fetch_pilot_assets.py`, `make_review.py`, `pack_checkpoint.py`, `native_fault_probes.py`, `unknown_outcome_probe.py`, `resume_fixture.py` (which imports `examples/courtyard.py`) |
+| Short comparison ([protocol](../docs/archive/studies/BLIND_TRIALS.md)) | `blind_starter.py`, `blind_evaluator_probe.py`, `blind_uv_probe.py`, `blind_uv_snapshot.py`, `evaluate_blind_checkpoint.py` |
+| Continuity comparison ([protocol](../docs/archive/studies/CONTINUITY_EXPERIMENT.md)) | `prepare_continuity_starter.py`, `inject_continuity_event.py`, `evaluate_continuity_checkpoint.py` |
+| Quality loop, 0.2.0 ([results](../docs/archive/releases/QUALITY_LOOP_RESULTS.md)) | `prepare_quality_courtyard.py`, `quality_courtyard_native.py`, `run_quality_fixture.py`, `qualify_quality_preflight.py` |
+| Overnight study, 0.3.x ([evaluation](../docs/archive/studies/OVERNIGHT_EVALUATION.md)) | `prepare_canopy_study.py`, `prepare_birdbath_study.py`, `prepare_foreground_study.py`, `prepare_activity_study.py`, `prepare_tool_study.py`, `build_canopy_candidates.py`, `build_birdbath_candidates.py`, `evaluate_worker_stage.py`, `publish_quality_stage.py`, `prepare_anonymous_quality_review.py`, `render_quality_presentation.py`, `qualify_quality_deletion.py` |
+| Realistic comparison, interrupted ([protocol](../docs/studies/REALISM_COMPARISON.md)) | `fetch_realism_assets.py`, `prepare_realism_comparison.py`, `manage_realism_comparison.py`, `realism_starter.py`, `evaluate_realism_checkpoint.py`, `qualify_realism_evaluator.py`, `export_realism_review.py` (requires Pillow) |
 
 ## Known issues
 

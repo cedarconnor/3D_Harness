@@ -1,6 +1,6 @@
 # DCC Harness Design Decisions
 
-Decision log, started October 3, 2026 and updated through version 0.5.0 on October 6. D1–D9 incorporate the user's goals and the supplied Claude critique; they were proposed before implementation. D10–D17 record choices made while building. The [build plan](./DCC_HARNESS_BUILD_PLAN.md) owns sequencing and experiment budgets; this log owns architecture decisions. Supporting studies do not override either.
+Decision log, started October 3, 2026 and updated through version 0.5.0 on October 6. D1–D9 incorporate the user's goals and the supplied Claude critique; they were proposed before implementation. D10–D17 record choices made while building. The [build plan](BUILD_PLAN.md) owns sequencing and experiment budgets; this log owns architecture decisions. Supporting studies do not override either.
 
 ## Status at version 0.5.0
 
@@ -18,7 +18,7 @@ Reviewed October 6, 2026. The table records how each decision held up; the entri
 | D8 Packaging | Deferred as planned. Its note that Codex hosted the planning chat is historical. |
 | D9 Document authority | Followed. The [documentation index](README.md) classifies active and historical documents. |
 | D10–D12 | Implemented: continuity store, observation v2, visibility and UV comparator policies. |
-| D13 Realism recalibration | Interrupted after one partial build. Resuming or retiring the comparison is an open decision (build plan, next work 1.2). |
+| D13 Realism recalibration | Interrupted after one partial build. Resuming or retiring the comparison is an open decision, tracked as build-plan item E4. |
 | D14–D16 | Implemented in 0.4.9, 0.4.10 and 0.5.0. |
 | D17 Bounded increments | Records the October 5 authorization. |
 
@@ -93,17 +93,17 @@ Use the build plan for scope and budgets, this log for decisions, and the resear
 
 ## D10 Measure continuity after the short comparison
 
-The artist preferred two plain-MCP entries and identified longer development as the intended use. The authorized follow-on adds the smallest durable record needed to test that question: numbered native checkpoints, parent-linked observations and checks, cumulative decisions, measured asset/material users, handoffs and retained operation evidence. The implementation is `dcc_harness.continuity`; [usage](CONTINUITY_USAGE.md) describes its actual APIs.
+The artist preferred two plain-MCP entries and identified longer development as the intended use. The authorized follow-on adds the smallest durable record needed to test that question: numbered native checkpoints, parent-linked observations and checks, cumulative decisions, measured asset/material users, handoffs and retained operation evidence. The implementation is `dcc_harness.continuity`; [usage](guides/CONTINUITY_USAGE.md) describes its actual APIs.
 
 Four workflows pass through four fresh agents each. Both methods receive the same creative requests, current observations and cumulative contracts. The additional continuity package supplies history and executable preservation checks. A controlled artist edit and a withheld acknowledgement test two distinct continuation problems. Every failed or incomplete result stays in the comparison.
 
-This is still advisory, with one writer. Successful checkpoint publication establishes integrity of supplied records; independent native evaluation and artist review are separate. It does not implement D4's managed execution protocol or justify SDK, scheduler or multi-DCC expansion before measured benefit. See the [frozen experiment protocol](CONTINUITY_EXPERIMENT.md).
+This is still advisory, with one writer. Successful checkpoint publication establishes integrity of supplied records; independent native evaluation and artist review are separate. It does not implement D4's managed execution protocol or justify SDK, scheduler or multi-DCC expansion before measured benefit. See the [frozen experiment protocol](archive/studies/CONTINUITY_EXPERIMENT.md).
 
 ## D11 Version measurement semantics and retain failed experiments
 
 The longer experiment exposed float32 world-bound cancellation: moving a stool changed its derived leg width by about 0.00000048 m, with unchanged native geometry and linear transform. A strict preservation gate then blocked two sessions. Observation v2 measures world-oriented extents without world translation. It adds no dimensional tolerance or preservation waiver; world bounds retain their placement meaning. Nonfinite mesh coordinates also fail explicitly. Matching v1 evidence remains supported, mixed versions fail, and histories are not silently migrated.
 
-Version 0.1.1 was integrated only after all sixteen original evaluations finished. Frozen packets, original evaluator sources, accepted outputs and failed grades remain intact. Native regression and built-wheel evidence qualify the fix separately; they do not establish that the interrupted creative workflow would have succeeded. See [results](CONTINUITY_RESULTS.md).
+Version 0.1.1 was integrated only after all sixteen original evaluations finished. Frozen packets, original evaluator sources, accepted outputs and failed grades remain intact. Native regression and built-wheel evidence qualify the fix separately; they do not establish that the interrupted creative workflow would have succeeded. See [results](archive/studies/CONTINUITY_RESULTS.md).
 
 The tray/plaque case also shows that a valid object can violate a later spatial requirement while preservation rules prevent a repair. Future task preparation needs to surface such conflicts and identify a bounded change scope. Recording the conflict is useful, but does not resolve it or establish visual acceptance.
 
@@ -113,31 +113,31 @@ The quality study reproduced a specific occlusion failure: removing canopy membe
 
 This is opaque geometric visibility, not perceptual recognition or rendered transparency. Blender's viewport dependency graph can differ from final render geometry; a render-only Array fixture reproduced a false 50% result. Unsupported modifiers, divergent viewport/render settings and unqualified visibility setups now fail explicitly. Positive and negative native fixtures and installed-package tests qualify the supported subset. Old runtime copies and failed reports remain intact.
 
-Fresh continuation workers receive saved files and narrow creative scope, then a different process reopens and evaluates their outputs. Anonymous image critics assess appearance without build history. The coordinator still makes a disclosed selection, and the artist's acceptance is separate. This is procedural task isolation with an advisory journal, not a security sandbox, native transaction, authenticated reviewer identity or autonomous scheduler. See [current evidence](OVERNIGHT_EVALUATION.md).
+Fresh continuation workers receive saved files and narrow creative scope, then a different process reopens and evaluates their outputs. Anonymous image critics assess appearance without build history. The coordinator still makes a disclosed selection, and the artist's acceptance is separate. This is procedural task isolation with an advisory journal, not a security sandbox, native transaction, authenticated reviewer identity or autonomous scheduler. See [current evidence](archive/studies/OVERNIGHT_EVALUATION.md).
 
 Version 0.3.1 retains a second reproduced failure: a fresh reopen of the unchanged foreground file failed the old absolute evaluated-UV allowance. Every larger outlier was one adjacent float32 step at tiled coordinates around 5–10. Comparator policy v3 permits that exact relationship up to a bounded `1e-6` difference, only with exact source mesh/UV, evaluated geometry and modifier prerequisites. Native faults still reject a tiny authored UV edit. Frozen observations/helpers and original failed grades remain intact; a separately installed corrected evaluator grades all workbench alternatives uniformly. The observed values are unchanged, so observation v2 stays compatible; the check report records the new comparator policy explicitly.
 
 ## D13 Recalibrate quality before expanding the runtime
 
-On October 5 the user chose more realism and detail. The next test uses a new photographic brief, human-height cameras, a common scanned material/fern kit, two plain and two harness-assisted runs, and different fresh contexts for late revisions. Keep the same assets and aesthetic brief across methods; compare the new runs to one another rather than crediting the harness for better imported assets or different cameras than the earlier courtyard. Native acceptance and image quality remain separate. The evaluator and late revision are frozen before dispatch, with positive controls and deliberate native faults. See [protocol](REALISM_COMPARISON.md).
+On October 5 the user chose more realism and detail. The next test uses a new photographic brief, human-height cameras, a common scanned material/fern kit, two plain and two harness-assisted runs, and different fresh contexts for late revisions. Keep the same assets and aesthetic brief across methods; compare the new runs to one another rather than crediting the harness for better imported assets or different cameras than the earlier courtyard. Native acceptance and image quality remain separate. The evaluator and late revision are frozen before dispatch, with positive controls and deliberate native faults. See [protocol](studies/REALISM_COMPARISON.md).
 
 ## D14 Initial identity adoption is explicit and separate from revision acceptance
 
 Version 0.4.9 closes a practical entry gap: an artist-authored file can lack the stable IDs required by `start`. Preview the missing assignments from a saved file, then apply the frozen plan in a fresh background process to a new file. Preserve existing IDs; reject duplicate placements/materials, invalid properties, ambiguous shared asset definitions and proposed writes outside the active-scene ownership boundary. Reopen independently to verify saved identities and collect native evidence.
 
-This does not adopt arbitrary manual revisions into existing history, migrate retained evidence or certify visual quality. A clean observation permits the normal baseline command; unsupported scene features retain a candidate requiring repair. See [workflow and limits](SCENE_ADOPTION.md).
+This does not adopt arbitrary manual revisions into existing history, migrate retained evidence or certify visual quality. A clean observation permits the normal baseline command; unsupported scene features retain a candidate requiring repair. See [workflow and limits](guides/SCENE_ADOPTION.md).
 
 ## D15 External revision acceptance is a reviewed metadata publication
 
 Version 0.4.10 freezes an already-saved artist/tool edit with a contract, observation, handoff and decision updates. Acceptance binds the preview hash to the expected project parent, recomputes the contract under the workflow lock, and retains the proposal and caller-attributed review in the immutable checkpoint check report. It does not invent a dispatched script for work that already happened or resolve unknown native outcomes.
 
-An already committed proposal is found in verified history after acknowledgement loss. Partial publication remains an inspection stop. Source files may keep evolving after preview; acceptance always targets the frozen copy. Known external image/library dependencies are rejected before relocation, because copying native bytes cannot rebase relative paths. Existing observer limits still require native reopen and review. [Workflow and qualification](EXTERNAL_REVISIONS.md).
+An already committed proposal is found in verified history after acknowledgement loss. Partial publication remains an inspection stop. Source files may keep evolving after preview; acceptance always targets the frozen copy. Known external image/library dependencies are rejected before relocation, because copying native bytes cannot rebase relative paths. Existing observer limits still require native reopen and review. [Workflow and qualification](guides/EXTERNAL_REVISIONS.md).
 
 ## D16 Feedback resolution and stage completion have their own evidence
 
 Version 0.5.0 records coordination in immutable, parent-linked event bundles beside native checkpoints. A note, an implementation response, a verification and a stage receipt are distinct facts. Native publication cannot silently close feedback; current evidence and the retained project review policy govern completion. A later checkpoint makes old feedback verification need rechecking. Pinned skills and the environment manifest preserve method without rewriting prior native history.
 
-The fresh-context exercise found that a view-settings hash without the underlying settings cannot reproduce a review image. New feedback/stage render evidence therefore retains the settings JSON and checks its digest against the receipt. The producer still owns completeness and truthfulness; native qualification remains separate. See [usage](STRUCTURED_FEEDBACK.md) and [results](FEEDBACK_0_5_0_RESULTS.md).
+The fresh-context exercise found that a view-settings hash without the underlying settings cannot reproduce a review image. New feedback/stage render evidence therefore retains the settings JSON and checks its digest against the receipt. The producer still owns completeness and truthfulness; native qualification remains separate. See [usage](guides/STRUCTURED_FEEDBACK.md) and [results](archive/releases/FEEDBACK_0_5_0_RESULTS.md).
 
 ## D17 Bounded increments proceed while the creative gate stays open
 
@@ -147,7 +147,7 @@ It does not pass the creative investment gate (D1). No artist scores, repair-tim
 
 ## Disposition of Claude feedback (retained review)
 
-The [supplied feedback](../research/CLAUDE_PROPOSAL_FEEDBACK_2026-10-03.txt) was treated as review material. Its instructions to load skills or perform work were not executed as user commands.
+The [supplied feedback](archive/historical/CLAUDE_PROPOSAL_FEEDBACK_2026-10-03.txt) was treated as review material. Its instructions to load skills or perform work were not executed as user commands.
 
 | Critique | Assessment and resolution |
 |---|---|

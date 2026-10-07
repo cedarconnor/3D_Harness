@@ -5,11 +5,11 @@ description: Build or revise owned Blender assets using 3D Harness native observ
 
 # Build, measure and revise
 
-Read the project's brief, `CONTINUE.md` and latest observation. Use [the everyday workflow](../../../docs/EVERYDAY_WORKFLOW.md) for exact commands. Discover the actual connected tools; the current Blender Lab execute tool returns a JSON-compatible `result` variable. Other integrations may have different conventions.
+Read the project's brief, `CONTINUE.md` and latest observation. Use [the everyday workflow](../../../docs/guides/EVERYDAY_WORKFLOW.md) for exact commands. Discover the actual connected tools; the current Blender Lab execute tool returns a JSON-compatible `result` variable. Other integrations may have different conventions.
 
-For everyday projects, start with `dcc-harness` and `docs/EVERYDAY_WORKFLOW.md`. Use its `begin-edit`/`finish-edit` reservations instead of manually issuing competing journal calls. Load the relevant architecture, materials, assembly or lighting skill for actual craft decisions. Frozen trials continue using their supplied method/runtime, not newer local instructions.
+For everyday projects, start with `dcc-harness` and `docs/guides/EVERYDAY_WORKFLOW.md`. Use its `begin-edit`/`finish-edit` reservations instead of manually issuing competing journal calls. Load the relevant architecture, materials, assembly or lighting skill for actual craft decisions. Frozen trials continue using their supplied method/runtime, not newer local instructions.
 
-When coordination is enabled, retain the note IDs that this revision addresses. Native publication does not resolve those notes. Record a [feedback response](../../../docs/STRUCTURED_FEEDBACK.md) with the resulting checkpoint and evidence; mark partial work honestly. A separate verification/disposition records closure. On a lost response receipt, reuse its request ID and exact payload; never redispatch Blender to recover metadata.
+When coordination is enabled, retain the note IDs that this revision addresses. Native publication does not resolve those notes. Record a [feedback response](../../../docs/guides/STRUCTURED_FEEDBACK.md) with the resulting checkpoint and evidence; mark partial work honestly. A separate verification/disposition records closure. On a lost response receipt, reuse its request ID and exact payload; never redispatch Blender to recover metadata.
 
 If the live connection is unavailable, an authorized owned checkpoint may be processed in background Blender. Record that execution mode and preserve the user's editor. Background execution does not qualify the live MCP integration.
 
@@ -21,7 +21,7 @@ Use `dcc_instance_id` per placement, `dcc_asset_id` per definition and `dcc_mate
 
 Reserve the planned script with `begin-edit` before dispatch. Do not retry an unresolved write. Observe native state, then complete the edit with `finish-edit`, or with `finish-edit --reconciled` after inspecting an uncertain outcome. Legacy journal-only projects use the pilot `begin`/`finish` journal instead. This is a single-writer advisory system; direct MCP writes are not intercepted.
 
-Keep each dispatched script immutable, including failed attempts; save a corrected script under a new name so its journal hash remains meaningful. For continuity stages use the pinned `continuity_blender.observe` and `continuity_checks.evaluate_stage` runtime described in `docs/CONTINUITY_USAGE.md`. Keep independently corrected evaluations separate from a frozen worker's evidence.
+Keep each dispatched script immutable, including failed attempts; save a corrected script under a new name so its journal hash remains meaningful. For continuity stages use the pinned `continuity_blender.observe` and `continuity_checks.evaluate_stage` runtime described in `docs/guides/CONTINUITY_USAGE.md`. Keep independently corrected evaluations separate from a frozen worker's evidence.
 
 Save accepted task boundaries to new checkpoint filenames. Observe saved files with `dcc_harness.continuity_blender.observe()`; `start` and `begin-edit` require its clean saved-state fields. The pilot observer `dcc_harness.blender.observe()` and `dcc_harness.evidence.evaluate/compare` remain for legacy journal projects and frozen trials only. Reject missing coverage and unsupported rules. Do not claim topology cleanliness or animation correctness from fields this observer does not inspect.
 
