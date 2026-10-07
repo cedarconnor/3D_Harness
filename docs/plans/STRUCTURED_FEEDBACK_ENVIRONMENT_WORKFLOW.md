@@ -6,7 +6,7 @@ Implementation update: the user subsequently approved this plan. Version 0.5.0 i
 
 Requested outcome: make review feedback survive long sessions and give the existing environment skills a small, repeatable workflow. Keep the normal Claude, Codex or Cursor chat as the entry point. This document and its draft JSON examples are the deliverable for the planning request; they do not add runtime commands or change a native scene.
 
-Baseline inspected: version 0.4.10, commit `7d80939a7beabc4895c53355c5929f499fcc69bd`, branch `codex/manual-revision`. Follow the [active build plan](../../DCC_HARNESS_BUILD_PLAN.md) and [design decisions](../../DESIGN_DECISIONS.md). Existing artistic-quality and repair-effort qualification gaps remain open.
+Baseline inspected: version 0.4.10, commit `7d80939a7beabc4895c53355c5929f499fcc69bd`, branch `codex/manual-revision`. Follow the [active build plan](../DCC_HARNESS_BUILD_PLAN.md) and [design decisions](../DESIGN_DECISIONS.md). Existing artistic-quality and repair-effort qualification gaps remain open.
 
 ## Outcome and scope
 

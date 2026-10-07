@@ -2,6 +2,8 @@
 
 Version 0.4.0 adds one project entry skill, `dcc-harness`, and five CLI entry points over the existing continuity store. Use the normal chat to ask for a start, continuation, review or bounded revision. This repository's `.agents/skills/` is the current project-scoped delivery; a standalone client installer is still future work.
 
+Later additions use the same store. These are [scene adoption](SCENE_ADOPTION.md) in 0.4.9, [external revisions](EXTERNAL_REVISIONS.md) in 0.4.10, and optional [structured feedback and environment stages](STRUCTURED_FEEDBACK.md) in 0.5.0. When feedback coordination is enabled, `resume` and `review` add a `coordination` section listing open notes and stage states. A published checkpoint never resolves a note by itself.
+
 The host agent supplies reasoning and calls the existing Blender MCP or owned background Blender. These commands do not launch an agent, buy credits, run a daemon or implement another MCP server. The workflow serializes its own edit reservations. Direct MCP writes and older Python/CLI entry points remain outside that protection.
 
 ## Start and resume

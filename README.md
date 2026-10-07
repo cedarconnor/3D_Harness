@@ -4,7 +4,7 @@
 
 3D Harness helps an agent build and revise a 3D environment while preserving its assets, materials, lighting, and project decisions across sessions. It runs above an existing Blender MCP or owned background Blender process, with the artist working through their usual agent chat.
 
-**Status: v0.5.0 · Blender-first research prototype · one cooperating native writer.**
+**Status: v0.5.0 · Blender-first research prototype · one cooperating native writer.** See the [changelog](CHANGELOG.md) for version history and the [build plan](docs/DCC_HARNESS_BUILD_PLAN.md) for open gates and next work.
 
 ![A brick potting shed with a workbench, garden planting, and a paved approach, rendered in Blender](docs/images/potting-shed.png)
 
@@ -16,6 +16,7 @@
 - **Starts from existing scenes:** previews missing identity assignments, applies the chosen plan to a new native file, and independently checks its saved identities and observation.
 - **Scopes revisions:** records the intended script and preservation contract before an edit, then checks the saved result against that contract.
 - **Retains deliberate artist edits:** freezes an externally saved revision for review, then accepts it with a checked contract, updated decisions, and attributed review notes.
+- **Keeps review feedback actionable:** records notes against a checkpoint, object, material, or rendered view, so a fresh session sees every open issue. Responses, verification, and artist acceptance stay separate. An optional pinned seven-stage environment workflow routes the craft skills.
 - **Measures native state:** observes identities, shared assets, evaluated geometry, authored/evaluated UV data, materials, image dependencies, cameras, lights, and selected render settings, with explicit coverage limits.
 - **Separates technical and visual acceptance:** a candidate can pass its native checks and still be retained as a visual rejection without replacing the accepted checkpoint.
 - **Supplies practical methods:** project skills cover planning, building, review, architecture, materials, environment assembly, and lighting. Python helpers support bounded construction, planting, ground, roof, terrain, and visibility tasks.
@@ -84,16 +85,21 @@ python -m dcc_harness review ./my-project/state
 | `review` | Retrieve the current project and latest check for inspection |
 | `begin-edit` | Retain a script/contract and reserve one scoped edit; execution is separate |
 | `finish-edit` | Recompute checks and publish, reconcile, or retain a rejected result |
+| `feedback-add` / `feedback-respond` / `feedback-verify` / `feedback-decide` | Record a note, a response with evidence, a verification, or an attributed disposition |
+| `workflow-template` / `workflow-bind` | Inspect the packaged environment workflow, then pin it and its skills to a project |
+| `stage-submit` / `stage-complete` / `stage-reopen` | Freeze a stage's evidence, complete it under its review policy, or reopen it |
 | `check` / `diff` | Evaluate observed requirements or declared changes |
 | `pack-observation` | Write a new lossless compact observation without rewriting retained evidence |
+
+The pilot's `init`, `status`, `begin`, and `finish` journal commands remain for legacy journal-only projects. Use the commands above for new work.
 
 If acknowledgement is lost, inspect the saved native result and reconcile it before sending another write. Direct MCP edits remain outside the reservation mechanism. Use one native writer and preserve the accepted file.
 
 For an artist edit made outside a reservation, use [external revision review](docs/EXTERNAL_REVISIONS.md). It requires a separate saved candidate, fresh observation, explicit change contract, handoff and decision updates. The workflow preserves existing history and records caller-supplied review provenance; it does not settle a pending native operation.
 
-## Skills
+[Structured feedback and environment stages](docs/STRUCTURED_FEEDBACK.md) are optional. Notes keep their checkpoint, object, and view anchors across sessions; implementation claims, verification, and artist acceptance remain separate records. A pinned seven-stage workflow routes the existing skills and requires current evidence before a stage completes. Coordination adds no background agent or MCP server.
 
-Version 0.5.0 adds [structured feedback and environment stages](docs/STRUCTURED_FEEDBACK.md). Notes retain their checkpoint/object/view anchors across sessions; implementation claims, verification and artist acceptance remain separate. A pinned seven-stage workflow routes existing skills and requires current evidence before completion. Use `workflow-template` to inspect the packaged manifest. Coordination is optional and adds no background agent or MCP server.
+## Skills
 
 | Skill | Use |
 |---|---|
@@ -111,17 +117,22 @@ Read [craft capabilities and recipe boundaries](docs/CRAFT_SKILLS.md) before tre
 
 ## Validation and current limits
 
-The v0.5.0 source and installed suites each ran **233 tests: 231 passed, two Windows permission cases skipped**. The [qualification report](docs/FEEDBACK_0_5_0_RESULTS.md) covers feedback retention, evidence binding, all seven workflow stages, native revision tests and fresh-agent handoff findings. The first fresh agent exposed a missing view-definition artifact; the corrected package retains actual settings alongside their digest. This tests continuity mechanisms, not general visual-quality improvement.
+The v0.5.0 source and installed suites each ran **233 tests: 231 passed, two Windows symlink-permission cases skipped**. Every version also runs native Blender fixtures. The [changelog](CHANGELOG.md) summarizes each version's evidence, and the [scripts index](scripts/README.md) lists its qualification scripts.
 
-The v0.4.10 source suite ran **204 tests: 202 passed, two Windows symlink-permission cases skipped**. Native checks separately exercise identity adoption, external revision acceptance, shared-data edits, saved-file continuation, unresolved-write detection, and reconciliation without redispatch. See [revision qualification](docs/REVISIONS_0_4_10_RESULTS.md) and [initial adoption qualification](docs/ADOPTION_0_4_9_RESULTS.md) for native and installed-package evidence. The production study retains nine accepted checkpoints and three subsequently rejected background candidates.
+The [0.5.0 report](docs/FEEDBACK_0_5_0_RESULTS.md) covers feedback retention, evidence binding, and native revision tests. Its native exercise completed all seven workflow stages on a synthetic micro-scene. The first fresh agent exposed a missing view-definition artifact; the corrected package retains actual settings alongside their digest. In the corrected sealed trial, an independent reviewer verified three notes and left the visual note uncertain. These results test continuity mechanisms, not visual-quality improvement.
 
-On one saved 1,289-object environment, median native observation time improved from **41.52 to 22.53 seconds** across three alternating pairs. Eight native fixture states matched the previous observer exactly except timestamps. The larger scene showed evaluated UV variability that also reproduced with the old observer and passed the existing preservation policy unchanged; bitwise identity is not claimed. [Full v0.4.8 results](docs/OBSERVER_0_4_8_RESULTS.md).
+The comparisons so far have **not established a general visual-quality or long-horizon advantage** for the harness:
 
-The earlier short comparison used six independent builds and six fresh revisions; both artist-preferred entries used plain MCP. The longer comparison completed sixteen fresh sessions with fourteen native-check passes and two incomplete stages. These studies have **not established a general visual-quality or long-horizon advantage** for the harness. [Short comparison](docs/BLIND_RESULTS.md) · [Longer comparison](docs/CONTINUITY_RESULTS.md).
+- In the short comparison, six independent builds and six fresh revisions all passed technical checks. Both artist-preferred entries used plain MCP.
+- In the longer comparison, sixteen fresh sessions produced fourteen native-check passes and two incomplete stages. Plain MCP completed 8/8 stages and the harness 6/8.
+- A realistic held-out comparison was interrupted after one partial build.
+
+[Short comparison](docs/BLIND_RESULTS.md) · [Longer comparison](docs/CONTINUITY_RESULTS.md) · [Realistic comparison](docs/REALISM_COMPARISON.md)
 
 Current boundaries:
 
 - Advisory execution: no native sandbox, exactly-once guarantee, external-write interception, or unattended agent scheduler.
+- Collection instances are not supported yet. The observer reports any instancer as an issue, so such scenes need owned local data before `start`. External revisions also reject observed linked-library data.
 - Blender qualification only; Unreal and other DCC adapters remain planned.
 - Observation coverage is explicit and incomplete: animation over time, arbitrary procedural instances, rig semantics, general topology quality, and UV overlap are not certified.
 - Hashes bind evidence to files; they do not authenticate producer truthfulness or establish artistic quality.
@@ -141,7 +152,7 @@ Native scripts must run inside Blender. For example, this visibility fixture use
 & 'C:/Program Files/Blender Foundation/Blender 5.1/blender.exe' --background --factory-startup --python-exit-code 1 --python scripts/qualify_visibility.py -- --repo . --out runs/my-visibility-check
 ```
 
-Choose a fresh output path. Inspect the process exit code and report; a success message alone is insufficient. See [validation](docs/VALIDATION.md) and [observer performance qualification](docs/OBSERVATION_PERFORMANCE.md) for the scope of each test.
+Choose a fresh output path. Inspect the process exit code and report; a success message alone is insufficient. The [scripts index](scripts/README.md) lists each version's qualification scripts and whether they run from a fresh clone. See [validation](docs/VALIDATION.md) and [observer performance qualification](docs/OBSERVATION_PERFORMANCE.md) for the scope of earlier tests.
 
 ## Repository guide
 
@@ -149,25 +160,26 @@ Choose a fresh output path. Inspect the process exit code and report; a success 
 |---|---|
 | `dcc_harness/` | CLI, continuity store, observations, checks, review utilities, and bounded recipes |
 | `.agents/skills/` | Current project skills |
-| `scripts/` | Native fixtures, evaluators, asset intake, and experiment tooling |
+| `scripts/` | Native qualification fixtures, benchmarks, asset intake, and study tooling; see the [scripts index](scripts/README.md) |
 | `tests/` | Portable regression suite |
 | `examples/` | Procedural courtyard example and spec |
 | `experiments/` | Retained briefs, contracts, and comparison methods |
-| `docs/` | Usage, capabilities, qualification results, and limitations |
-| `dcc-skills/`, `research/` | Historical design inputs; example APIs may be unimplemented or superseded |
+| `docs/` | Usage, plans, decisions, qualification results, and limitations; see the [documentation index](docs/README.md) |
+| `dcc-skills/`, `research/` | Historical design inputs, source comparisons, and archived plans; example APIs may be unimplemented or superseded |
 | `runs/` | Local native files, observations, rendered galleries, and test logs; excluded from Git |
 
 Downloaded asset kits, private photographic references, large `.blend` checkpoints, and local run galleries are not included in a clone. Some detailed reports link to those local artifacts; the written reports and representative README render are included. The example render's source assets are credited [here](docs/images/README.md).
 
 ## Further reading
 
+- [Documentation index](docs/README.md) and [changelog](CHANGELOG.md)
 - [Everyday workflow](docs/EVERYDAY_WORKFLOW.md) and [continuity APIs](docs/CONTINUITY_USAGE.md)
 - [Structured feedback and environment stages](docs/STRUCTURED_FEEDBACK.md)
 - [Reference-led quality loop](docs/QUALITY_LOOP_USAGE.md)
 - [Craft skills](docs/CRAFT_SKILLS.md) and [terrain study](docs/TERRAIN_0_4_7_RESULTS.md)
-- [Active build plan](DCC_HARNESS_BUILD_PLAN.md) and [design decisions](DESIGN_DECISIONS.md)
-- [Packaging and entry points](DCC_HARNESS_PACKAGING_AND_ENTRY_POINTS.md)
-- [Skill and motion-design plans](DCC_HARNESS_SKILL_SYSTEM.md)
-- [Research](DCC_HARNESS_RESEARCH.md) and [UE-MCP review](DCC_HARNESS_UE_MCP_REVIEW.md)
+- [Active build plan](docs/DCC_HARNESS_BUILD_PLAN.md) and [design decisions](docs/DESIGN_DECISIONS.md)
+- [Packaging and entry points](docs/DCC_HARNESS_PACKAGING_AND_ENTRY_POINTS.md)
+- [Skill and motion-design plans](docs/DCC_HARNESS_SKILL_SYSTEM.md)
+- [Research](docs/DCC_HARNESS_RESEARCH.md) and [UE-MCP review](docs/DCC_HARNESS_UE_MCP_REVIEW.md)
 
 The active build plan and decision log take precedence over the original architecture note and historical proposals. Broader capabilities described in those studies are proposals, not shipped features.
