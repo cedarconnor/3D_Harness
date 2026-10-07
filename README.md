@@ -4,7 +4,7 @@
 
 3D Harness helps an agent build and revise a 3D environment while preserving its assets, materials, lighting, and project decisions across sessions. It runs above an existing Blender MCP or owned background Blender process, with the artist working through their usual agent chat.
 
-**Status: v0.5.1 · Blender-first research prototype · one cooperating native writer.** See the [changelog](CHANGELOG.md) for version history and the [build plan](docs/BUILD_PLAN.md) for open gates and next work.
+**Status: v0.6.0 · Blender-first research prototype · one cooperating native writer.** See the [changelog](CHANGELOG.md) for version history and the [build plan](docs/BUILD_PLAN.md) for open gates and next work.
 
 ![A brick potting shed with a workbench, garden planting, and a paved approach, rendered in Blender](docs/images/potting-shed.png)
 
@@ -66,7 +66,7 @@ Execute the retained script once → save a new native file → observe and revi
 Publish the checked result, or retain the rejection → write the next handoff
 ```
 
-For a new project, first save an owned `.blend` and create a clean saved-state observation inside Blender with `dcc_harness.continuity_blender.observe()`. If the scene lacks stable harness identities, use [initial scene adoption](docs/guides/SCENE_ADOPTION.md): `adopt-preview` lists proposed assignments, then `adopt-apply` writes and independently observes a new file. Existing IDs are preserved; ambiguous identities block adoption. See the [everyday workflow](docs/guides/EVERYDAY_WORKFLOW.md) for preparation and exact edit commands.
+For a new project, first save an owned `.blend` and observe it with `python -m dcc_harness observe SAVED.blend --blender PATH --output-dir NEW_FOLDER`. This opens the file in a fresh background Blender, never saves it, and reports `READY` or the issues to fix. If the scene lacks stable harness identities, use [initial scene adoption](docs/guides/SCENE_ADOPTION.md): `adopt-preview` lists proposed assignments, then `adopt-apply` writes and independently observes a new file. Existing IDs are preserved; ambiguous identities block adoption. See the [everyday workflow](docs/guides/EVERYDAY_WORKFLOW.md) for preparation and exact edit commands.
 
 Example commands below assume you have prepared your own baseline, observation, brief, decisions, and handoff files. They are not bundled demo files.
 
@@ -78,6 +78,8 @@ python -m dcc_harness review ./my-project/state
 
 | Command | Purpose |
 |---|---|
+| `observe` | Observe a saved `.blend` in a fresh background Blender, without saving it, for `start`, edits and revisions |
+| `fill-hashes` | Fill and verify `{path, sha256}` file references in a payload, writing a new file |
 | `adopt-preview` / `adopt-apply` | Preview initial identity assignments, then save and independently observe a new Blender file |
 | `preview-revision` / `accept-revision` | Freeze, review and accept a deliberate saved edit into an existing project |
 | `start` | Establish a continuity project from a saved native file and matching observation |
@@ -117,7 +119,7 @@ Read [craft capabilities and recipe boundaries](docs/guides/CRAFT_SKILLS.md) bef
 
 ## Validation and current limits
 
-The v0.5.1 source and installed suites each ran **244 tests: 242 passed, two Windows symlink-permission cases skipped**. Every version also runs native Blender fixtures; the [0.5.1 report](docs/archive/releases/MAINTENANCE_0_5_1_RESULTS.md) covers the latest maintenance fixes. The [changelog](CHANGELOG.md) summarizes each version's evidence, and the [scripts index](scripts/README.md) lists its qualification scripts.
+The v0.6.0 source and installed suites each ran **259 tests: 257 passed, two Windows symlink-permission cases skipped**. Every version also runs native Blender fixtures; see the [0.6.0 report](docs/archive/releases/STEP_COST_0_6_0_RESULTS.md) for the new `observe` and `fill-hashes` commands and the [0.5.1 report](docs/archive/releases/MAINTENANCE_0_5_1_RESULTS.md) for the latest maintenance fixes. The [changelog](CHANGELOG.md) summarizes each version's evidence, and the [scripts index](scripts/README.md) lists its qualification scripts.
 
 The [0.5.0 report](docs/archive/releases/FEEDBACK_0_5_0_RESULTS.md) covers feedback retention, evidence binding, and native revision tests. Its native exercise completed all seven workflow stages on a synthetic micro-scene. The first fresh agent exposed a missing view-definition artifact; the corrected package retains actual settings alongside their digest. In the corrected sealed trial, an independent reviewer verified three notes and left the visual note uncertain. These results test continuity mechanisms, not visual-quality improvement.
 

@@ -8,7 +8,13 @@ The host agent supplies reasoning and calls the existing Blender MCP or owned ba
 
 ## Start and resume
 
-Before `start`, save an owned `.blend`, then capture `dcc_harness.continuity_blender.observe()` inside Blender to a new JSON file. The observation must match the native hash, have no observation issues, and report `native_dirty: false`. For a saved scene missing stable identities, version 0.4.9 adds [preview/apply adoption commands](SCENE_ADOPTION.md). They write a new native file and independently observe it; setup does not silently rewrite the input.
+Before `start`, save an owned `.blend` and observe it. Since 0.6.0 one command does this in a fresh background Blender without saving the file:
+
+```powershell
+python -m dcc_harness observe C:/project/baseline.blend --blender "C:/Program Files/Blender Foundation/Blender 5.1/blender.exe" --output-dir C:/project/observe-baseline
+```
+
+It writes `observation.json` in the new folder and reports `READY`, or `HAS_ISSUES` with exit status 1. The report lists the issues, such as missing IDs or an unsupported collection instancer. Use the same command for every saved file that `begin-edit`, `finish-edit` or `preview-revision` needs observed. Calling `dcc_harness.continuity_blender.observe()` inside Blender remains equivalent. The observation must match the native hash, have no observation issues, and report `native_dirty: false`. For a saved scene missing stable identities, version 0.4.9 adds [preview/apply adoption commands](SCENE_ADOPTION.md). They write a new native file and independently observe it; setup does not silently rewrite the input.
 
 ```powershell
 python -m dcc_harness start C:/project/state --checkpoint C:/project/baseline.blend --observation C:/project/baseline.json --brief-file C:/project/BRIEF.md --decisions C:/project/decisions.json --handoff C:/project/CONTINUE.md

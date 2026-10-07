@@ -35,6 +35,13 @@ def main():
     p.add_argument("project"); p.add_argument("operation"); p.add_argument("evidence"); p.add_argument("--reconciled", action="store_true")
     p = sub.add_parser("check"); p.add_argument("observation"); p.add_argument("spec"); p.add_argument("--out")
     p = sub.add_parser("diff"); p.add_argument("before"); p.add_argument("after"); p.add_argument("--allow"); p.add_argument("--out")
+    p = sub.add_parser("observe", help="Observe a saved .blend in fresh background Blender; never saves")
+    p.add_argument("source"); p.add_argument("--blender", required=True, help="Path to Blender executable")
+    p.add_argument("--output-dir", required=True, help="New folder for the observation, request and log")
+    p.add_argument("--expanded", action="store_true", help="Write formatted JSON instead of compact storage")
+    p = sub.add_parser("fill-hashes", help="Fill and verify {path, sha256} references; writes a new payload")
+    p.add_argument("payload"); p.add_argument("destination")
+    p.add_argument("--evidence-root", help="Base for relative paths; defaults to the payload's folder")
     p = sub.add_parser("pack-observation", help="Write a new lossless compact observation; never rewrite retained evidence")
     p.add_argument("source"); p.add_argument("destination")
     for command in ("adopt-preview", "adopt-apply"):
@@ -91,6 +98,12 @@ def main():
         from . import adoption
         action = adoption.preview if args.command == 'adopt-preview' else adoption.apply
         result = action(args.input, args.output_dir, args.blender)
+    elif args.command == 'observe':
+        from .observe import observe_file
+        result = observe_file(args.source, args.output_dir, args.blender, expanded=args.expanded)
+    elif args.command == 'fill-hashes':
+        from .payloads import fill_hashes
+        result = fill_hashes(args.payload, args.destination, args.evidence_root)
     elif args.command == 'pack-observation':
         from .evidence import file_hash
         source = Path(args.source); source_hash = file_hash(source)

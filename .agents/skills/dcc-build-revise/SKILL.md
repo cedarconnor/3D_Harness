@@ -23,7 +23,7 @@ Reserve the planned script with `begin-edit` before dispatch. Do not retry an un
 
 Keep each dispatched script immutable, including failed attempts; save a corrected script under a new name so its journal hash remains meaningful. For continuity stages use the pinned `continuity_blender.observe` and `continuity_checks.evaluate_stage` runtime described in `docs/guides/CONTINUITY_USAGE.md`. Keep independently corrected evaluations separate from a frozen worker's evidence.
 
-Save accepted task boundaries to new checkpoint filenames. Observe saved files with `dcc_harness.continuity_blender.observe()`; `start` and `begin-edit` require its clean saved-state fields. The pilot observer `dcc_harness.blender.observe()` and `dcc_harness.evidence.evaluate/compare` remain for legacy journal projects and frozen trials only. Reject missing coverage and unsupported rules. Do not claim topology cleanliness or animation correctness from fields this observer does not inspect.
+Save accepted task boundaries to new checkpoint filenames. Observe saved files with the `observe` command, which reopens them in a fresh background Blender and never saves; `start` and `begin-edit` require its clean saved-state fields. Inside Blender, `dcc_harness.continuity_blender.observe()` is equivalent. The pilot observer `dcc_harness.blender.observe()` and `dcc_harness.evidence.evaluate/compare` remain for legacy journal projects and frozen trials only. Reject missing coverage and unsupported rules. Do not claim topology cleanliness or animation correctness from fields this observer does not inspect.
 
 For an A/B/C experiment, B uses written procedures with native inspection; added deterministic measurement scripts belong to C. Evaluate all conditions with the same independent evaluator.
 

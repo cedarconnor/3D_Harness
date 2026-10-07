@@ -1,6 +1,6 @@
 # P1: Lower the cost of each step
 
-Plan for [build-plan](../BUILD_PLAN.md) item P1, written October 6, 2026, at version 0.5.1. Target version: 0.6.0, because it adds commands.
+Plan for [build-plan](../../BUILD_PLAN.md) item P1, written October 6, 2026, at version 0.5.1. Target version: 0.6.0, because it adds commands.
 
 ## Problem
 
@@ -28,8 +28,10 @@ python -m dcc_harness observe SOURCE.blend --blender PATH --output-dir NEW_FOLDE
 ### `fill-hashes`
 
 ```text
-python -m dcc_harness fill-hashes PAYLOAD.json --out NEW.json [--evidence-root FOLDER]
+python -m dcc_harness fill-hashes PAYLOAD.json NEW.json [--evidence-root FOLDER]
 ```
+
+The destination is positional, like `pack-observation`: every CLI command writes a `--out` value as its result receipt, so the filled payload cannot use that flag.
 
 - Walks the payload and fills `sha256` for every reference object, meaning an object whose only keys are `path` and an absent or null `sha256`.
 - Verifies hashes that are already present, and fails on a mismatch instead of overwriting: a stale hash may mean the file changed after review.

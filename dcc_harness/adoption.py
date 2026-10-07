@@ -3,11 +3,11 @@ from __future__ import annotations
 
 from pathlib import Path
 import copy
-import subprocess
 import uuid
 
 from .continuity import _plain
 from .evidence import digest, file_hash, read_json, write_json
+from .native import run_worker
 
 
 def plan_identities(inventory, source, namespace=None):
@@ -117,16 +117,7 @@ def verify_applied_plan(plan, inventory):
 
 
 def _native(blender, folder, action, request):
-    request_path = folder / (action + '-request.json')
-    write_json(request_path, request)
-    worker = Path(__file__).with_name('_adoption_blender.py')
-    command = [str(blender), '--background', '--factory-startup', '--disable-autoexec',
-               '--python-exit-code', '1', '--python', str(worker), '--', action, str(request_path)]
-    log_path = folder / (action + '.log')
-    with log_path.open('x', encoding='utf-8') as log:
-        completed = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, check=False)
-    if completed.returncode:
-        raise RuntimeError(f'Blender {action} failed; inspect {log_path} and retained outputs before retrying')
+    run_worker(blender, folder, Path(__file__).with_name('_adoption_blender.py'), action, request)
 
 
 def preview(source, out, blender):

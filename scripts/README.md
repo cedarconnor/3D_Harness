@@ -14,6 +14,7 @@ Scripts marked *launcher* run under system Python and start Blender themselves, 
 
 | Version | Scripts | Mode | Runs from a clone |
 |---|---|---|---|
+| 0.6.0 | `qualify_observe.py` with `observe_native_probe.py`; the 0.4.9 adoption launcher rerun after the launcher move | launcher | Yes |
 | 0.5.1 | The 0.5.0, 0.4.10 and 0.4.9 launchers rerun against source and installed runtimes | launcher | Yes |
 | 0.5.0 | `qualify_feedback_workflow.py` with `feedback_native_probe.py` | launcher, in phases with an explicit image-review file | Yes |
 | 0.4.10 | `qualify_revisions.py` with `revision_native_probe.py` | launcher | Yes |

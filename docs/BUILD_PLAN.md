@@ -16,9 +16,9 @@ Earlier plans are archived verbatim in [archive/plans](archive/plans/). The Octo
 
 | | |
 |---|---|
-| Version | 0.5.1 on `main` |
-| Active | P1: lower the cost of each step ([plan](plans/P1_LOWER_STEP_COST.md)) |
-| Next | E5 fresh-agent continuation, then P2 |
+| Version | 0.6.0 on `main` |
+| Active | None; P1 finished with a neutral result |
+| Next | P9 agent quick reference, then P10 fixed-view render command; E5 can run at any time |
 | Waiting on the user | E1–E3 artist review session; E4 decision on the realistic comparison; GitHub write access for R1 |
 | Investment gate | Open |
 
@@ -34,7 +34,7 @@ These need artist time or a user decision rather than new code. Every stage afte
 | E2 | Timed repair of one plain-MCP and one continuity final scene | Artist | todo | Minutes, fixed and remaining defects recorded per scene, with methods hidden |
 | E3 | Critic calibration set | Artist | todo | About twenty ranked image pairs retained as a held-out set |
 | E4 | Resume or retire the [realistic comparison](studies/REALISM_COMPARISON.md) | User | blocked: decision | Decision recorded in the decision log. A resumed run logs the interruption as a protocol deviation and keeps the frozen settings. |
-| E5 | Fresh-agent continuation on the production garden | Agent | todo, after P1 | Sealed continuation on an owned copy: elapsed and inspection time, forgotten notes and remaining artist repair recorded |
+| E5 | Fresh-agent continuation on the production garden | Agent | todo | Sealed continuation on an owned copy: elapsed and inspection time, forgotten notes and remaining artist repair recorded |
 
 ### M: Maintenance
 
@@ -51,7 +51,9 @@ Ranked by expected effect on the gate. Each ships as its own version.
 
 | ID | Item | Owner | Status | Exit criteria |
 |---|---|---|---|---|
-| P1 | Lower the cost of each step: an `observe` command and a payload hash helper ([plan](plans/P1_LOWER_STEP_COST.md)) | Agent | active | The 0.5.0 micro-fixture revision repeated by a fresh agent with fewer manual steps; elapsed time compared with 372.6 s |
+| P1 | Lower the cost of each step: an `observe` command and a payload hash helper ([plan](archive/plans/P1_LOWER_STEP_COST.md)) | Agent | done | Shipped in 0.6.0. A paired fresh-agent run found no elapsed-time reduction: 8 min 16 s on 0.5.1, 9 min 41 s on 0.6.0, confounded by a shared tool. Orientation dominated both runs ([report](archive/releases/STEP_COST_0_6_0_RESULTS.md)) |
+| P9 | Agent quick reference: one page with the exact command sequence for a scoped edit and a feedback response | Agent | todo | Orientation time measured in a fresh-agent run against the 0.6.0 comparison's roughly 3 to 3.7 min |
+| P10 | Fixed-view render command that renders a project's review cameras for a saved file, with receipt and settings | Agent | todo | Replaces the fixture-specific render tool both comparison agents relied on; native fixtures |
 | P2 | Relationship checks with evidence reliability and repair history | Agent | todo | One relation family qualified natively; a fresh continuation avoids repeating an ineffective repair |
 | P3 | Collection instances and linked libraries | Agent | todo | Instanced scenes can `start`; D5 publishing model decided; positive and negative native fixtures |
 | P4 | Before/after review page over immutable checkpoints | Agent | todo | Changed objects by stable ID with bound renders and linked notes, checked against reopened checkpoints |
@@ -100,11 +102,20 @@ These defects were confirmed during the October 6 review. Each fix needs a regre
 
 ### P1: Lower the cost of each step
 
-Today every step needs hand-written JSON, SHA-256 values and a separately scripted Blender observation. The 0.5.0 fresh agent spent 6 min 12.6 s on a one-parameter revision of a micro fixture. To compete with plain MCP, the harness must keep that overhead small.
+Done in 0.6.0; see the [report](archive/releases/STEP_COST_0_6_0_RESULTS.md). The motivation below is kept as written. The comparison showed that per-step commands remove scripts but not orientation time, which led to P9 and P10.
+
+Before 0.6.0, every step needed hand-written JSON, SHA-256 values and a separately scripted Blender observation. The 0.5.0 fresh agent spent 6 min 12.6 s on a one-parameter revision of a micro fixture. To compete with plain MCP, the harness must keep that overhead small.
 
 - An `observe` command runs `continuity_blender.observe()` on a saved file in an owned background Blender, reusing the adoption launcher. It never saves the source, verifies the source hash is unchanged, and writes the observation with exclusive creation.
 - A payload helper fills `{path, sha256}` references in feedback, stage and evidence payloads from the actual files, so agents stop computing hashes by hand.
 - Both need native positive and negative fixtures and a repeat of the 0.5.0 fresh-agent revision for comparison.
+
+### P9–P10: orientation cost
+
+Added after the 0.6.0 comparison. Both fresh agents spent roughly three minutes reading skills, guides and runtime source before their first command, while native work took seconds. They wrote one script each, because a provided render tool covered rendering and observation; the 0.5.0 agent, without such a tool, wrote five.
+
+- **P9, quick reference.** One page covering the exact command sequence, payload shapes and common failure stops for the two most frequent tasks. Measure whether it shortens orientation before building anything larger.
+- **P10, render command.** Generalize the fixture-specific render tool: render the project's review cameras for a saved file without saving it, and write the receipt with its view settings in the format feedback evidence requires.
 
 ### P2–P8
 
@@ -196,7 +207,9 @@ Capture fixed views at blockout, surface and lighting completion, pre-revision a
 
 Newest first. One line per status change.
 
-- **2026-10-06:** P1 started; [implementation plan](plans/P1_LOWER_STEP_COST.md) written.
+- **2026-10-06:** P9 and P10 added from the comparison's finding that orientation, not native steps, dominates agent time.
+- **2026-10-06:** P1 done. Version 0.6.0 ships `observe` and `fill-hashes`. A paired fresh-agent comparison showed no elapsed-time reduction; the result is recorded as neutral.
+- **2026-10-06:** P1 started; [implementation plan](archive/plans/P1_LOWER_STEP_COST.md) written.
 - **2026-10-06:** M1 done. Version 0.5.1 fixes six defects, with eleven new tests; native exercises passed against source and installed runtimes.
 - **2026-10-06:** R1 blocked. Pushing `main` was refused for the `Cedar-Sphere` credential; the merge exists locally.
 - **2026-10-06:** M1 started.

@@ -8,6 +8,14 @@ Version 0.5.0 adds optional coordination records above the existing native check
 
 Put a JSON payload and its referenced artifacts in an owned input folder. Paths inside payloads are relative to that folder, with SHA-256 hashes. `--evidence-root` selects another base when necessary. Paths cannot traverse outside the base or pass through links/reparse points.
 
+Since 0.6.0 you need not compute the hashes by hand. Write each file reference as `{"path": "..."}` and let `fill-hashes` complete it into a new file:
+
+```powershell
+python -m dcc_harness fill-hashes INPUT/note.draft.json INPUT/note.json
+```
+
+It fills every reference object whose only keys are `path` and an absent, null or empty `sha256`. A hash that is already present is verified and never replaced; a mismatch fails, because the file may have changed after review. It uses the same path rules and `--evidence-root` default as the coordination commands. Checkpoint references stay explicit; copy them from `resume`.
+
 ```powershell
 python -m dcc_harness feedback-add PROJECT --note INPUT/note.json --expected-revision none --request-id UUID --out INPUT/add-receipt.json
 ```

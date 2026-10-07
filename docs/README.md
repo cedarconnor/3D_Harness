@@ -1,6 +1,6 @@
 # Documentation index
 
-Updated October 6, 2026, for version 0.5.1. Start with the repository [README](../README.md), then the [everyday workflow](guides/EVERYDAY_WORKFLOW.md). The [build plan](BUILD_PLAN.md) tracks current status and next work; the [changelog](../CHANGELOG.md) lists what each version delivered.
+Updated October 6, 2026, for version 0.6.0. Start with the repository [README](../README.md), then the [everyday workflow](guides/EVERYDAY_WORKFLOW.md). The [build plan](BUILD_PLAN.md) tracks current status and next work; the [changelog](../CHANGELOG.md) lists what each version delivered.
 
 Documents are split by whether they are still in use:
 
@@ -11,7 +11,7 @@ Documents are split by whether they are still in use:
 | [`recipes/`](recipes/) | Bounded construction helpers used by the craft skills |
 | [`studies/`](studies/) | Open evaluation work: the interrupted realistic comparison and the artist review session |
 | [`reference/`](reference/) | Research and designs behind upcoming stages |
-| [`plans/`](plans/) | Implementation plans for tracked items, created when work starts; currently [P1](plans/P1_LOWER_STEP_COST.md) |
+| `plans/` | Implementation plans for active tracked items, created when work starts and archived when it finishes; currently empty |
 | [`archive/`](archive/) | Work already addressed: release reports, completed studies, implemented plans and superseded inputs |
 
 Archived documents stay as written. They remain the evidence for the claims in the plan, README and changelog; only their links were updated when files moved.
@@ -73,6 +73,7 @@ One report per version. The [changelog](../CHANGELOG.md) summarizes counts and n
 | 0.4.10 | [External revisions](archive/releases/REVISIONS_0_4_10_RESULTS.md) |
 | 0.5.0 | [Structured feedback](archive/releases/FEEDBACK_0_5_0_RESULTS.md) |
 | 0.5.1 | [Correctness maintenance](archive/releases/MAINTENANCE_0_5_1_RESULTS.md) |
+| 0.6.0 | [Lower step cost](archive/releases/STEP_COST_0_6_0_RESULTS.md) |
 
 ## Archive: completed studies
 
@@ -88,6 +89,7 @@ Artist scoring for the first two studies is still open; it is item E1.
 
 These are not implementation authority. Their example APIs and status claims may be unimplemented or superseded.
 
+- [P1 plan](archive/plans/P1_LOWER_STEP_COST.md), implemented in 0.6.0.
 - [Structured feedback plan](archive/plans/STRUCTURED_FEEDBACK_ENVIRONMENT_WORKFLOW.md), implemented in 0.5.0. Its draft JSON is not the current payload format.
 - The October 3 build plans: [version 2](archive/plans/DCC_HARNESS_BUILD_PLAN_v2_2026-10-03.txt) and [version 3](archive/plans/DCC_HARNESS_BUILD_PLAN_v3_2026-10-06.txt), the latter with status notes through 0.5.0.
 - The [original architecture note](archive/historical/llm-dcc-agent-architecture.md), the supplied starting proposal. [D9](DESIGN_DECISIONS.md#d9-sources-and-document-authority) records its status.

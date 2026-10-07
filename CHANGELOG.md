@@ -2,6 +2,16 @@
 
 Each version is a bounded increment with its own qualification report. Test counts are portable-suite results on Windows; the two skips in each count are host symlink-permission cases. Native qualification uses Blender 5.1.1 on Windows. Studies are listed with the versions they exercised. The [build plan](docs/BUILD_PLAN.md) explains what remains open, and reports that link into `runs/` refer to local evidence excluded from Git.
 
+## 0.6.0 — October 6, 2026
+
+Lower the cost of each step, build-plan item P1 ([plan](docs/archive/plans/P1_LOWER_STEP_COST.md)).
+
+- **Added:** `observe SAVED.blend --blender PATH --output-dir NEW_FOLDER` observes a saved file in a fresh background Blender and never saves it. It reports `READY`, or `HAS_ISSUES` with exit status 1, listing problems such as missing IDs or an unsupported collection instancer. Its observation feeds `start`, `begin-edit`, `finish-edit` and `preview-revision` directly, so agents no longer write an observation script for every step.
+- **Added:** `fill-hashes PAYLOAD DESTINATION` fills `{path}` references in coordination payloads with their SHA-256 and verifies hashes already present. A mismatch fails rather than being overwritten. It uses the coordination path rules and writes a new file.
+- **Changed:** adoption and `observe` share one background-Blender launcher.
+- **Fixed during qualification:** `fill-hashes` checks its destination for links and junctions before writing.
+- **Qualification:** 260 tests, 258 passed, from both source and installed wheel. Native `observe` fixtures passed against both runtimes: clean, path with spaces, missing asset ID and collection instancer. The fresh-process observation matched an in-process observation exactly. A paired fresh-agent comparison found no elapsed-time reduction (8 min 16 s on 0.5.1, 9 min 41 s on 0.6.0, one run each, confounded by a shared tool); orientation dominated both runs. [Report](docs/archive/releases/STEP_COST_0_6_0_RESULTS.md)
+
 ## 0.5.1 — October 6, 2026
 
 Correctness maintenance, build-plan item M1, plus the repository reorganization.
