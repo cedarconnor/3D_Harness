@@ -1,0 +1,24 @@
+{
+  "schema": "dcc.feedback.response.v1",
+  "note_id": "4ce4430d-809d-4e92-9b38-56f842c754fa",
+  "author": "synthetic-example",
+  "disposition": "implemented",
+  "change": "Illustrative response: revised the declared UV orientation on the post and supplied a new matching detail render. This example does not claim a real edit or completed verification.",
+  "result": {
+    "checkpoint_id": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "checkpoint_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+  },
+  "evidence": [
+    {
+      "kind": "native_contract",
+      "path": "evidence/after/contract-check.json",
+      "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+    },
+    {
+      "kind": "detail_render",
+      "path": "evidence/after/render-receipt.json",
+      "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "view_id": "REVIEW_FRONT_POST"
+    }
+  ]
+}

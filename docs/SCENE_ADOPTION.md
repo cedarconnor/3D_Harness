@@ -2,7 +2,7 @@
 
 Version 0.4.9 adds explicit initial identity adoption. It fills missing object, asset and material IDs in a **new native file**, then reopens that file in another Blender process to observe it. Use it when starting a continuity project from a saved scene that was authored without harness IDs.
 
-This is separate from adopting an artist revision into an existing continuity history. For that case, retain the existing identities and use the checked publication process in [the everyday workflow](EVERYDAY_WORKFLOW.md#interruptions-and-limitations).
+This is separate from adopting an artist revision into an existing continuity history. For that case, retain the existing identities and use [external revision preview and acceptance](EXTERNAL_REVISIONS.md).
 
 ## Preview, inspect, apply
 

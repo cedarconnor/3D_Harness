@@ -96,7 +96,7 @@ def resume(root, focus=()):
                                              if mesh is not None and x.get('mesh_datablock') == mesh]
         selected[iid]['material_users'] = {m: state['registry']['materials'][m]['users']
                                            for m in set(o['material_ids'])}
-    return {
+    packet = {
         'schema': 'dcc.resume.v1', 'project': str(store.root), 'active': active,
         'status': 'RECONCILE' if state['pending'] or unresolved or lock_exists else 'READY_FOR_INSPECTION',
         'brief': state['brief'], 'decisions': state['decisions'],
@@ -113,6 +113,12 @@ def resume(root, focus=()):
                        else 'Inspect the saved checkpoint and scope a contract before begin-edit',
         'limits': 'Saved-file packet only; live scene freshness and artistic acceptance are not established. '
                   'Direct MCP writes and legacy APIs bypass workflow reservations.'}
+    from .coordination import read
+    events = read(store.root)
+    if events:
+        from .environment_workflow import summary
+        packet['coordination'] = summary(events, state)
+    return packet
 
 
 def review(root, focus=()):
@@ -123,6 +129,11 @@ def review(root, focus=()):
     packet['last_native_check'] = None if check is None else {
         'path': str(check_path), 'passed': check['passed'], 'failures': check['failures'],
         'checked_targets': check['checked_targets']}
+    if check is not None and 'external_revision' in check:
+        revision = check['external_revision']
+        packet['external_revision'] = {'preview_sha256': revision['preview_sha256'],
+            'note': revision['preview_manifest']['note'], 'review_note': revision['review_note'],
+            'review_attribution': revision['review_attribution']}
     packet['artistic_acceptance'] = 'not_evaluated'
     packet['visual_review'] = 'Inspect checkpoint-bound whole-scene and detail renders; this command does not grade images.'
     return packet

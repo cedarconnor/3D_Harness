@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dcc-harness"
-version = "0.4.9"
+version = "0.5.0"
 description = "Blender-first advisory skills, observations and checkpoint evidence"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -19,4 +19,7 @@ dcc-harness = "dcc_harness.__main__:main"
 
 [tool.setuptools.packages.find]
 include = ["dcc_harness*"]
+
+[tool.setuptools.package-data]
+dcc_harness = ["data/*.json"]
 

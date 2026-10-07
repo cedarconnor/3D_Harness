@@ -35,7 +35,7 @@ Keep the task-sized deliverables, consumes/produces interfaces, explicit review 
 
 Do not require a predetermined modeling approach when exploration is part of the task. Create a bounded exploration stage with named candidates and a selection gate. Fixed diagnostic cameras are useful, while production cameras must remain animatable and revisable under version control.
 
-Evidence: [writing-asset-plans/SKILL.md](./dcc-skills/writing-asset-plans/SKILL.md), especially lines 24–42, 61–71 and 79–117.
+Evidence: [writing-asset-plans/SKILL.md](../dcc-skills/writing-asset-plans/SKILL.md), especially lines 24–42, 61–71 and 79–117.
 
 ### Assert first modeling
 
@@ -43,7 +43,7 @@ Use **expected RED for new deliverables, and a baseline for edits**. A genuinely
 
 Validate the validators using known failing fixtures. Do not require the artist's actual scene to be deliberately broken just to produce RED evidence. For visual exploration, use comparison rubrics and preserved candidates; geometry counts cannot specify beauty or expressive timing.
 
-Evidence: [assert-first-modeling/SKILL.md](./dcc-skills/assert-first-modeling/SKILL.md), lines 13–18, 64–80 and 84. The rule that every measurement warning must be fixed also needs a task-specific applicability policy.
+Evidence: [assert-first-modeling/SKILL.md](../dcc-skills/assert-first-modeling/SKILL.md), lines 13–18, 64–80 and 84. The rule that every measurement warning must be fixed also needs a task-specific applicability policy.
 
 ### Asset driven development
 
@@ -53,7 +53,7 @@ Replace the text ledger as scheduler authority, make native checkpoints mandator
 
 The skill references `re-review-prompt.md` at line 52, but that file is absent from the supplied folder. The assertion, history and mode APIs also have no implementation here. Resolve these dependencies before calling the skill package executable.
 
-Evidence: [asset-driven-development/SKILL.md](./dcc-skills/asset-driven-development/SKILL.md), lines 20–30, 43–64 and 66–72; [implementer prompt](./dcc-skills/asset-driven-development/implementer-prompt.md), lines 23–34 and 75–79.
+Evidence: [asset-driven-development/SKILL.md](../dcc-skills/asset-driven-development/SKILL.md), lines 20–30, 43–64 and 66–72; [implementer prompt](../dcc-skills/asset-driven-development/implementer-prompt.md), lines 23–34 and 75–79.
 
 ### Task reviewer
 
@@ -61,7 +61,7 @@ A concise review packet is a good default. It should be produced by the executio
 
 Technical review checks contract compliance. Art-direction review should also evaluate composition, cohesion and material relationships against a style specification. The supplied “do not critique aesthetics the spec doesn't constrain” rule is reasonable only if the system actually has that style specification and a separate creative review stage.
 
-Evidence: [task-reviewer-prompt.md](./dcc-skills/asset-driven-development/task-reviewer-prompt.md), lines 20–38 and 41–61.
+Evidence: [task-reviewer-prompt.md](../dcc-skills/asset-driven-development/task-reviewer-prompt.md), lines 20–38 and 41–61.
 
 ### Verification before completion
 
@@ -69,7 +69,7 @@ Keep the claims-to-evidence discipline. Replace “run in this message” with *
 
 Separate technical completion, visual acceptance and production qualification. Rerun affected checks after scoped changes and perform full checks at release boundaries. Export verification must include the actual destination application when cross-DCC compatibility is claimed.
 
-Evidence: [verification-before-completion-dcc/SKILL.md](./dcc-skills/verification-before-completion-dcc/SKILL.md), lines 13–27 and 33–45.
+Evidence: [verification-before-completion-dcc/SKILL.md](../dcc-skills/verification-before-completion-dcc/SKILL.md), lines 13–27 and 33–45.
 
 ## Recommended disposition
 

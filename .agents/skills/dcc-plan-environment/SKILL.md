@@ -5,7 +5,9 @@ description: Plan a bounded Blender environment build or revision with explicit 
 
 # Plan an environment task
 
-Work from the user's brief and the active build plan. Read `docs/PILOT_USAGE.md` in the harness repository for actual commands. This skill supports the advisory pilot; it does not start a background agent.
+Work from the user's brief and the project's recorded decisions. Use [the everyday workflow](../../../docs/EVERYDAY_WORKFLOW.md) for actual commands; consult the harness build plan only when planning a controlled comparison. This skill supports the advisory workflow; it does not start a background agent.
+
+For a coordinated project, use the pinned environment manifest to identify this stage's deliverables and review policy. [Structured feedback](../../../docs/STRUCTURED_FEEDBACK.md) describes the optional binding. Inherit earlier work explicitly with its evidence gaps; do not invent prior approvals or rebuild accepted work just to fill a stage list. Keep preferences in the project direction and record actionable notes against the actual checkpoint.
 
 Inspect the live document and connection first. Preserve unsaved work in a recovery copy before creating an owned test scene. Identify the active file/scene and what may change.
 

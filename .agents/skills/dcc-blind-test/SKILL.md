@@ -11,13 +11,13 @@ For the longer continuity experiment, use `docs/CONTINUITY_EXPERIMENT.md` and `d
 
 Prepare a new round using the geometry-free starter, common brief, fixed kit and frozen templates. Before dispatch, verify the six packet hashes, common software/model settings, budgets and independent evaluator. Keep the assignment manifest private. Record actual client metadata when exposed; do not invent token or billing figures.
 
-Use `collaboration.spawn_agent` with `fork_turns="none"` and unchanged model settings for each build. The message supplies only its assigned packet path, instruction to read PROMPT.md, output ownership, deadline and native writer grant. If this host lacks fresh-context delegation, report that limitation rather than silently reusing the current conversation.
+Start each build in a fresh agent context with unchanged model settings: for example, Codex `collaboration.spawn_agent` with `fork_turns="none"`, or a Claude Code subagent that receives only the packet message. The message supplies only its assigned packet path, instruction to read PROMPT.md, output ownership, deadline and native writer grant. If this host lacks fresh-context delegation, report that limitation rather than silently reusing the current conversation.
 
 Grant only one agent the live Blender writer at a time. Remember and preserve the user's original scene, check whether it is dirty, and restore it after trials. Other agents may evaluate immutable files in their own background processes; they cannot mutate the live scene. Timeouts require outcome inspection, never blind replay. Do not feed one builder another's design, scripts, critiques or scores.
 
 End each builder at its packed pre.blend and CONTINUE.md handoff. Verify its packet, record timing/output hashes and release a revision packet. Spawn a different fresh agent for the revision; a follow-up to the builder is not a context-replacement test. Include only the accepted native scene, handoff, assigned method and frozen revision request. Preserve failures and capped runs instead of replacing them.
 
-Tell every revision agent to treat historical paths in the handoff as informational and open only its local supplied pre.blend. Once it stops, freeze post.blend and CONTINUE.md with the accept-revision command. Independent evaluation reads that accepted snapshot, never a still-mutable agent output.
+Tell every revision agent to treat historical paths in the handoff as informational and open only its local supplied pre.blend. Once it stops, freeze post.blend and CONTINUE.md with `python -m dcc_harness.blind accept-revision`, the trial command rather than the project-level `accept-revision`. Independent evaluation reads that accepted snapshot, never a still-mutable agent output.
 
 Apply the same independent native evaluator to every pre/post file. Reserve capture/render budget for evaluation; stop at the ceiling. Record both actual checks and their coverage limits. Hash the evaluator; corrections to enforce already-frozen requirements must apply uniformly and be logged, with no selective feedback to builders.
 

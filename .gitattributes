@@ -1,0 +1,12 @@
+# Check out text with LF on every platform. The pinned workflow runtime digest
+# hashes raw package source bytes, so CRLF checkouts would pin a different runtime.
+* text=auto eol=lf
+
+*.blend binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.exr binary
+*.hdr binary
+*.whl binary
+*.zip binary
