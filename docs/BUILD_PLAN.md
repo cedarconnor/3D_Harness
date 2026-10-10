@@ -16,8 +16,8 @@ Earlier plans are archived verbatim in [archive/plans](archive/plans/). The Octo
 
 | | |
 |---|---|
-| Version | 0.6.0 on `main` |
-| Active | P9 agent guidance ([plan](plans/P9_AGENT_GUIDANCE.md)) |
+| Version | 0.7.0 on `main` |
+| Active | None; P9 finished |
 | Next | P10 queued render command; E5 can run at any time |
 | Waiting on the user | E1–E3 artist review session; E4 decision on the realistic comparison; GitHub write access for R1 |
 | Investment gate | Open |
@@ -53,7 +53,7 @@ Ranked by expected effect on the gate. Each ships as its own version.
 | ID | Item | Owner | Status | Exit criteria |
 |---|---|---|---|---|
 | P1 | Lower the cost of each step: an `observe` command and a payload hash helper ([plan](archive/plans/P1_LOWER_STEP_COST.md)) | Agent | done | Shipped in 0.6.0. A paired fresh-agent run found no elapsed-time reduction: 8 min 16 s on 0.5.1, 9 min 41 s on 0.6.0, confounded by a shared tool. Orientation dominated both runs ([report](archive/releases/STEP_COST_0_6_0_RESULTS.md)) |
-| P9 | Agent guidance: a generated session brief, `next` and `requirements` commands, a `demo` walk on a fixture, and a one-page quick reference ([details](#p9p12-orientation-checks-and-authority), [plan](plans/P9_AGENT_GUIDANCE.md)) | Agent | active | Orientation time measured in a fresh-agent run against the 0.6.0 comparison's roughly 3 to 3.7 min. `demo` waits for that measurement and is built only if orientation stays above about one minute |
+| P9 | Agent guidance: a generated session brief, `next` and `requirements` commands, a `demo` walk on a fixture, and a one-page quick reference ([details](#p9p12-orientation-checks-and-authority), [plan](archive/plans/P9_AGENT_GUIDANCE.md)) | Agent | done | Shipped in 0.7.0. A fresh agent on the 0.6.0 task finished in 3 min 1 s against 8 min 16 s and 9 min 41 s, reserved its edit after 51 s instead of 4 to 5 min, and read one runtime source file instead of 10 and 19; one run, directional. `demo` not built: orientation fell below its one-minute threshold ([report](archive/releases/GUIDANCE_0_7_0_RESULTS.md)) |
 | P10 | Fixed-view render command that renders a project's review cameras for a saved file, with receipt and settings, through a one-at-a-time queue | Agent | todo | Replaces the fixture-specific render tool both comparison agents relied on; render IDs can be waited on; native fixtures |
 | P11 | Learned check library: errors no check caught become owner-approved, versioned checks for later projects | Agent | todo | A caught error yields a proposed check; once approved it runs in a new project; positive and negative native fixtures; taste stays project-scoped |
 | P12 | Owner-only approval channel the agent's tools cannot reach | Agent | todo | Artist acceptance and check approval enter only through an owner path; an agent-written artist authority is rejected; decision recorded in the decision log |
@@ -115,7 +115,7 @@ Before 0.6.0, every step needed hand-written JSON, SHA-256 values and a separate
 
 ### P9–P12: orientation, checks and authority
 
-P9 and P10 were added after the 0.6.0 comparison. Both fresh agents spent roughly three minutes reading skills, guides and runtime source before their first command, while native work took seconds. They wrote one script each, because a provided render tool covered rendering and observation; the 0.5.0 agent, without such a tool, wrote five. On October 10 the [motion harness review](reference/MOTION_HARNESS_REVIEW_2026-10-10.md) extended P9 and P10 and added P11 and P12; the same review adds questions and a camera sheet to P4 and the M5 cost record.
+P9 is done in 0.7.0; see the [report](archive/releases/GUIDANCE_0_7_0_RESULTS.md). `brief` covers the generated session brief, and `demo` was not built because orientation fell under a minute. P9 and P10 were added after the 0.6.0 comparison. Both fresh agents spent roughly three minutes reading skills, guides and runtime source before their first command, while native work took seconds. They wrote one script each, because a provided render tool covered rendering and observation; the 0.5.0 agent, without such a tool, wrote five. On October 10 the [motion harness review](reference/MOTION_HARNESS_REVIEW_2026-10-10.md) extended P9 and P10 and added P11 and P12; the same review adds questions and a camera sheet to P4 and the M5 cost record.
 
 - **P9, agent guidance.** Answer "what next?" from the project's state instead of from documents. First, a generated session brief: `resume PROJECT --brief` renders the resume packet as agent-facing Markdown, the way Mortiflix rewrites `CLAUDE.md` before every session: why this session is starting, the current checkpoint and any open reservation, stages with their states and required evidence, unresolved notes with their anchors, the protected contracts, the latest handoff and the exact commands for the permitted next steps. Artist text is fenced as direction and file contents as data. Then `next PROJECT` names the next permitted command for the current state, such as an open reservation, unanswered notes or a pending submission. `requirements PROJECT STAGE` prints the evidence a submission must carry and a payload skeleton with `{path}` references ready for `fill-hashes`. `demo` walks begin-edit, finish-edit, a feedback note, response and verification, and a stage submission on a bundled fixture, printing each command and payload; it needs Blender but no model, and doubles as a smoke test. Keep the one-page quick reference for the two most frequent tasks, generated from the same command list so it cannot drift. Measure orientation before building anything larger.
 - **P10, render command.** Generalize the fixture-specific render tool: render the project's review cameras for a saved file without saving it, and write the receipt with its view settings in the format feedback evidence requires. Run renders one at a time through a queue; each request returns an ID that a later call waits on, so a slow render never blocks the session.
@@ -216,7 +216,8 @@ Capture fixed views at blockout, surface and lighting completion, pre-revision a
 
 Newest first. One line per status change.
 
-- **2026-10-10:** P9 started; [implementation plan](plans/P9_AGENT_GUIDANCE.md) written. `demo` deferred until orientation is measured.
+- **2026-10-10:** P9 done. Version 0.7.0 ships `brief`, `next`, `requirements` and the agent quick reference. A fresh agent on the 0.6.0 task took 3 min 1 s against 8 min 16 s and 9 min 41 s (one run). `demo` not built.
+- **2026-10-10:** P9 started; [implementation plan](archive/plans/P9_AGENT_GUIDANCE.md) written. `demo` deferred until orientation is measured.
 - **2026-10-10:** Mortiflix source read directly. P9 gains a generated session brief; P11 requires computed checks; P12 states its guard-versus-wall limit.
 - **2026-10-10:** P11, P12 and M5 added and P4, P9, P10, X2 and X5 extended, from the [motion harness review](reference/MOTION_HARNESS_REVIEW_2026-10-10.md).
 - **2026-10-06:** P9 and P10 added from the comparison's finding that orientation, not native steps, dominates agent time.

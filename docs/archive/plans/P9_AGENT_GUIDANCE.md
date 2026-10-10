@@ -1,12 +1,12 @@
 # P9: Agent guidance
 
-Plan for [build-plan](../BUILD_PLAN.md) item P9, written October 10, 2026, at version 0.6.0. Target version: 0.7.0, because it adds commands.
+Plan for [build-plan](../../BUILD_PLAN.md) item P9, written October 10, 2026, at version 0.6.0. Target version: 0.7.0, because it adds commands.
 
 ## Problem
 
-In the 0.6.0 comparison both fresh agents spent about 3 to 3.7 minutes reading skills, guides and runtime source before their first command, and about another minute each writing contract, handoff and response JSON. Native work took seconds ([report](../archive/releases/STEP_COST_0_6_0_RESULTS.md)). Agents learn the workflow from prose, then work out the next command and its arguments from a JSON resume packet.
+In the 0.6.0 comparison both fresh agents spent about 3 to 3.7 minutes reading skills, guides and runtime source before their first command, and about another minute each writing contract, handoff and response JSON. Native work took seconds ([report](../releases/STEP_COST_0_6_0_RESULTS.md)). Agents learn the workflow from prose, then work out the next command and its arguments from a JSON resume packet.
 
-Mortiflix answers the same question by regenerating the agent's `CLAUDE.md` from the record before every session ([review](../reference/MOTION_HARNESS_REVIEW_2026-10-10.md)). This increment does the equivalent on demand: the runtime tells the agent where the project stands and what exactly to run next, using values from the verified record.
+Mortiflix answers the same question by regenerating the agent's `CLAUDE.md` from the record before every session ([review](../../reference/MOTION_HARNESS_REVIEW_2026-10-10.md)). This increment does the equivalent on demand: the runtime tells the agent where the project stands and what exactly to run next, using values from the verified record.
 
 ## Scope
 

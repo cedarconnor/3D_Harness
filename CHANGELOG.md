@@ -2,6 +2,17 @@
 
 Each version is a bounded increment with its own qualification report. Test counts are portable-suite results on Windows; the two skips in each count are host symlink-permission cases. Native qualification uses Blender 5.1.1 on Windows. Studies are listed with the versions they exercised. The [build plan](docs/BUILD_PLAN.md) explains what remains open, and reports that link into `runs/` refer to local evidence excluded from Git.
 
+## 0.7.0 — October 10, 2026
+
+Agent guidance, build-plan item P9 ([plan](docs/archive/plans/P9_AGENT_GUIDANCE.md)).
+
+- **Added:** `brief PROJECT` prints Markdown from the verified record: where the project stands, the permitted next steps with commands filled in (project path, parent ID, checkpoint path, edit ID, coordination revision and a fresh request ID), each open note's acceptance, targets and view, the stage table, and the recorded brief, handoff and decisions fenced as records. It only reads.
+- **Added:** `next PROJECT` returns the same steps as JSON. While anything is unresolved it offers only inspection or `finish-edit`.
+- **Added:** `requirements PROJECT STAGE` returns a stage's required evidence, deliverables, exact `feedback_ids`, blockers and a submission skeleton for `fill-hashes`.
+- **Added:** the [agent quick reference](docs/guides/AGENT_QUICK_REFERENCE.md), whose commands, payload examples and quoted errors the suite checks against the runtime. The `dcc-harness` skill now starts with `brief`.
+- **Not built:** the planned `demo` walk, because orientation fell below the plan's one-minute threshold.
+- **Qualification:** 283 tests, 281 passed, from source; the installed wheel passed the same runtime tests. Native runs on copies of two retained projects, source and installed, executed the printed `observe` and `begin-edit` commands and left the copies otherwise unchanged. A fresh agent on the 0.6.0 comparison task finished in 3 min 1 s against 8 min 16 s and 9 min 41 s, reserving its edit after 51 s instead of 4 to 5 min (one run, directional). [Report](docs/archive/releases/GUIDANCE_0_7_0_RESULTS.md)
+
 ## 0.6.0 — October 6, 2026
 
 Lower the cost of each step, build-plan item P1 ([plan](docs/archive/plans/P1_LOWER_STEP_COST.md)).
