@@ -107,6 +107,8 @@ The default allows routine agent review within the brief. It does not require th
 
 ## Submit, review and continue a stage
 
+Since 0.7.0, `requirements PROJECT STAGE` lists a stage's state, blocking predecessors, review policy, deliverables, required evidence with the fields each needs, the exact `feedback_ids` to list and unresolved blockers. Its `skeleton` fills the schema, stage, current checkpoint and feedback IDs, and writes file references as `{"path": "<...>"}` for `fill-hashes`. `next PROJECT` lists which notes and stages are waiting, with commands.
+
 ```powershell
 python -m dcc_harness stage-submit PROJECT --submission INPUT/stage.json --expected-revision REVISION --request-id UUID
 python -m dcc_harness stage-complete PROJECT --submission-id SUBMISSION_REVISION --review INPUT/review.json --expected-revision SUBMISSION_REVISION --request-id NEW_UUID

@@ -6,6 +6,10 @@ Later additions use the same store. These are [scene adoption](SCENE_ADOPTION.md
 
 The host agent supplies reasoning and calls the existing Blender MCP or owned background Blender. These commands do not launch an agent, buy credits, run a daemon or implement another MCP server. The workflow serializes its own edit reservations. Direct MCP writes and older Python/CLI entry points remain outside that protection.
 
+## Orient first
+
+Since 0.7.0, `brief PROJECT` prints where a project stands and the permitted next steps, with each command filled in from the verified record: project path, parent ID, checkpoint path, edit ID, coordination revision and a fresh request ID. `next PROJECT` returns the same steps as JSON, and `requirements PROJECT STAGE` returns what a stage submission needs with a skeleton for `fill-hashes`. All three only read. The [agent quick reference](AGENT_QUICK_REFERENCE.md) has the exact sequences and payload shapes.
+
 ## Start and resume
 
 Before `start`, save an owned `.blend` and observe it. Since 0.6.0 one command does this in a fresh background Blender without saving the file:

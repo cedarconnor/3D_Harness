@@ -6,15 +6,23 @@ from .evidence import read_json, write_json, evaluate, compare
 from .project import Project
 
 
-def main():
+COORDINATION_COMMANDS = {
+    'feedback-add': ('feedback.add', 'note'), 'feedback-respond': ('feedback.respond', 'response'),
+    'feedback-verify': ('feedback.verify', 'verification'), 'feedback-decide': ('feedback.decide', 'decision'),
+    'workflow-bind': ('workflow.bind', 'binding'), 'stage-submit': ('stage.submit', 'submission'),
+    'stage-complete': ('stage.complete', 'review'), 'stage-reopen': ('stage.reopen', 'decision')}
+
+
+def build_parser():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
-    coordination_commands = {
-        'feedback-add': ('feedback.add', 'note'), 'feedback-respond': ('feedback.respond', 'response'),
-        'feedback-verify': ('feedback.verify', 'verification'), 'feedback-decide': ('feedback.decide', 'decision'),
-        'workflow-bind': ('workflow.bind', 'binding'), 'stage-submit': ('stage.submit', 'submission'),
-        'stage-complete': ('stage.complete', 'review'), 'stage-reopen': ('stage.reopen', 'decision')}
-    for name, (kind, argument) in coordination_commands.items():
+    p = sub.add_parser("brief", help="Start here: where the project stands and the exact next commands, as Markdown")
+    p.add_argument("project"); p.add_argument("--focus", nargs="*", default=[]); p.add_argument("--out")
+    p = sub.add_parser("next", help="The permitted next steps with commands filled from the record; reads only")
+    p.add_argument("project"); p.add_argument("--out")
+    p = sub.add_parser("requirements", help="What a stage submission needs, with a skeleton for fill-hashes")
+    p.add_argument("project"); p.add_argument("stage"); p.add_argument("--out")
+    for name, (kind, argument) in COORDINATION_COMMANDS.items():
         p = sub.add_parser(name)
         p.add_argument('project'); p.add_argument('--' + argument, required=True)
         p.add_argument('--expected-revision', required=True); p.add_argument('--request-id', required=True)
@@ -72,10 +80,32 @@ def main():
     p.add_argument("--observation", required=True); p.add_argument("--handoff", required=True)
     p.add_argument("--updates", required=True); p.add_argument("--reconciled", action="store_true"); p.add_argument("--out")
     p.add_argument("--reject-reason", help="Retain this candidate without publication, even if native checks pass")
+    return parser
+
+
+def _write_failed(parser, exc):
+    parser.exit(2, f"Result printed above was not written to --out ({exc}). Any committed change "
+                   "stands; do not repeat the command to get a receipt.\n")
+
+
+def main():
+    parser = build_parser()
     args = parser.parse_args()
-    if args.command in coordination_commands:
+    if args.command == "brief":
+        from .guidance import brief
+        text = brief(args.project, args.focus)
+        print(text, end="")
+        if args.out:
+            try:
+                Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+                with Path(args.out).open("x", encoding="utf-8", newline="\n") as stream:
+                    stream.write(text)
+            except OSError as exc:
+                _write_failed(parser, exc)
+        return
+    if args.command in COORDINATION_COMMANDS:
         from . import feedback, environment_workflow
-        kind, argument = coordination_commands[args.command]
+        kind, argument = COORDINATION_COMMANDS[args.command]
         source = Path(getattr(args, argument))
         payload = read_json(source)
         if kind == 'workflow.bind':
@@ -84,6 +114,12 @@ def main():
             payload = {'submission_id': args.submission_id, 'review': payload}
         module = feedback if kind.startswith('feedback.') else environment_workflow
         result = module.apply(args.project, kind, payload, args.expected_revision, args.request_id, args.evidence_root or source.absolute().parent)
+    elif args.command == 'next':
+        from .guidance import next_steps
+        result = next_steps(args.project)
+    elif args.command == 'requirements':
+        from .guidance import requirements
+        result = requirements(args.project, args.stage)
     elif args.command == 'workflow-template':
         from .environment_workflow import default_manifest
         result = default_manifest()
@@ -141,8 +177,7 @@ def main():
         try:
             write_json(args.out, result)
         except OSError as exc:
-            parser.exit(2, f"Result printed above was not written to --out ({exc}). Any committed change "
-                           "stands; do not repeat the command to get a receipt.\n")
+            _write_failed(parser, exc)
     nested = result.get("result")
     if result.get("passed") is False or (isinstance(nested, dict) and nested.get("passed") is False):
         raise SystemExit(1)

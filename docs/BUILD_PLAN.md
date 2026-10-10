@@ -17,8 +17,8 @@ Earlier plans are archived verbatim in [archive/plans](archive/plans/). The Octo
 | | |
 |---|---|
 | Version | 0.6.0 on `main` |
-| Active | None; P1 finished with a neutral result |
-| Next | P9 agent guidance commands and demo walk, then P10 queued render command; E5 can run at any time |
+| Active | P9 agent guidance ([plan](plans/P9_AGENT_GUIDANCE.md)) |
+| Next | P10 queued render command; E5 can run at any time |
 | Waiting on the user | E1–E3 artist review session; E4 decision on the realistic comparison; GitHub write access for R1 |
 | Investment gate | Open |
 
@@ -53,7 +53,7 @@ Ranked by expected effect on the gate. Each ships as its own version.
 | ID | Item | Owner | Status | Exit criteria |
 |---|---|---|---|---|
 | P1 | Lower the cost of each step: an `observe` command and a payload hash helper ([plan](archive/plans/P1_LOWER_STEP_COST.md)) | Agent | done | Shipped in 0.6.0. A paired fresh-agent run found no elapsed-time reduction: 8 min 16 s on 0.5.1, 9 min 41 s on 0.6.0, confounded by a shared tool. Orientation dominated both runs ([report](archive/releases/STEP_COST_0_6_0_RESULTS.md)) |
-| P9 | Agent guidance: a generated session brief, `next` and `requirements` commands, a `demo` walk on a fixture, and a one-page quick reference ([details](#p9p12-orientation-checks-and-authority)) | Agent | todo | Orientation time measured in a fresh-agent run against the 0.6.0 comparison's roughly 3 to 3.7 min; `demo` runs the full edit, feedback and stage loop without a model |
+| P9 | Agent guidance: a generated session brief, `next` and `requirements` commands, a `demo` walk on a fixture, and a one-page quick reference ([details](#p9p12-orientation-checks-and-authority), [plan](plans/P9_AGENT_GUIDANCE.md)) | Agent | active | Orientation time measured in a fresh-agent run against the 0.6.0 comparison's roughly 3 to 3.7 min. `demo` waits for that measurement and is built only if orientation stays above about one minute |
 | P10 | Fixed-view render command that renders a project's review cameras for a saved file, with receipt and settings, through a one-at-a-time queue | Agent | todo | Replaces the fixture-specific render tool both comparison agents relied on; render IDs can be waited on; native fixtures |
 | P11 | Learned check library: errors no check caught become owner-approved, versioned checks for later projects | Agent | todo | A caught error yields a proposed check; once approved it runs in a new project; positive and negative native fixtures; taste stays project-scoped |
 | P12 | Owner-only approval channel the agent's tools cannot reach | Agent | todo | Artist acceptance and check approval enter only through an owner path; an agent-written artist authority is rejected; decision recorded in the decision log |
@@ -216,6 +216,7 @@ Capture fixed views at blockout, surface and lighting completion, pre-revision a
 
 Newest first. One line per status change.
 
+- **2026-10-10:** P9 started; [implementation plan](plans/P9_AGENT_GUIDANCE.md) written. `demo` deferred until orientation is measured.
 - **2026-10-10:** Mortiflix source read directly. P9 gains a generated session brief; P11 requires computed checks; P12 states its guard-versus-wall limit.
 - **2026-10-10:** P11, P12 and M5 added and P4, P9, P10, X2 and X5 extended, from the [motion harness review](reference/MOTION_HARNESS_REVIEW_2026-10-10.md).
 - **2026-10-06:** P9 and P10 added from the comparison's finding that orientation, not native steps, dominates agent time.

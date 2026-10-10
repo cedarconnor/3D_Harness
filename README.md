@@ -4,7 +4,7 @@
 
 3D Harness helps an agent build and revise a 3D environment while preserving its assets, materials, lighting, and project decisions across sessions. It runs above an existing Blender MCP or owned background Blender process, with the artist working through their usual agent chat.
 
-**Status: v0.6.0 · Blender-first research prototype · one cooperating native writer.** See the [changelog](CHANGELOG.md) for version history and the [build plan](docs/BUILD_PLAN.md) for open gates and next work.
+**Status: v0.7.0 · Blender-first research prototype · one cooperating native writer.** See the [changelog](CHANGELOG.md) for version history and the [build plan](docs/BUILD_PLAN.md) for open gates and next work.
 
 ![A brick potting shed with a workbench, garden planting, and a paved approach, rendered in Blender](docs/images/potting-shed.png)
 
@@ -72,12 +72,15 @@ Example commands below assume you have prepared your own baseline, observation, 
 
 ```sh
 python -m dcc_harness start ./my-project/state --checkpoint ./my-project/baseline.blend --observation ./my-project/baseline.json --brief-file ./my-project/BRIEF.md --decisions ./my-project/decisions.json --handoff ./my-project/CONTINUE.md
+python -m dcc_harness brief ./my-project/state
 python -m dcc_harness resume ./my-project/state
 python -m dcc_harness review ./my-project/state
 ```
 
 | Command | Purpose |
 |---|---|
+| `brief` | Start here: where a project stands and the permitted next steps with filled-in commands, as Markdown |
+| `next` / `requirements` | The same next steps as JSON; a stage's required evidence and a submission skeleton |
 | `observe` | Observe a saved `.blend` in a fresh background Blender, without saving it, for `start`, edits and revisions |
 | `fill-hashes` | Fill and verify `{path, sha256}` file references in a payload, writing a new file |
 | `adopt-preview` / `adopt-apply` | Preview initial identity assignments, then save and independently observe a new Blender file |
