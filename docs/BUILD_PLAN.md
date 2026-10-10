@@ -18,7 +18,7 @@ Earlier plans are archived verbatim in [archive/plans](archive/plans/). The Octo
 |---|---|
 | Version | 0.6.0 on `main` |
 | Active | None; P1 finished with a neutral result |
-| Next | P9 agent quick reference, then P10 fixed-view render command; E5 can run at any time |
+| Next | P9 agent guidance commands and demo walk, then P10 queued render command; E5 can run at any time |
 | Waiting on the user | E1–E3 artist review session; E4 decision on the realistic comparison; GitHub write access for R1 |
 | Investment gate | Open |
 
@@ -44,6 +44,7 @@ These need artist time or a user decision rather than new code. Every stage afte
 | M2 | Consolidate duplicated helpers: file hashing, link rejection, JSON writers, copy-then-verify | Agent | todo | No behavior change; suites and native fixtures pass |
 | M3 | Separate experiment tooling (`blind`, `blind_review`, `continuity_trial`, `continuity_review`) from the pinned runtime digest | Agent | todo | Experiment edits no longer invalidate workflow bindings; frozen packets are unaffected |
 | M4 | Shared launcher helper for the qualification orchestrators | Agent | todo | `qualify_*` and `run_*` scripts share one helper; evaluators copied into packets stay self-contained |
+| M5 | Record session cost in trial receipts ([details](#m5-session-cost)) | Agent | todo | Each trial session records turns, elapsed minutes, metered spend where known and cache-read share; reports compare spend with the trial ceilings |
 
 ### P: Product increments, ranked
 
@@ -52,11 +53,13 @@ Ranked by expected effect on the gate. Each ships as its own version.
 | ID | Item | Owner | Status | Exit criteria |
 |---|---|---|---|---|
 | P1 | Lower the cost of each step: an `observe` command and a payload hash helper ([plan](archive/plans/P1_LOWER_STEP_COST.md)) | Agent | done | Shipped in 0.6.0. A paired fresh-agent run found no elapsed-time reduction: 8 min 16 s on 0.5.1, 9 min 41 s on 0.6.0, confounded by a shared tool. Orientation dominated both runs ([report](archive/releases/STEP_COST_0_6_0_RESULTS.md)) |
-| P9 | Agent quick reference: one page with the exact command sequence for a scoped edit and a feedback response | Agent | todo | Orientation time measured in a fresh-agent run against the 0.6.0 comparison's roughly 3 to 3.7 min |
-| P10 | Fixed-view render command that renders a project's review cameras for a saved file, with receipt and settings | Agent | todo | Replaces the fixture-specific render tool both comparison agents relied on; native fixtures |
+| P9 | Agent guidance: `next` and `requirements` commands, a `demo` walk on a fixture, and a one-page quick reference ([details](#p9p12-orientation-checks-and-authority)) | Agent | todo | Orientation time measured in a fresh-agent run against the 0.6.0 comparison's roughly 3 to 3.7 min; `demo` runs the full edit, feedback and stage loop without a model |
+| P10 | Fixed-view render command that renders a project's review cameras for a saved file, with receipt and settings, through a one-at-a-time queue | Agent | todo | Replaces the fixture-specific render tool both comparison agents relied on; render IDs can be waited on; native fixtures |
+| P11 | Learned check library: errors no check caught become owner-approved, versioned checks for later projects | Agent | todo | A caught error yields a proposed check; once approved it runs in a new project; positive and negative native fixtures; taste stays project-scoped |
+| P12 | Owner-only approval channel the agent's tools cannot reach | Agent | todo | Artist acceptance and check approval enter only through an owner path; an agent-written artist authority is rejected; decision recorded in the decision log |
 | P2 | Relationship checks with evidence reliability and repair history | Agent | todo | One relation family qualified natively; a fresh continuation avoids repeating an ineffective repair |
 | P3 | Collection instances and linked libraries | Agent | todo | Instanced scenes can `start`; D5 publishing model decided; positive and negative native fixtures |
-| P4 | Before/after review page over immutable checkpoints | Agent | todo | Changed objects by stable ID with bound renders and linked notes, checked against reopened checkpoints |
+| P4 | Before/after review page over immutable checkpoints, with owner questions and a camera sheet | Agent | todo | Changed objects by stable ID with bound renders and linked notes, checked against reopened checkpoints; submission questions answered with defaults |
 | P5 | Skill behavior regressions | Agent | todo | Sealed packets for six known failure situations, graded on actions and artifacts |
 | P6 | Evidence and coverage depth | Agent | todo | Dependency-aware invalidation; contracts cover new lights, world edits, modifier and node fields, UV overlap and texel density |
 | P7 | Revision dependency relocation | Agent | todo | External revisions with relative texture or library paths accepted into an owned copy |
@@ -77,10 +80,10 @@ Revisit each against a named, measured gap.
 | ID | Item | Reference |
 |---|---|---|
 | X1 | The D4 executor and managed mode | [D4](DESIGN_DECISIONS.md#d4-operation-identity-and-retry-ownership) |
-| X2 | An unattended runner, worker fencing and fault soak tests | Stage D below |
+| X2 | An unattended runner, worker fencing and fault soak tests, with runaway guards: pause after sessions that move nothing forward, and cap session length | Stage D below; [motion harness review](reference/MOTION_HARNESS_REVIEW_2026-10-10.md) |
 | X3 | Client plugins, installers and an MCP connector | [Packaging study](reference/DCC_HARNESS_PACKAGING_AND_ENTRY_POINTS.md) |
 | X4 | Unreal and other DCC adapters | [UE-MCP review](reference/DCC_HARNESS_UE_MCP_REVIEW.md) |
-| X5 | Motion workflows | [Skill system](reference/DCC_HARNESS_SKILL_SYSTEM.md) |
+| X5 | Motion workflows; evaluate adopting or connecting to Mortiflix before building | [Skill system](reference/DCC_HARNESS_SKILL_SYSTEM.md), [motion harness review](reference/MOTION_HARNESS_REVIEW_2026-10-10.md) |
 | X6 | Geometry Nodes distribution identity | [D6](DESIGN_DECISIONS.md#d6-asset-and-instance-identity-are-separate) |
 | X7 | Generated textures, bakes and UDIMs | [Archived October 3 plan](archive/plans/DCC_HARNESS_BUILD_PLAN_v3_2026-10-06.txt) |
 | X8 | SDK runners and a DCC-MCP core evaluation | [D2](DESIGN_DECISIONS.md#d2-reuse-the-transport-and-implement-native-observation), [D8](DESIGN_DECISIONS.md#d8-package-the-proven-workflow) |
@@ -110,18 +113,24 @@ Before 0.6.0, every step needed hand-written JSON, SHA-256 values and a separate
 - A payload helper fills `{path, sha256}` references in feedback, stage and evidence payloads from the actual files, so agents stop computing hashes by hand.
 - Both need native positive and negative fixtures and a repeat of the 0.5.0 fresh-agent revision for comparison.
 
-### P9–P10: orientation cost
+### P9–P12: orientation, checks and authority
 
-Added after the 0.6.0 comparison. Both fresh agents spent roughly three minutes reading skills, guides and runtime source before their first command, while native work took seconds. They wrote one script each, because a provided render tool covered rendering and observation; the 0.5.0 agent, without such a tool, wrote five.
+P9 and P10 were added after the 0.6.0 comparison. Both fresh agents spent roughly three minutes reading skills, guides and runtime source before their first command, while native work took seconds. They wrote one script each, because a provided render tool covered rendering and observation; the 0.5.0 agent, without such a tool, wrote five. On October 10 the [motion harness review](reference/MOTION_HARNESS_REVIEW_2026-10-10.md) extended P9 and P10 and added P11 and P12; the same review adds questions and a camera sheet to P4 and the M5 cost record.
 
-- **P9, quick reference.** One page covering the exact command sequence, payload shapes and common failure stops for the two most frequent tasks. Measure whether it shortens orientation before building anything larger.
-- **P10, render command.** Generalize the fixture-specific render tool: render the project's review cameras for a saved file without saving it, and write the receipt with its view settings in the format feedback evidence requires.
+- **P9, agent guidance.** Answer "what next?" from the project's state instead of from documents. `next PROJECT` names the next permitted command for the current state, such as an open reservation, unanswered notes or a pending submission. `requirements PROJECT STAGE` prints the evidence a submission must carry and a payload skeleton with `{path}` references ready for `fill-hashes`. `demo` walks begin-edit, finish-edit, a feedback note, response and verification, and a stage submission on a bundled fixture, printing each command and payload; it needs Blender but no model, and doubles as a smoke test. Keep the one-page quick reference for the two most frequent tasks, generated from the same command list so it cannot drift. Measure orientation before building anything larger.
+- **P10, render command.** Generalize the fixture-specific render tool: render the project's review cameras for a saved file without saving it, and write the receipt with its view settings in the format feedback evidence requires. Run renders one at a time through a queue; each request returns an ID that a later call waits on, so a slow render never blocks the session.
+- **P11, learned checks.** When feedback verification finds an error that no existing check reported, the response may propose a check: a measurable rule, its applicable stages, tolerance and a negative fixture showing that it catches the error. An owner-approved check joins a versioned library outside any single project; new workflow bindings pin the library version as they pin skills, so earlier projects are unaffected. Classify each artist note as error or taste first: only errors become checks, and taste stays project direction. P2's first relation family is the natural first library entry. Needs P12 so that approval cannot come from the proposing agent.
+- **P12, owner approval channel.** Roles are caller-attributed today, so an agent can write `authority: {role: "artist"}`. Accept artist completion, blocking deferrals and check approvals only through a path the agent's tools cannot reach, such as answers the artist saves in a review page, imported with their provenance, or an interactive owner command. Record the authority change as a design decision before coding. Pair it with P4.
+
+### M5: session cost
+
+Trial ceilings are set in dollars and minutes, but reports record only elapsed time. Capture turns, elapsed minutes, metered spend where the backend reports it, and the share of input read from cache for every trial session, retained with the trial's other receipts.
 
 ### P2–P8
 
 - **P2, relationship checks.** Qualify one relation family, such as an object supported by ground or a doorway clear along its path, with stable IDs, method, tolerance and coverage. Classify findings by evidence strength. Retain normalized failures, attempted strategies and measured error across contexts. The basis is [repository ideas](reference/REPOSITORY_IDEAS_2026-10-06.md) 1–3; the visibility gate is the clearest case of measurement catching what images missed.
 - **P3, instances.** The observer records any instancer as an issue, so `start`, adoption and revisions reject common artist scenes; the production study used shared mesh datablocks instead. Observe collection instances with instance identity and library provenance, then settle [D5](DESIGN_DECISIONS.md#d5-file-ownership-and-asset-publishing).
-- **P4, review page.** Show added, removed, moved and changed objects by stable ID, with bound renders and linked feedback notes. Artist review time is the scarce input to track E. Keep the generator outside the dependency-free core.
+- **P4, review page.** Show added, removed, moved and changed objects by stable ID, with bound renders and linked feedback notes. Artist review time is the scarce input to track E. Keep the generator outside the dependency-free core. Let a stage submission carry owner questions with choices and a default, answered on the page with one click, and show every review camera on one sheet before the per-view comparisons. The October 6 [artist review page](studies/ARTIST_REVIEW_SESSION.md) is a working prototype of the layout.
 - **P5, skill regressions.** Use sealed packets for a lost acknowledgement, a stale image, a changed shared material, a missing view definition, an artist-saved revision and a late request that conflicts with protected geometry. Grade actions and artifacts, not restated instructions.
 - **P6, coverage.** Recheck only the feedback and stages whose targets or views changed, and extend contracts to the fields listed in the tracker. Each addition needs native negative fixtures.
 - **P7, relocation.** Rebase relative texture and library paths when accepting an external revision into an owned copy, instead of rejecting it.
@@ -207,6 +216,7 @@ Capture fixed views at blockout, surface and lighting completion, pre-revision a
 
 Newest first. One line per status change.
 
+- **2026-10-10:** P11, P12 and M5 added and P4, P9, P10, X2 and X5 extended, from the [motion harness review](reference/MOTION_HARNESS_REVIEW_2026-10-10.md).
 - **2026-10-06:** P9 and P10 added from the comparison's finding that orientation, not native steps, dominates agent time.
 - **2026-10-06:** P1 done. Version 0.6.0 ships `observe` and `fill-hashes`. A paired fresh-agent comparison showed no elapsed-time reduction; the result is recorded as neutral.
 - **2026-10-06:** P1 started; [implementation plan](archive/plans/P1_LOWER_STEP_COST.md) written.
