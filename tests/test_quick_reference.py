@@ -8,6 +8,7 @@ import unittest
 import dcc_harness
 from dcc_harness.__main__ import build_parser
 from dcc_harness.continuity_checks import validate_contract
+from dcc_harness.render import validate_views
 
 PAGE = Path(__file__).resolve().parents[1] / 'docs/guides/AGENT_QUICK_REFERENCE.md'
 PREFIX = 'python -m dcc_harness '
@@ -37,7 +38,7 @@ class QuickReferenceTests(unittest.TestCase):
     def test_the_common_loop_is_covered(self):
         used = {shlex.split(line[len(PREFIX):])[0] for line in commands()}
         self.assertLessEqual({'brief', 'next', 'observe', 'begin-edit', 'finish-edit', 'fill-hashes',
-                              'feedback-respond', 'requirements', 'stage-submit'}, used)
+                              'feedback-respond', 'requirements', 'stage-submit', 'render', 'render-wait'}, used)
 
     def test_every_quoted_stop_message_exists_in_the_runtime(self):
         source = ''.join(p.read_text(encoding='utf-8') for p in Path(dcc_harness.__file__).parent.glob('*.py'))
@@ -51,10 +52,12 @@ class QuickReferenceTests(unittest.TestCase):
     def test_payload_examples_have_the_required_shape(self):
         payloads = [json.loads(block) for block in blocks('json')]
         schemas = {p.get('schema') for p in payloads}
-        self.assertLessEqual({'dcc.continuity.contract.v1', 'dcc.feedback.response.v1'}, schemas)
+        self.assertLessEqual({'dcc.continuity.contract.v1', 'dcc.feedback.response.v1', 'dcc.review.views.v1'}, schemas)
         for payload in payloads:
             if payload['schema'] == 'dcc.continuity.contract.v1':
                 validate_contract(payload)
+            elif payload['schema'] == 'dcc.review.views.v1':
+                validate_views(payload)
             elif payload['schema'] == 'dcc.feedback.response.v1':
                 self.assertEqual(set(payload), {'schema', 'note_id', 'author', 'disposition', 'change', 'result', 'evidence'})
 

@@ -1,6 +1,6 @@
 # Agent quick reference
 
-Version 0.7.0. The exact command sequences for the most common work, for an agent continuing a 3D Harness project. Every command below is checked against the real parser by `tests/test_quick_reference.py`. Values in `<angle brackets>` and capitalized placeholders such as `PARENT_ID` are yours to fill; quote every path.
+Version 0.8.0. The exact command sequences for the most common work, for an agent continuing a 3D Harness project. Every command below is checked against the real parser by `tests/test_quick_reference.py`. Values in `<angle brackets>` and capitalized placeholders such as `PARENT_ID` are yours to fill; quote every path.
 
 ## 1. Orient
 
@@ -24,10 +24,11 @@ python -m dcc_harness begin-edit "<project>" --parent PARENT_ID --current "<acti
 & "<BLENDER>" --background --factory-startup --python-exit-code 1 "<owned copy .blend>" --python "<retained script path>"
 ```
 
-Then observe the saved result, render and look at it, and finish:
+Then observe the saved result, render it (section 3) and look at the images, and finish:
 
 ```powershell
 python -m dcc_harness observe "<work>/result.blend" --blender "<BLENDER>" --output-dir "<work>/observe-result"
+python -m dcc_harness render "<work>/result.blend" --blender "<BLENDER>" --output-dir "<work>/result-views" --project "<project>"
 python -m dcc_harness finish-edit "<project>" EDIT_ID --checkpoint "<work>/result.blend" --observation "<work>/observe-result/observation.json" --handoff "<work>/HANDOFF.md" --updates "<work>/decision-updates.json"
 python -m dcc_harness finish-edit "<project>" EDIT_ID --checkpoint "<work>/result.blend" --observation "<work>/observe-result/observation.json" --handoff "<work>/HANDOFF.md" --updates "<work>/decision-updates.json" --reject-reason "<the visible defect>"
 ```
@@ -53,7 +54,33 @@ A contract names everything that must hold afterwards and permits only the inten
 
 List every object that must survive under `required`; `resume PROJECT --focus ID` shows an object's measured fields. New objects need an `ext.` prefix in `allowed_new_prefixes`. Grant per-object fields with `allowed_object_prefixes`, such as `{"ext.bench.": ["matrix_world", "bounds", "dimensions"]}`, never the whole scene.
 
-## 3. Respond to a feedback note
+## 3. Render review views
+
+```powershell
+python -m dcc_harness render "<saved .blend>" --blender "<BLENDER>" --output-dir "<work>/after-views" --project "<project>"
+python -m dcc_harness render "<saved .blend>" --blender "<BLENDER>" --output-dir "<work>/after-views" --views "<work>/views.json" --detach
+python -m dcc_harness render-wait "<work>/after-views" --timeout 100
+```
+
+`render` opens the saved file in a fresh background Blender, renders every view and never saves. It writes `<VIEW_ID>.png`, `views.json` and `receipt.json`, and returns `evidence` entries for each view, with paths relative to the output folder's parent, ready to paste into a response or submission. `--project` uses the project's `review_views` decision; `--views` takes a file. With `--detach` it returns `QUEUED` at once; call `render-wait` until the state is `done` or `failed`. Renders run one at a time on a machine.
+
+A view definition, recorded once as the decision `review_views` (at `start`, or in any edit's decision updates):
+
+```json
+{
+  "schema": "dcc.review.views.v1",
+  "render": {"engine": "CYCLES", "resolution": [960, 540], "samples": 32, "seed": 0},
+  "views": [
+    {"id": "REVIEW_WHOLE", "purpose": "whole", "camera": {"object_id": "review.camera"}},
+    {"id": "REVIEW_DETAIL", "purpose": "detail", "camera": {"object_id": "review.camera"}, "border": [0.18, 0.77, 0.15, 0.66]},
+    {"id": "BENCH", "purpose": "detail", "camera": {"lens": 35, "location": [3.0, -4.0, 2.0], "target": [0.0, 0.0, 0.6]}}
+  ]
+}
+```
+
+`object_id` uses a camera in the scene by its stable ID. `lens`, `location` and `target` make a review-only camera that is never saved. `border` crops as fractions `[min_x, max_x, min_y, max_y]`. Engines are `CYCLES`, `BLENDER_EEVEE` and `BLENDER_WORKBENCH`. Keep the definition fixed: feedback verification compares the settings digest, so a changed view means a changed review.
+
+## 4. Respond to a feedback note
 
 Write the response with `{"path": ...}` references, fill the hashes, then record it. `next` gives the expected revision and a fresh request ID.
 
@@ -81,7 +108,7 @@ python -m dcc_harness feedback-respond "<project>" --response "<work>/response.j
 
 `result` is the current checkpoint, from `brief`. Paths are relative to the response file's folder. Say exactly what changed, never "addressed". Don't verify your own response; a separate reviewer does, with `feedback-verify`.
 
-## 4. Submit a stage
+## 5. Submit a stage
 
 ```powershell
 python -m dcc_harness requirements "<project>" STAGE_ID --out "<work>/requirements.json"

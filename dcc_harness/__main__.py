@@ -47,6 +47,16 @@ def build_parser():
     p.add_argument("source"); p.add_argument("--blender", required=True, help="Path to Blender executable")
     p.add_argument("--output-dir", required=True, help="New folder for the observation, request and log")
     p.add_argument("--expanded", action="store_true", help="Write formatted JSON instead of compact storage")
+    p = sub.add_parser("render", help="Render a project's fixed review views of a saved .blend in fresh background Blender; never saves")
+    p.add_argument("source"); p.add_argument("--blender", required=True, help="Path to Blender executable")
+    p.add_argument("--output-dir", required=True, help="New folder for the images, settings, receipt and log")
+    views = p.add_mutually_exclusive_group(required=True)
+    views.add_argument("--project", help="Use the project's review_views decision")
+    views.add_argument("--views", help="A dcc.review.views.v1 file")
+    p.add_argument("--detach", action="store_true", help="Queue in a separate process and return at once; wait with render-wait")
+    p = sub.add_parser("render-wait", help="Wait for a detached render and return its state")
+    p.add_argument("job", help="The render's output folder"); p.add_argument("--timeout", type=float, default=100)
+    p = sub.add_parser("render-job", help=argparse.SUPPRESS); p.add_argument("job")
     p = sub.add_parser("fill-hashes", help="Fill and verify {path, sha256} references; writes a new payload")
     p.add_argument("payload"); p.add_argument("destination")
     p.add_argument("--evidence-root", help="Base for relative paths; defaults to the payload's folder")
@@ -137,6 +147,15 @@ def main():
     elif args.command == 'observe':
         from .observe import observe_file
         result = observe_file(args.source, args.output_dir, args.blender, expanded=args.expanded)
+    elif args.command in ('render', 'render-wait', 'render-job'):
+        from . import render
+        if args.command == 'render-wait':
+            result = render.wait(args.job, args.timeout)
+        elif args.command == 'render-job':
+            result = render.run_job(args.job)
+        else:
+            action = render.start_detached if args.detach else render.render_file
+            result = action(args.source, args.output_dir, args.blender, project=args.project, views=args.views)
     elif args.command == 'fill-hashes':
         from .payloads import fill_hashes
         result = fill_hashes(args.payload, args.destination, args.evidence_root)

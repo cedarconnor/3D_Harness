@@ -69,6 +69,14 @@ def _steps(packet, state, events):
             'workflow.lock exists: a command is running or one stopped partway. Check the PID inside it, that process, '
             'the journal and any edit folder before removing the lock by hand. It never expires on its own.')})
     labels = {e['edit']: e['label'] for e in packet['recent_edits']}
+    views = 'review_views' in packet['decisions']
+    def render(source, why):
+        return {'id': 'render', 'command': (f'{RUN} render {source} --blender "<BLENDER>" --output-dir "<new folder>" '
+                                            f'--project {project}'), 'why': why}
+    if views and packet['unresolved_edits'] and not packet['metadata_lock']:
+        steps.append(render('"<saved result .blend>"', (
+            'Render the project\'s review views of the saved result and look at them before finish-edit. The file is never '
+            'saved. Add --detach for a long render and wait with render-wait. The output includes evidence entries.')))
     for path in packet['unresolved_edits']:
         edit = Path(path).name
         steps.append({'id': 'finish-edit', 'edit': edit, 'label': labels.get(edit), 'command': (
@@ -132,6 +140,10 @@ def _steps(packet, state, events):
         '--observation "<new folder>/observation.json" --script "<edit .py>" --contract "<contract .json>" --label "<new step label>"'),
         'why': (f'Reserve a scoped edit. Step labels already used: {used}. The reservation does not run anything: run the '
                 'retained script it returns once against an owned copy, save, observe the result, then finish-edit.')}]
+    if views:
+        edits.append(render(checkpoint, (
+            'Render the project\'s review views of the active checkpoint, for a review or as response evidence. The file is '
+            'never saved. Add --detach for a long render and wait with render-wait. The output includes evidence entries.')))
     return steps + review + edits + follow
 
 

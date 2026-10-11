@@ -2,6 +2,17 @@
 
 Each version is a bounded increment with its own qualification report. Test counts are portable-suite results on Windows; the two skips in each count are host symlink-permission cases. Native qualification uses Blender 5.1.1 on Windows. Studies are listed with the versions they exercised. The [build plan](docs/BUILD_PLAN.md) explains what remains open, and reports that link into `runs/` refer to local evidence excluded from Git.
 
+## 0.8.0 — October 10, 2026
+
+Fixed-view render command, build-plan item P10 ([plan](docs/archive/plans/P10_RENDER_COMMAND.md)).
+
+- **Added:** `render SAVED.blend --blender PATH --output-dir NEW (--project PROJECT | --views FILE)` renders a project's review views in a fresh background Blender and never saves. It writes the images, the resolved view settings and a `dcc.quality.renders.v1` receipt bound to the file's hash, and returns ready evidence entries.
+- **Added:** the `dcc.review.views.v1` definition, held by a project as the decision `review_views`. A view uses a scene camera by stable ID or a review-only camera by lens, location and target, with an optional crop.
+- **Added:** one render at a time per machine under a file lock released on crash. `--detach` queues a render in a separate process; `render-wait FOLDER` returns its state.
+- **Changed:** `next` and `brief` offer render steps when a project has `review_views`. The quick reference, guides, skill and README describe the command.
+- **Fixed during qualification:** repeat renders differed only in embedded PNG stamps and Cycles timing chunks, which are now disabled and stripped. `BLENDER_EEVEE_NEXT`, which Blender 5.1 rejects, is not accepted.
+- **Qualification:** 304 tests, 302 passed, from source; the installed wheel passed the same runtime tests. Native renders from both runtimes were byte-identical on repeat, changed digest with a moved camera, committed as feedback evidence, rendered from a project definition through the printed `next` command, and ran detached without overlapping. [Report](docs/archive/releases/RENDER_0_8_0_RESULTS.md)
+
 ## 0.7.0 — October 10, 2026
 
 Agent guidance, build-plan item P9 ([plan](docs/archive/plans/P9_AGENT_GUIDANCE.md)).

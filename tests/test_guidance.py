@@ -88,6 +88,30 @@ class NextStepTests(Fixture):
         self.assertTrue(complete['artist_required'])
         self.assertIn('artist', complete['why'])
 
+    def publish_review_views(self):
+        from dcc_harness import workflow
+        from test_render import VIEWS
+        edit = self.begin()['edit']
+        native, obs = self.candidate()
+        workflow.finish_edit(self.root, edit, native, obs, self.handoff, {'review_views': VIEWS})
+
+    def test_review_views_add_a_render_step_for_the_active_checkpoint(self):
+        self.publish_review_views()
+        result = guidance.next_steps(self.root)
+        self.assertEqual(ids(result), ['observe', 'begin-edit', 'render'])
+        command = step(result, 'render')['command']
+        active = guidance.next_steps(self.root)['active']
+        self.assertIn('render "' + active['checkpoint'] + '" --blender "<BLENDER>"', command)
+        self.assertIn('--project "' + str(self.root) + '"', command)
+
+    def test_review_views_add_a_candidate_render_before_finishing_a_reserved_edit(self):
+        self.publish_review_views()
+        self.begin(label='second-review', current=guidance.next_steps(self.root)['active']['checkpoint'],
+                   observation=self.base / 'candidate.json', expected_parent=guidance.next_steps(self.root)['active']['id'])
+        result = guidance.next_steps(self.root)
+        self.assertEqual(ids(result), ['render', 'finish-edit'])
+        self.assertIn('render "<saved result .blend>"', step(result, 'render')['command'])
+
     def test_cli_prints_next_steps(self):
         result = cli('next', self.root)
         self.assertEqual(result.returncode, 0, result.stderr)

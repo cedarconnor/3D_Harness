@@ -55,6 +55,12 @@ Finish recomputes the retained contract. A passing result publishes a new checkp
 
 Version 0.4.1 adds `finish-edit --reject-reason "specific visual defect"`. Review required images before finishing. With this flag a native-passing candidate records `REJECTED_VISUAL`, `native_check_passed: true`, and `passed: false`; it leaves the parent and decisions unchanged and returns exit code 1. This is an intentional selection outcome, not an error to retry. The current API equivalent is `finish_edit(..., reject_reason="...")`. Rejections remain visible in `resume` and repairs use a new reservation. A caller's review is attributed as a review, not automatically as artist acceptance.
 
+## Review renders
+
+Since 0.8.0, `render SAVED.blend --blender PATH --output-dir NEW_FOLDER --project PROJECT` renders the project's fixed review views of any saved file, such as a candidate before `finish-edit` or the active checkpoint, in a fresh background Blender. It never saves. The views come from the decision `review_views`, a `dcc.review.views.v1` definition recorded at `start` or in any edit's decision updates; `--views FILE` uses a file instead. Each view names a scene camera by stable ID or a review-only camera by lens, location and target, with an optional crop. The command writes the images, the resolved settings and a `dcc.quality.renders.v1` receipt bound to the file's hash, and returns evidence entries for feedback responses and stage submissions. Embedded PNG stamps are removed, so identical renders are byte-identical.
+
+Renders run one at a time per machine. `--detach` queues a render in a separate process and returns `QUEUED`; `render-wait FOLDER` waits up to `--timeout` seconds (default 100) and returns `waiting`, `running`, `done` or `failed`. The [agent quick reference](AGENT_QUICK_REFERENCE.md#3-render-review-views) shows a definition.
+
 ## Interruptions and limitations
 
 After lost acknowledgement, quota exhaustion or an agent handoff, inspect the native result first. If it exists, freshly observe it and use `finish-edit --reconciled` to record the outcome without dispatching the write again. This is explicit observed reconciliation, not automatic crash recovery or exactly-once execution.
