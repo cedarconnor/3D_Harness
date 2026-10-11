@@ -1,6 +1,6 @@
 # Agent quick reference
 
-Version 0.10.0. The exact command sequences for the most common work, for an agent continuing a 3D Harness project. Every command below is checked against the real parser by `tests/test_quick_reference.py`. Values in `<angle brackets>` and capitalized placeholders such as `PARENT_ID` are yours to fill; quote every path.
+Version 0.11.0. The exact command sequences for the most common work, for an agent continuing a 3D Harness project. Every command below is checked against the real parser by `tests/test_quick_reference.py`. Values in `<angle brackets>` and capitalized placeholders such as `PARENT_ID` are yours to fill; quote every path.
 
 ## 1. Orient
 
@@ -110,7 +110,16 @@ A definition, recorded once as the decision `relations`:
 }
 ```
 
-## 5. Respond to a feedback note
+## 5. Ask the artist to review
+
+```powershell
+python -m dcc_harness review-page "<project>" --output-dir "<work>/review-1" --blender "<BLENDER>" --reopen
+python -m dcc_harness review-import "<project>" "<export .json>" --page "<work>/review-1"
+```
+
+`review-page` writes a local page comparing the active checkpoint with its parent, with renders, changes by stable ID, notes and any stage waiting for review. Give the artist `index.html`. The export they download comes back through `review-import`, which completes the stage with their answers and adds their notes. When submitting a stage the artist must decide on, add `questions` to the submission, each with a `default` where you have one; see the [review page guide](REVIEW_PAGE.md).
+
+## 6. Respond to a feedback note
 
 Write the response with `{"path": ...}` references, fill the hashes, then record it. `next` gives the expected revision and a fresh request ID.
 
@@ -138,7 +147,7 @@ python -m dcc_harness feedback-respond "<project>" --response "<work>/response.j
 
 `result` is the current checkpoint, from `brief`. Paths are relative to the response file's folder. Say exactly what changed, never "addressed". Don't verify your own response; a separate reviewer does, with `feedback-verify`.
 
-## 6. Submit a stage
+## 7. Submit a stage
 
 ```powershell
 python -m dcc_harness requirements "<project>" STAGE_ID --out "<work>/requirements.json"

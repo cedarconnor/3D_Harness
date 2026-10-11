@@ -4,7 +4,7 @@
 
 3D Harness helps an agent build and revise a 3D environment while preserving its assets, materials, lighting, and project decisions across sessions. It runs above an existing Blender MCP or owned background Blender process, with the artist working through their usual agent chat.
 
-**Status: v0.10.0 · Blender-first research prototype · one cooperating native writer.** See the [changelog](CHANGELOG.md) for version history and the [build plan](docs/BUILD_PLAN.md) for open gates and next work.
+**Status: v0.11.0 · Blender-first research prototype · one cooperating native writer.** See the [changelog](CHANGELOG.md) for version history and the [build plan](docs/BUILD_PLAN.md) for open gates and next work.
 
 ![A brick potting shed with a workbench, garden planting, and a paved approach, rendered in Blender](docs/images/potting-shed.png)
 
@@ -84,6 +84,7 @@ python -m dcc_harness review ./my-project/state
 | `observe` | Observe a saved `.blend` in a fresh background Blender, without saving it, for `start`, edits and revisions |
 | `render` / `render-wait` | Render a project's fixed review views of a saved `.blend` without saving it, one at a time per machine, with a bound receipt and evidence entries |
 | `relations` | Measure whether declared subjects rest on their support surfaces in a saved `.blend`, classify findings by evidence strength, and record repair attempts in the project's history |
+| `review-page` / `review-import` | Write a local before/after page for the artist, with renders, changes by stable ID, notes and stage questions; bring their notes and approval back |
 | `fill-hashes` | Fill and verify `{path, sha256}` file references in a payload, writing a new file |
 | `adopt-preview` / `adopt-apply` | Preview initial identity assignments, then save and independently observe a new Blender file |
 | `preview-revision` / `accept-revision` | Freeze, review and accept a deliberate saved edit into an existing project |
@@ -124,7 +125,7 @@ Read [craft capabilities and recipe boundaries](docs/guides/CRAFT_SKILLS.md) bef
 
 ## Validation and current limits
 
-The v0.10.0 source suite ran **336 tests: 334 passed, two Windows symlink-permission cases skipped**; the installed-wheel suite ran the same tests, also skipping the four that check source-tree documentation. Every version also runs native Blender fixtures; see the [0.10.0 report](docs/archive/releases/INSTANCES_0_10_0_RESULTS.md) for collection instances, the [0.9.0 report](docs/archive/releases/RELATIONS_0_9_0_RESULTS.md) for `relations`, the [0.8.0 report](docs/archive/releases/RENDER_0_8_0_RESULTS.md) for `render` and `render-wait`, the [0.7.0 report](docs/archive/releases/GUIDANCE_0_7_0_RESULTS.md) for `brief`, `next` and `requirements`, the [0.6.0 report](docs/archive/releases/STEP_COST_0_6_0_RESULTS.md) for the `observe` and `fill-hashes` commands and the [0.5.1 report](docs/archive/releases/MAINTENANCE_0_5_1_RESULTS.md) for the latest maintenance fixes. The [changelog](CHANGELOG.md) summarizes each version's evidence, and the [scripts index](scripts/README.md) lists its qualification scripts.
+The v0.11.0 source suite ran **356 tests: 354 passed, two Windows symlink-permission cases skipped**; the installed-wheel suite ran the same tests, also skipping the four that check source-tree documentation. Every version also runs native Blender fixtures; see the [0.11.0 report](docs/archive/releases/REVIEW_PAGE_0_11_0_RESULTS.md) for the review page, the [0.10.0 report](docs/archive/releases/INSTANCES_0_10_0_RESULTS.md) for collection instances, the [0.9.0 report](docs/archive/releases/RELATIONS_0_9_0_RESULTS.md) for `relations`, the [0.8.0 report](docs/archive/releases/RENDER_0_8_0_RESULTS.md) for `render` and `render-wait`, the [0.7.0 report](docs/archive/releases/GUIDANCE_0_7_0_RESULTS.md) for `brief`, `next` and `requirements`, the [0.6.0 report](docs/archive/releases/STEP_COST_0_6_0_RESULTS.md) for the `observe` and `fill-hashes` commands and the [0.5.1 report](docs/archive/releases/MAINTENANCE_0_5_1_RESULTS.md) for the latest maintenance fixes. The [changelog](CHANGELOG.md) summarizes each version's evidence, and the [scripts index](scripts/README.md) lists its qualification scripts.
 
 The [0.5.0 report](docs/archive/releases/FEEDBACK_0_5_0_RESULTS.md) covers feedback retention, evidence binding, and native revision tests. Its native exercise completed all seven workflow stages on a synthetic micro-scene. The first fresh agent exposed a missing view-definition artifact; the corrected package retains actual settings alongside their digest. In the corrected sealed trial, an independent reviewer verified three notes and left the visual note uncertain. These results test continuity mechanisms, not visual-quality improvement.
 

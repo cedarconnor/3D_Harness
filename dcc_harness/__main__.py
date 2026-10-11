@@ -64,6 +64,15 @@ def build_parser():
     spec.add_argument("--project", help="Use the project's relations decision and record the result in its history")
     spec.add_argument("--spec", help="A dcc.relations.v1 file; nothing is recorded")
     p.add_argument("--strategy", help="With --project: the repair this file tries, recorded in the history")
+    p = sub.add_parser("review-page", help="Write a before/after review page for two checkpoints, with bound renders, notes and questions")
+    p.add_argument("project"); p.add_argument("--output-dir", required=True, help="New folder for the page and its images")
+    p.add_argument("--from", dest="from_id", help="Before checkpoint ID; defaults to the after checkpoint's parent")
+    p.add_argument("--to", dest="to_id", help="After checkpoint ID; defaults to the active checkpoint")
+    p.add_argument("--before-views", help="Render folder for the before checkpoint"); p.add_argument("--after-views", help="Render folder for the after checkpoint")
+    p.add_argument("--blender", help="Render both checkpoints with the project's review_views, or --views")
+    p.add_argument("--views", help="A dcc.review.views.v1 file for --blender"); p.add_argument("--reopen", action="store_true", help="Re-observe the after checkpoint")
+    p = sub.add_parser("review-import", help="Commit a review page export: the stage review, then each note")
+    p.add_argument("project"); p.add_argument("export"); p.add_argument("--page", required=True, help="The page folder the export came from")
     p = sub.add_parser("fill-hashes", help="Fill and verify {path, sha256} references; writes a new payload")
     p.add_argument("payload"); p.add_argument("destination")
     p.add_argument("--evidence-root", help="Base for relative paths; defaults to the payload's folder")
@@ -166,6 +175,13 @@ def main():
     elif args.command == 'relations':
         from .relations import measure_file
         result = measure_file(args.source, args.output_dir, args.blender, spec=args.spec, project=args.project, strategy=args.strategy)
+    elif args.command in ('review-page', 'review-import'):
+        from . import review_page
+        if args.command == 'review-page':
+            result = review_page.build(args.project, args.output_dir, from_id=args.from_id, to_id=args.to_id, before_views=args.before_views,
+                                       after_views=args.after_views, blender=args.blender, views=args.views, reopen=args.reopen)
+        else:
+            result = review_page.import_review(args.project, args.export, args.page)
     elif args.command == 'fill-hashes':
         from .payloads import fill_hashes
         result = fill_hashes(args.payload, args.destination, args.evidence_root)

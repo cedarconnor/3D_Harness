@@ -2,6 +2,15 @@
 
 Each version is a bounded increment with its own qualification report. Test counts are portable-suite results on Windows; the two skips in each count are host symlink-permission cases. Native qualification uses Blender 5.1.1 on Windows. Studies are listed with the versions they exercised. The [build plan](docs/BUILD_PLAN.md) explains what remains open, and reports that link into `runs/` refer to local evidence excluded from Git.
 
+## 0.11.0 — October 10, 2026
+
+Before/after review page, build-plan item P4 ([plan](docs/archive/plans/P4_REVIEW_PAGE.md)).
+
+- **Added:** `review-page PROJECT --output-dir NEW` writes a local page comparing two checkpoints: bound renders (rendered with `--blender` or supplied as render folders), a sheet of every view, before and after with hold-to-compare, changes by stable ID with linked notes, every feedback note, and a stage waiting for review with its questions. `--reopen` re-observes the after checkpoint with the qualified comparator.
+- **Added:** the page writes new notes, optionally attached to an object or pinned on an after image, and a stage approval with answers, into one export. `review-import PROJECT EXPORT --page FOLDER` checks the export came from that page, completes the stage, then adds the notes; repeating it replays without duplicates.
+- **Added:** stage submissions may carry up to 12 `questions` with optional choices and a default; completion reviews may carry `answers`, unanswered questions take their default, and the receipt records which answers were defaults.
+- **Qualification:** 356 tests, 354 passed, from source; the installed wheel passed the same runtime tests. Native page from both runtimes on the comparison project; a pinned note and a stage approval with one changed answer round-tripped through the browser by hand and through the scripted import. [Report](docs/archive/releases/REVIEW_PAGE_0_11_0_RESULTS.md)
+
 ## 0.10.0 — October 10, 2026
 
 Collection instances and linked libraries, build-plan item P3 ([plan](docs/archive/plans/P3_COLLECTION_INSTANCES.md)).

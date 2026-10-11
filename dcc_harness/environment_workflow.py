@@ -187,8 +187,51 @@ def _stage(ctx, sid):
     return spec, states
 
 
+def _questions(questions):
+    """Owner questions on a submission: unique IDs, text, optional choices and a default among them."""
+    if not isinstance(questions, list) or len(questions) > 12:
+        raise ValueError('Questions must be a list of at most 12')
+    seen = set()
+    for question in questions:
+        c.fields(question, {'id', 'text'}, {'choices', 'default'})
+        if not isinstance(question['id'], str) or not re.fullmatch('[a-z0-9][a-z0-9_-]{0,39}', question['id']) or question['id'] in seen:
+            raise ValueError('Question IDs must be unique lowercase names')
+        seen.add(question['id'])
+        c.text(question['text'])
+        choices = question.get('choices')
+        if choices is not None and (not isinstance(choices, list) or not 2 <= len(choices) <= 8 or len(set(choices)) != len(choices)
+                                    or any(not isinstance(x, str) or not x.strip() for x in choices)):
+            raise ValueError('Choices must be 2 to 8 distinct nonempty texts')
+        if 'default' in question:
+            c.text(question['default'])
+            if choices is not None and question['default'] not in choices:
+                raise ValueError('A default must be one of the choices')
+    return questions
+
+
+def _answers(questions, answers):
+    """Resolve answers against the frozen questions; a question without a default must be answered."""
+    if not isinstance(answers, dict) or any(not isinstance(v, str) for v in answers.values()):
+        raise ValueError('Answers must map question IDs to text')
+    known = {q['id'] for q in questions}
+    if set(answers) - known:
+        raise ValueError('Unknown question: ' + ', '.join(sorted(set(answers) - known)))
+    resolved = []
+    for question in questions:
+        given = answers.get(question['id'])
+        if given is not None and not given.strip():
+            raise ValueError('An answer must be nonempty text: ' + question['id'])
+        if given is None and 'default' not in question:
+            raise ValueError('Question needs an answer: ' + question['id'])
+        resolved.append({'id': question['id'], 'text': question['text'], 'answer': given if given is not None else question['default'],
+                         'used_default': given is None})
+    return resolved
+
+
 def _submit(ctx, value):
-    c.fields(value, {'schema', 'stage_id', 'checkpoint', 'deliverables', 'evidence', 'feedback_ids', 'note'})
+    c.fields(value, {'schema', 'stage_id', 'checkpoint', 'deliverables', 'evidence', 'feedback_ids', 'note'}, {'questions'})
+    if 'questions' in value:
+        _questions(value['questions'])
     if value['schema'] != 'dcc.environment.submission.v1':
         raise ValueError('Unsupported stage submission')
     ctx.quiet(); ctx.checkpoint(value['checkpoint'], current=True); c.text(value['note'])
@@ -232,14 +275,15 @@ def _complete(ctx, value):
     if sid == 'delivery' and any(s['inherited_gaps'] for s in states.values()):
         raise ValueError('Inherited stage evidence gaps remain')
     review = value['review']
-    c.fields(review, {'reviewer', 'verdict', 'finding'})
+    c.fields(review, {'reviewer', 'verdict', 'finding'}, {'answers'})
     evidence.actor(review['reviewer']); c.text(review['finding'])
+    answers = _answers(submitted['submission'].get('questions', []), review.get('answers', {}))
     if review['verdict'] != 'pass':
         raise ValueError('Stage review has not passed')
     if refreshed['review_policy'] == 'artist_required' and review['reviewer']['role'] != 'artist':
         raise ValueError('Artist review is required by the stage policy')
     return {'stage_id': sid, 'submission_id': event['id'], 'checkpoint': submitted['submission']['checkpoint'],
-            'review': review, 'reports': refreshed['reports'], 'predecessors': refreshed['predecessors'],
+            'review': review, 'answers': answers, 'reports': refreshed['reports'], 'predecessors': refreshed['predecessors'],
             'artistic_acceptance': 'artist_declared' if review['reviewer']['role'] == 'artist' else 'not_evaluated'}
 
 
