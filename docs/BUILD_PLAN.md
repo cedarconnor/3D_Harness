@@ -19,7 +19,7 @@ Earlier plans are archived verbatim in [archive/plans](archive/plans/). The Octo
 | Version | 0.11.0 on `main` |
 | Active | None; P4 finished |
 | Next | P12 owner approval channel, which pairs with P4; E5 can run at any time |
-| Waiting on the user | E1–E3 artist review session; E4 decision on the realistic comparison; GitHub write access for R1 |
+| Waiting on the user | E1–E3 artist review session; E4 decision on the realistic comparison; approval to delete merged remote branches (R1) and push tags (R3) |
 | Investment gate | Open |
 
 ## Tracker
@@ -69,7 +69,7 @@ Ranked by expected effect on the gate. Each ships as its own version.
 
 | ID | Item | Owner | Status | Exit criteria |
 |---|---|---|---|---|
-| R1 | Merge the feature branches into `main` | Agent | blocked: GitHub write access | Local `main` contains 0.4.9 through 0.5.0 and local branches are deleted. Pushing `main` and deleting the remote branches failed: the git credential's account, `Cedar-Sphere`, cannot write to `cedarconnor/3D_Harness`. |
+| R1 | Merge the feature branches into `main` | Agent | active | `main` with 0.4.9 through 0.11.0 is pushed. Remaining: delete the merged remote branches `codex/manual-revision` and `codex/scene-adoption`, with user approval. |
 | R2 | Organize documentation into active and archive folders; make this plan trackable | Agent | done | No broken relative links; index updated |
 | R3 | Tag released versions | Agent | todo | Tags for 0.4.8 through the current version, pushed with user approval |
 
@@ -216,6 +216,7 @@ Capture fixed views at blockout, surface and lighting completion, pre-revision a
 
 Newest first. One line per status change.
 
+- **2026-10-10:** R1 unblocked. With the GitHub CLI switched to `cedarconnor`, `main` was pushed through 0.11.0; deleting the merged remote branches awaits approval.
 - **2026-10-10:** P4 done. Version 0.11.0 ships `review-page`, `review-import` and submission questions with defaults.
 - **2026-10-10:** P4 started; [implementation plan](archive/plans/P4_REVIEW_PAGE.md) written.
 - **2026-10-10:** P3 done. Version 0.10.0 observes collection instances and linked libraries; D5 settled.
