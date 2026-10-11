@@ -100,7 +100,7 @@ try:
         out / 'external-preview')
     raise AssertionError('Relative-image candidate was relocated')
 except ValueError as exc:
-    assert 'relocation requires packed' in str(exc)
+    assert 'pass --blender to pack them' in str(exc), str(exc)
     assert not (out / 'external-preview').exists()
 
 # Inject only acknowledgement loss after the real publication has committed.

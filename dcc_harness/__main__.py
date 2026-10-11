@@ -102,6 +102,7 @@ def build_parser():
     p.add_argument("--contract", required=True); p.add_argument("--handoff", required=True)
     p.add_argument("--updates", required=True); p.add_argument("--label", required=True)
     p.add_argument("--note", required=True); p.add_argument("--output-dir", required=True)
+    p.add_argument("--blender", help="Pack unpacked textures into an owned copy in fresh background Blender")
     p = sub.add_parser("accept-revision", help="Recheck and publish a frozen external revision")
     p.add_argument("project"); p.add_argument("preview"); p.add_argument("--preview-sha", required=True)
     p.add_argument("--review-note", required=True); p.add_argument("--out")
@@ -168,7 +169,7 @@ def main():
         from . import revisions
         if args.command == 'preview-revision':
             result = revisions.preview_revision(args.project, args.parent, args.checkpoint, args.observation,
-                args.contract, args.handoff, read_json(args.updates), args.label, args.note, args.output_dir)
+                args.contract, args.handoff, read_json(args.updates), args.label, args.note, args.output_dir, blender=args.blender)
         else:
             result = revisions.accept_revision(args.project, args.preview, args.preview_sha, args.review_note)
     elif args.command in ('adopt-preview', 'adopt-apply'):

@@ -2,6 +2,15 @@
 
 Each version is a bounded increment with its own qualification report. Test counts are portable-suite results on Windows; the two skips in each count are host symlink-permission cases. Native qualification uses Blender 5.1.1 on Windows. Studies are listed with the versions they exercised. The [build plan](docs/BUILD_PLAN.md) explains what remains open, and reports that link into `runs/` refer to local evidence excluded from Git.
 
+## 0.16.0 — October 11, 2026
+
+Revision relocation for textures, build-plan item P7 ([plan](docs/archive/plans/P7_RELOCATION.md)).
+
+- **Added:** `preview-revision ... --blender PATH` packs an external revision's unpacked textures into an owned copy in a fresh background Blender. Each file is checked against its observed hash. The owned copy's fresh observation must match the candidate's apart from texture storage and qualified UV noise.
+- **Changed:** for a relocated revision, the contract is judged on the owned copy, with the parent's matching textures compared as packed. The preview carries `relocation.json` and the candidate's observation, and acceptance re-proves them and records the relocation.
+- **Unchanged:** linked libraries are still refused; the message now says that packing would change their collections' asset identity.
+- **Qualification:** 406 tests from source and from the installed wheel. Native panel with an external PNG: refused without `--blender`, packed and accepted with it, still `READY` after the PNG was moved, and a changed PNG refused. [Report](docs/archive/releases/RELOCATION_0_16_0_RESULTS.md)
+
 ## 0.15.0 — October 11, 2026
 
 Coverage and rechecks, the first part of build-plan item P6 ([plan](docs/archive/plans/P6_COVERAGE.md)).

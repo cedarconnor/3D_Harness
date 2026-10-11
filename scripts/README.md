@@ -14,6 +14,7 @@ Scripts marked *launcher* run under system Python and start Blender themselves, 
 
 | Version | Scripts | Mode | Runs from a clone |
 |---|---|---|---|
+| 0.16.0 | `qualify_relocation.py`: a panel reading an external PNG; an artist candidate changing only roughness is refused without `--blender`, packed and accepted with it, still `READY` after the PNG is moved, and a changed PNG is refused. The 0.4.10 `qualify_revisions.py` and the earlier nine rerun | launcher | Yes: builds its scene |
 | 0.15.0 | `qualify_coverage.py`: a lamp and world edit on the probe bench refused without permissions and published with them; a verified technical note on one leg stays current, then needs a recheck after the leg moves. The earlier eight rerun | launcher | Yes: builds its scenes |
 | 0.14.0 | `qualify_delivery.py`: the probe bench and the comparison project delivered and reimported, a moved copy caught by `BOUNDS`, a truncated GLB refused at import and a non-checkpoint refused; the earlier seven rerun | launcher | Yes: builds its scenes, plus the comparison project from `runs/` |
 | 0.13.1 | The seven current qualifications (`checks`, `owner`, `review_page`, `guidance`, `render`, `relations`, `instances`) moved onto `_launcher.py` and rerun unchanged in what they assert | launcher | As for each script |

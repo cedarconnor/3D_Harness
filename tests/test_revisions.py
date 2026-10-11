@@ -256,6 +256,66 @@ class RevisionTests(unittest.TestCase):
                 self.preview(observation=path, out=self.base / (kind + '-preview'))
             self.assertFalse((self.base / (kind + '-preview')).exists())
 
+    def textured(self, exists=True):
+        """A candidate that adds a material reading an unpacked texture beside the artist's file."""
+        after = read_json(self.after)
+        after['materials']['ext_wood'] = {'name': 'Wood', 'diffuse_color': [.5, .4, .3, 1], 'graph': {
+            'nodes': [{'name': 'Wood Texture', 'type': 'ShaderNodeTexImage', 'inputs': {},
+                       'image': {'name': 'wood.png', 'source': 'FILE', 'path': str(self.base / 'tex/wood.png'), 'packed': False,
+                                 'colorspace': 'sRGB', 'exists': exists, 'sha256': 'b' * 64 if exists else None}}],
+            'links': []}}
+        path = self.base / ('textured.json' if exists else 'textured-missing.json')
+        write_json(path, resign(after))
+        return path, after
+
+    def relocate(self, owned_changes=None):
+        """Stand-ins for the packing worker and the fresh observation of the owned copy."""
+        def worker(blender, folder, script, action, request):
+            Path(request['target']).write_bytes(b'owned copy with packed texture; synthetic')
+
+        def observe(source, out, blender, **kwargs):
+            owned = read_json(self.base / 'textured.json')
+            owned['checkpoint_sha256'] = file_hash(source)
+            image = owned['materials']['ext_wood']['graph']['nodes'][0]['image']
+            image.update(packed=True, path=str(Path(out) / 'elsewhere/wood.png'))
+            if owned_changes:
+                owned_changes(owned)
+            Path(out).mkdir(parents=True)
+            write_json(Path(out) / 'observation.json', resign(owned))
+            return {'status': 'READY', 'observation': str(Path(out) / 'observation.json')}
+        return patch.object(revisions, 'run_worker', worker), patch.object(revisions, 'observe_file', observe)
+
+    def test_unpacked_textures_are_packed_into_an_owned_copy(self):
+        path, _ = self.textured()
+        work, observe = self.relocate()
+        with work, observe:
+            preview = self.preview(observation=path, blender='blender')
+        self.assertEqual(preview['status'], 'READY_FOR_REVIEW', preview['failures'])
+        folder = Path(preview['preview'])
+        self.assertEqual((folder / 'checkpoint.blend').read_bytes(), b'owned copy with packed texture; synthetic')
+        relocation = read_json(folder / 'relocation.json')
+        self.assertEqual([i['name'] for i in relocation['packed_images']], ['wood.png'])
+        self.assertEqual(relocation['source']['sha256'], file_hash(self.candidate))
+        accepted = self.accept(preview)
+        self.assertEqual(accepted['status'], 'PUBLISHED')
+        self.assertEqual(accepted['active']['checkpoint_sha256'], file_hash(folder / 'checkpoint.blend'))
+        report = read_json(Continuity(self.root).status()['task_history'][-1]['check_report'])
+        self.assertEqual(report['external_revision']['relocation']['packed_images'][0]['name'], 'wood.png')
+
+    def test_textures_need_blender_and_must_exist(self):
+        path, _ = self.textured()
+        with self.assertRaisesRegex(ValueError, 'pass --blender'):
+            self.preview(observation=path)
+        missing, _ = self.textured(exists=False)
+        with self.assertRaisesRegex(ValueError, 'Missing'):
+            self.preview(observation=missing, blender='blender')
+
+    def test_an_owned_copy_that_differs_beyond_packing_is_refused(self):
+        path, _ = self.textured()
+        work, observe = self.relocate(lambda owned: owned['materials']['stone']['graph']['nodes'][0]['inputs'].update(Roughness=.9))
+        with work, observe, self.assertRaisesRegex(ValueError, 'beyond packing'):
+            self.preview(observation=path, blender='blender')
+
     def test_cli_accept_and_fresh_resume(self):
         preview = self.preview()
         proc = subprocess.run([sys.executable, '-m', 'dcc_harness', 'accept-revision', str(self.root),
