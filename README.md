@@ -13,11 +13,15 @@
 ## What it does
 
 - **Continues from files:** retains the brief, decisions, checkpoint history, handoff notes, and unresolved operations so a fresh context can resume the project.
+- **Orients a new session in seconds:** `brief` prints where the project stands and the permitted next steps, with each command filled in from the verified record.
 - **Starts from existing scenes:** previews missing identity assignments, applies the chosen plan to a new native file, and independently checks its saved identities and observation.
 - **Scopes revisions:** records the intended script and preservation contract before an edit, then checks the saved result against that contract.
 - **Retains deliberate artist edits:** freezes an externally saved revision for review, then accepts it with a checked contract, updated decisions, and attributed review notes.
 - **Keeps review feedback actionable:** records notes against a checkpoint, object, material, or rendered view, so a fresh session sees every open issue. Responses, verification, and artist acceptance stay separate. An optional pinned seven-stage environment workflow routes the craft skills.
-- **Measures native state:** observes identities, shared assets, evaluated geometry, authored/evaluated UV data, materials, image dependencies, cameras, lights, and selected render settings, with explicit coverage limits.
+- **Measures native state:** observes identities, shared assets, collection instances and their libraries, evaluated geometry, authored/evaluated UV data, materials, image dependencies, cameras, lights, and selected render settings, with explicit coverage limits.
+- **Renders fixed review views:** renders a project's declared cameras of any saved file without saving it, bound to that file's hash, one render at a time.
+- **Checks what rests on what:** measures whether objects such as bench legs rest on their support, says how each finding was established, and remembers which repairs did not work.
+- **Gives the artist a review page:** a local before/after page with the renders, what changed by stable ID, open notes and one-click answers to the agent's questions; the artist's notes and approval come back with one command.
 - **Separates technical and visual acceptance:** a candidate can pass its native checks and still be retained as a visual rejection without replacing the accepted checkpoint.
 - **Supplies practical methods:** project skills cover planning, building, review, architecture, materials, environment assembly, and lighting. Python helpers support bounded construction, planting, ground, roof, terrain, and visibility tasks.
 - **Supports evaluation:** frozen trial packets, fresh-context revisions, anonymous galleries, and retained failures support controlled comparisons.
@@ -50,7 +54,7 @@ python -m venv .venv
 
 ### Activate the workflow in your agent
 
-Open the repository in your normal Codex, Claude Code, or Cursor workspace. Where project skill discovery is available, use the `dcc-harness` entry skill. A portable explicit prompt is:
+Open the repository in your normal Codex, Claude Code, or Cursor workspace. Where project skill discovery is available, use the `dcc-harness` entry skill; it starts every session with `python -m dcc_harness brief PROJECT`. The [agent quick reference](docs/guides/AGENT_QUICK_REFERENCE.md) has the exact command sequences and payload shapes. A portable explicit prompt is:
 
 > Read `.agents/skills/dcc-harness/SKILL.md` and use its workflow to start or resume my Blender project. Preserve the accepted scene, inspect pending operations before editing, and load the craft skills relevant to the task.
 
@@ -59,11 +63,13 @@ The executable skills live in [`.agents/skills/`](.agents/skills/). Keep the rep
 ## Everyday workflow
 
 ```text
-Read brief and decisions → inspect the accepted checkpoint → reserve a scoped edit
+Run brief → inspect the accepted checkpoint → reserve a scoped edit
           ↓
-Execute the retained script once → save a new native file → observe and review
+Execute the retained script once → save a new native file → observe, render and measure relations
           ↓
 Publish the checked result, or retain the rejection → write the next handoff
+          ↓
+Build a review page for the artist → import their notes and approval
 ```
 
 For a new project, first save an owned `.blend` and observe it with `python -m dcc_harness observe SAVED.blend --blender PATH --output-dir NEW_FOLDER`. This opens the file in a fresh background Blender, never saves it, and reports `READY` or the issues to fix. If the scene lacks stable harness identities, use [initial scene adoption](docs/guides/SCENE_ADOPTION.md): `adopt-preview` lists proposed assignments, then `adopt-apply` writes and independently observes a new file. Existing IDs are preserved; ambiguous identities block adoption. See the [everyday workflow](docs/guides/EVERYDAY_WORKFLOW.md) for preparation and exact edit commands.
@@ -137,6 +143,8 @@ The comparisons so far have **not established a general visual-quality or long-h
 
 [Short comparison](docs/archive/studies/BLIND_RESULTS.md) · [Longer comparison](docs/archive/studies/CONTINUITY_RESULTS.md) · [Realistic comparison](docs/studies/REALISM_COMPARISON.md)
 
+The harness's own overhead has improved. On the same one-parameter revision, a fresh agent took 8 to 10 minutes on 0.5.1 and 0.6.0 and 3 minutes on 0.7.0, starting its edit after 51 seconds instead of 4 to 5 minutes ([report](docs/archive/releases/GUIDANCE_0_7_0_RESULTS.md)). On 0.9.0, two fresh agents each fixed a bench on sloping ground on the first attempt without repeating a failed whole-bench move ([report](docs/archive/releases/RELATIONS_0_9_0_RESULTS.md)). These are single runs, not a measured advantage over plain MCP.
+
 Current boundaries:
 
 - Advisory execution: no native sandbox, exactly-once guarantee, external-write interception, or unattended agent scheduler.
@@ -144,6 +152,7 @@ Current boundaries:
 - Blender qualification only; Unreal and other DCC adapters remain planned.
 - Observation coverage is explicit and incomplete: animation over time, arbitrary procedural instances, rig semantics, general topology quality, and UV overlap are not certified.
 - Hashes bind evidence to files; they do not authenticate producer truthfulness or establish artistic quality.
+- Reviewer roles are caller-attributed: an export or review that says it comes from the artist is not yet checked. Owner-only approval is build-plan item P12.
 - Animation, motion graphics, broader design-taste skills, and client installers remain future work.
 
 ## Development and tests
@@ -180,6 +189,7 @@ Downloaded asset kits, private photographic references, large `.blend` checkpoin
 ## Further reading
 
 - [Documentation index](docs/README.md) and [changelog](CHANGELOG.md)
+- [Agent quick reference](docs/guides/AGENT_QUICK_REFERENCE.md) and [review page](docs/guides/REVIEW_PAGE.md)
 - [Everyday workflow](docs/guides/EVERYDAY_WORKFLOW.md) and [continuity APIs](docs/guides/CONTINUITY_USAGE.md)
 - [Structured feedback and environment stages](docs/guides/STRUCTURED_FEEDBACK.md)
 - [Reference-led quality loop](docs/guides/QUALITY_LOOP_USAGE.md)

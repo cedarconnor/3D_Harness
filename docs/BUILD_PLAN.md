@@ -19,7 +19,7 @@ Earlier plans are archived verbatim in [archive/plans](archive/plans/). The Octo
 | Version | 0.11.0 on `main` |
 | Active | None; P4 finished |
 | Next | P12 owner approval channel, which pairs with P4; E5 can run at any time |
-| Waiting on the user | E1–E3 artist review session; E4 decision on the realistic comparison; approval to delete merged remote branches (R1) and push tags (R3) |
+| Waiting on the user | E1–E3 artist review session; E4 decision on the realistic comparison |
 | Investment gate | Open |
 
 ## Tracker
@@ -69,9 +69,9 @@ Ranked by expected effect on the gate. Each ships as its own version.
 
 | ID | Item | Owner | Status | Exit criteria |
 |---|---|---|---|---|
-| R1 | Merge the feature branches into `main` | Agent | active | `main` with 0.4.9 through 0.11.0 is pushed. Remaining: delete the merged remote branches `codex/manual-revision` and `codex/scene-adoption`, with user approval. |
+| R1 | Merge the feature branches into `main` | Agent | done | `main` is pushed through 0.11.0, and the merged remote branches `codex/manual-revision` and `codex/scene-adoption` are deleted; GitHub holds only `main`. |
 | R2 | Organize documentation into active and archive folders; make this plan trackable | Agent | done | No broken relative links; index updated |
-| R3 | Tag released versions | Agent | todo | Tags for 0.4.8 through the current version, pushed with user approval |
+| R3 | Tag released versions | Agent | done | Annotated tags `v0.4.8` through `v0.11.0` pushed, each on the commit that completed its release; tag future releases as they ship |
 
 ### X: Deferred until the gate passes
 
@@ -216,6 +216,7 @@ Capture fixed views at blockout, surface and lighting completion, pre-revision a
 
 Newest first. One line per status change.
 
+- **2026-10-10:** R1 and R3 done. Merged remote branches deleted; tags `v0.4.8` through `v0.11.0` pushed. README brought up to date with 0.7.0–0.11.0.
 - **2026-10-10:** R1 unblocked. With the GitHub CLI switched to `cedarconnor`, `main` was pushed through 0.11.0; deleting the merged remote branches awaits approval.
 - **2026-10-10:** P4 done. Version 0.11.0 ships `review-page`, `review-import` and submission questions with defaults.
 - **2026-10-10:** P4 started; [implementation plan](archive/plans/P4_REVIEW_PAGE.md) written.
