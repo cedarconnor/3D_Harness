@@ -4,7 +4,7 @@
 
 3D Harness helps an agent build and revise a 3D environment while preserving its assets, materials, lighting, and project decisions across sessions. It runs above an existing Blender MCP or owned background Blender process, with the artist working through their usual agent chat.
 
-**Status: v0.11.0 · Blender-first research prototype · one cooperating native writer.** See the [changelog](CHANGELOG.md) for version history and the [build plan](docs/BUILD_PLAN.md) for open gates and next work.
+**Status: v0.18.0 · Blender-first research prototype · one cooperating native writer.** See the [changelog](CHANGELOG.md) for version history and the [build plan](docs/BUILD_PLAN.md) for open gates and next work.
 
 ![A brick potting shed with a workbench, garden planting, and a paved approach, rendered in Blender](docs/images/potting-shed.png)
 
@@ -15,9 +15,9 @@
 - **Continues from files:** retains the brief, decisions, checkpoint history, handoff notes, and unresolved operations so a fresh context can resume the project.
 - **Orients a new session in seconds:** `brief` prints where the project stands and the permitted next steps, with each command filled in from the verified record.
 - **Starts from existing scenes:** previews missing identity assignments, applies the chosen plan to a new native file, and independently checks its saved identities and observation.
-- **Scopes revisions:** records the intended script and preservation contract before an edit, then checks the saved result against that contract.
-- **Retains deliberate artist edits:** freezes an externally saved revision for review, then accepts it with a checked contract, updated decisions, and attributed review notes.
-- **Keeps review feedback actionable:** records notes against a checkpoint, object, material, or rendered view, so a fresh session sees every open issue. Responses, verification, and artist acceptance stay separate. An optional pinned seven-stage environment workflow routes the craft skills.
+- **Scopes revisions:** records the intended script and preservation contract before an edit, then checks the saved result against that contract. Contracts can permit narrow changes such as one modifier setting, one node field, a named new light or a world change, and nothing else.
+- **Retains deliberate artist edits:** freezes an externally saved revision for review, then accepts it with a checked contract, updated decisions, and attributed review notes. Textures the artist left beside their file are packed into an owned copy.
+- **Keeps review feedback actionable:** records notes against a checkpoint, object, material, or rendered view, so a fresh session sees every open issue. Responses, verification, and artist acceptance stay separate, and a resolved note asks for a recheck only when something it depends on changed. An optional pinned seven-stage environment workflow routes the craft skills.
 - **Measures native state:** observes identities, shared assets, collection instances and their libraries, evaluated geometry, authored/evaluated UV data, materials, image dependencies, cameras, lights, and selected render settings, with explicit coverage limits.
 - **Renders fixed review views:** renders a project's declared cameras of any saved file without saving it, bound to that file's hash, one render at a time.
 - **Checks what rests on what:** measures whether objects such as bench legs rest on their support, says how each finding was established, and remembers which repairs did not work.
@@ -27,7 +27,7 @@
 - **Delivers checked GLB files:** exports an accepted checkpoint to GLB, imports the file into an empty scene, and records whether every object, triangle count and bound arrived intact.
 - **Separates technical and visual acceptance:** a candidate can pass its native checks and still be retained as a visual rejection without replacing the accepted checkpoint.
 - **Supplies practical methods:** project skills cover planning, building, review, architecture, materials, environment assembly, and lighting. Python helpers support bounded construction, planting, ground, roof, terrain, and visibility tasks.
-- **Supports evaluation:** frozen trial packets, fresh-context revisions, anonymous galleries, and retained failures support controlled comparisons.
+- **Supports evaluation:** frozen trial packets, fresh-context revisions, anonymous galleries, retained failures, per-session cost receipts and a regression suite of sealed failure situations support controlled comparisons.
 
 The host agent provides reasoning and tool calls. The harness supplies project state and evidence; it does not start an autonomous agent or replace the existing MCP server.
 
@@ -115,7 +115,7 @@ The pilot's `init`, `status`, `begin`, and `finish` journal commands remain for 
 
 If acknowledgement is lost, inspect the saved native result and reconcile it before sending another write. Direct MCP edits remain outside the reservation mechanism. Use one native writer and preserve the accepted file.
 
-For an artist edit made outside a reservation, use [external revision review](docs/guides/EXTERNAL_REVISIONS.md). It requires a separate saved candidate, fresh observation, explicit change contract, handoff and decision updates. The workflow preserves existing history and records caller-supplied review provenance; it does not settle a pending native operation.
+For an artist edit made outside a reservation, use [external revision review](docs/guides/EXTERNAL_REVISIONS.md). It requires a separate saved candidate, fresh observation, explicit change contract, handoff and decision updates. With `--blender`, textures referenced beside the candidate are packed into an owned copy first. The workflow preserves existing history and records caller-supplied review provenance; it does not settle a pending native operation.
 
 [Structured feedback and environment stages](docs/guides/STRUCTURED_FEEDBACK.md) are optional. Notes keep their checkpoint, object, and view anchors across sessions; implementation claims, verification, and artist acceptance remain separate records. A pinned seven-stage workflow routes the existing skills and requires current evidence before a stage completes. Coordination adds no background agent or MCP server.
 
@@ -149,14 +149,14 @@ The comparisons so far have **not established a general visual-quality or long-h
 
 [Short comparison](docs/archive/studies/BLIND_RESULTS.md) · [Longer comparison](docs/archive/studies/CONTINUITY_RESULTS.md) · [Realistic comparison](docs/studies/REALISM_COMPARISON.md)
 
-The harness's own overhead has improved. On the same one-parameter revision, a fresh agent took 8 to 10 minutes on 0.5.1 and 0.6.0 and 3 minutes on 0.7.0, starting its edit after 51 seconds instead of 4 to 5 minutes ([report](docs/archive/releases/GUIDANCE_0_7_0_RESULTS.md)). On 0.9.0, two fresh agents each fixed a bench on sloping ground on the first attempt without repeating a failed whole-bench move ([report](docs/archive/releases/RELATIONS_0_9_0_RESULTS.md)). These are single runs, not a measured advantage over plain MCP.
+The harness's own overhead has improved. On the same one-parameter revision, a fresh agent took 8 to 10 minutes on 0.5.1 and 0.6.0 and 3 minutes on 0.7.0, starting its edit after 51 seconds instead of 4 to 5 minutes ([report](docs/archive/releases/GUIDANCE_0_7_0_RESULTS.md)). On 0.9.0, two fresh agents each fixed a bench on sloping ground on the first attempt without repeating a failed whole-bench move ([report](docs/archive/releases/RELATIONS_0_9_0_RESULTS.md)). On 0.13.0, a fresh agent continuing the 1,289-object production garden found and answered all three open notes in 32 minutes ([E5 results](docs/studies/E5_CONTINUATION_RESULTS.md)). On 0.16.0, fresh agents handled all six known failure situations correctly: a lost acknowledgement, a stale image, a shared material, a missing view definition, an artist-saved revision and a conflicting late request ([P5 results](docs/studies/P5_SKILL_REGRESSIONS.md)). These are single runs, not a measured advantage over plain MCP.
 
 Current boundaries:
 
 - Advisory execution: no native sandbox, exactly-once guarantee, external-write interception, or unattended agent scheduler.
-- Collection instances, local or from linked libraries, are observed since 0.10.0. Vertex, face, particle and Geometry Nodes instancing and library overrides are still reported as issues, and external revisions still reject linked-library data (P7). Libraries are referenced, not copied into the project store.
+- Collection instances, local or from linked libraries, are observed since 0.10.0. Vertex, face, particle and Geometry Nodes instancing and library overrides are still reported as issues. External revisions pack their textures since 0.16.0 but still reject linked libraries, because packing one changes its collections' asset identity. Libraries are referenced, not copied into the project store.
 - Blender qualification only; Unreal and other DCC adapters remain planned.
-- Observation coverage is explicit and incomplete: animation over time, arbitrary procedural instances, rig semantics, general topology quality, and UV overlap are not certified.
+- Observation coverage is explicit and incomplete: animation over time, arbitrary procedural instances, rig semantics and general topology quality are not certified. UV overlap and texel density are measured by the separate `uv-report`, as grid and per-mesh estimates, not in observations ([UV report](docs/guides/UV_REPORT.md)).
 - Hashes bind evidence to files; they do not authenticate producer truthfulness or establish artistic quality.
 - Agent reviews are caller-attributed. Since 0.12.0 an artist's approval needs the artist's own terminal, and agent sessions are refused. This guards against an agent approving its own work through the commands; an agent with an unrestricted shell on the same account could still get around it ([owner approval](docs/guides/OWNER_APPROVAL.md)).
 - Learned checks cover object fields and supported-by relations only. A project keeps the library version it was bound with, and repeats are counted by hand ([learned checks](docs/guides/LEARNED_CHECKS.md)).
