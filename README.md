@@ -4,7 +4,7 @@
 
 3D Harness helps an agent build and revise a 3D environment while preserving its assets, materials, lighting, and project decisions across sessions. It runs above an existing Blender MCP or owned background Blender process, with the artist working through their usual agent chat.
 
-**Status: v0.8.0 · Blender-first research prototype · one cooperating native writer.** See the [changelog](CHANGELOG.md) for version history and the [build plan](docs/BUILD_PLAN.md) for open gates and next work.
+**Status: v0.9.0 · Blender-first research prototype · one cooperating native writer.** See the [changelog](CHANGELOG.md) for version history and the [build plan](docs/BUILD_PLAN.md) for open gates and next work.
 
 ![A brick potting shed with a workbench, garden planting, and a paved approach, rendered in Blender](docs/images/potting-shed.png)
 
@@ -83,6 +83,7 @@ python -m dcc_harness review ./my-project/state
 | `next` / `requirements` | The same next steps as JSON; a stage's required evidence and a submission skeleton |
 | `observe` | Observe a saved `.blend` in a fresh background Blender, without saving it, for `start`, edits and revisions |
 | `render` / `render-wait` | Render a project's fixed review views of a saved `.blend` without saving it, one at a time per machine, with a bound receipt and evidence entries |
+| `relations` | Measure whether declared subjects rest on their support surfaces in a saved `.blend`, classify findings by evidence strength, and record repair attempts in the project's history |
 | `fill-hashes` | Fill and verify `{path, sha256}` file references in a payload, writing a new file |
 | `adopt-preview` / `adopt-apply` | Preview initial identity assignments, then save and independently observe a new Blender file |
 | `preview-revision` / `accept-revision` | Freeze, review and accept a deliberate saved edit into an existing project |

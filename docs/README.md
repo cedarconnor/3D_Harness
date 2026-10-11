@@ -1,6 +1,6 @@
 # Documentation index
 
-Updated October 10, 2026, for version 0.8.0. Start with the repository [README](../README.md), then the [everyday workflow](guides/EVERYDAY_WORKFLOW.md). Agents continuing a project start with `brief` and the [agent quick reference](guides/AGENT_QUICK_REFERENCE.md). The [build plan](BUILD_PLAN.md) tracks current status and next work; the [changelog](../CHANGELOG.md) lists what each version delivered.
+Updated October 10, 2026, for version 0.9.0. Start with the repository [README](../README.md), then the [everyday workflow](guides/EVERYDAY_WORKFLOW.md). Agents continuing a project start with `brief` and the [agent quick reference](guides/AGENT_QUICK_REFERENCE.md). The [build plan](BUILD_PLAN.md) tracks current status and next work; the [changelog](../CHANGELOG.md) lists what each version delivered.
 
 Documents are split by whether they are still in use:
 
@@ -11,7 +11,7 @@ Documents are split by whether they are still in use:
 | [`recipes/`](recipes/) | Bounded construction helpers used by the craft skills |
 | [`studies/`](studies/) | Open evaluation work: the interrupted realistic comparison and the artist review session |
 | [`reference/`](reference/) | Research and designs behind upcoming stages |
-| `plans/` | Implementation plans for active tracked items, created when work starts and archived when it finishes; currently empty |
+| `plans/` | Implementation plans for active tracked items, created when work starts and archived when it finishes; currently [P2](plans/P2_RELATIONSHIP_CHECKS.md) |
 | [`archive/`](archive/) | Work already addressed: release reports, completed studies, implemented plans and superseded inputs |
 
 Archived documents stay as written. They remain the evidence for the claims in the plan, README and changelog; only their links were updated when files moved.
@@ -20,7 +20,7 @@ Archived documents stay as written. They remain the evidence for the claims in t
 
 | Document | Covers | Since |
 |---|---|---|
-| [Agent quick reference](guides/AGENT_QUICK_REFERENCE.md) | `brief`, `next`, `requirements`, `render` and the exact sequences for an edit, review renders, a feedback response and a stage submission | 0.7.0 |
+| [Agent quick reference](guides/AGENT_QUICK_REFERENCE.md) | `brief`, `next`, `requirements`, `render`, `relations` and the exact sequences for an edit, review renders, relation measurements, a feedback response and a stage submission | 0.7.0 |
 | [Everyday workflow](guides/EVERYDAY_WORKFLOW.md) | `start`, `resume`, `review`, `begin-edit`, `finish-edit`, reconciliation and locks | 0.4.0 |
 | [Scene adoption](guides/SCENE_ADOPTION.md) | `adopt-preview` and `adopt-apply` for saved scenes without stable IDs | 0.4.9 |
 | [External revisions](guides/EXTERNAL_REVISIONS.md) | `preview-revision` and `accept-revision` for deliberate saved edits | 0.4.10 |

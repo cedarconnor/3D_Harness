@@ -57,6 +57,13 @@ def build_parser():
     p = sub.add_parser("render-wait", help="Wait for a detached render and return its state")
     p.add_argument("job", help="The render's output folder"); p.add_argument("--timeout", type=float, default=100)
     p = sub.add_parser("render-job", help=argparse.SUPPRESS); p.add_argument("job")
+    p = sub.add_parser("relations", help="Measure supported_by relations of a saved .blend in fresh background Blender; never saves")
+    p.add_argument("source"); p.add_argument("--blender", required=True, help="Path to Blender executable")
+    p.add_argument("--output-dir", required=True, help="New folder for the measurement, report and log")
+    spec = p.add_mutually_exclusive_group(required=True)
+    spec.add_argument("--project", help="Use the project's relations decision and record the result in its history")
+    spec.add_argument("--spec", help="A dcc.relations.v1 file; nothing is recorded")
+    p.add_argument("--strategy", help="With --project: the repair this file tries, recorded in the history")
     p = sub.add_parser("fill-hashes", help="Fill and verify {path, sha256} references; writes a new payload")
     p.add_argument("payload"); p.add_argument("destination")
     p.add_argument("--evidence-root", help="Base for relative paths; defaults to the payload's folder")
@@ -156,6 +163,9 @@ def main():
         else:
             action = render.start_detached if args.detach else render.render_file
             result = action(args.source, args.output_dir, args.blender, project=args.project, views=args.views)
+    elif args.command == 'relations':
+        from .relations import measure_file
+        result = measure_file(args.source, args.output_dir, args.blender, spec=args.spec, project=args.project, strategy=args.strategy)
     elif args.command == 'fill-hashes':
         from .payloads import fill_hashes
         result = fill_hashes(args.payload, args.destination, args.evidence_root)

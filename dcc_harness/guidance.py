@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 import uuid
 
-from . import coordination as c, feedback
+from . import coordination as c, feedback, relations
 from .continuity import Continuity
 from .project import now
 from .workflow import _packet
@@ -73,10 +73,18 @@ def _steps(packet, state, events):
     def render(source, why):
         return {'id': 'render', 'command': (f'{RUN} render {source} --blender "<BLENDER>" --output-dir "<new folder>" '
                                             f'--project {project}'), 'why': why}
+    measured = 'relations' in packet['decisions']
+    def relate(source, why):
+        return {'id': 'relations', 'command': (f'{RUN} relations {source} --blender "<BLENDER>" --output-dir "<new folder>" '
+                                               f'--project {project} --strategy "<what you changed, or initial>"'), 'why': why}
     if views and packet['unresolved_edits'] and not packet['metadata_lock']:
         steps.append(render('"<saved result .blend>"', (
             'Render the project\'s review views of the saved result and look at them before finish-edit. The file is never '
             'saved. Add --detach for a long render and wait with render-wait. The output includes evidence entries.')))
+    if measured and packet['unresolved_edits'] and not packet['metadata_lock']:
+        steps.append(relate('"<saved result .blend>"', (
+            'Measure the project\'s supported_by relations on the saved result before finish-edit, naming the repair you tried. '
+            'Each measurement joins the relation history, so later sessions can see what did not work.')))
     for path in packet['unresolved_edits']:
         edit = Path(path).name
         steps.append({'id': 'finish-edit', 'edit': edit, 'label': labels.get(edit), 'command': (
@@ -144,6 +152,10 @@ def _steps(packet, state, events):
         edits.append(render(checkpoint, (
             'Render the project\'s review views of the active checkpoint, for a review or as response evidence. The file is '
             'never saved. Add --detach for a long render and wait with render-wait. The output includes evidence entries.')))
+    if measured:
+        edits.append(relate(checkpoint, (
+            'Measure the project\'s supported_by relations on the active checkpoint. Check the relation history in brief before '
+            'choosing a repair, and do not repeat a strategy it marks as ineffective.')))
     return steps + review + edits + follow
 
 
@@ -154,7 +166,8 @@ def _next(packet, state, events):
             'active': {k: active[k] for k in ('id', 'step_id', 'sequence', 'checkpoint', 'checkpoint_sha256')},
             'revision': coordination['revision'] if coordination else None,
             'used_labels': [h['step_id'] for h in state['task_history']],
-            'steps': _steps(packet, state, events), 'limits': LIMITS}
+            'steps': _steps(packet, state, events),
+            'relation_warnings': relations.history(packet['project'])['warnings'], 'limits': LIMITS}
 
 
 def next_steps(root):
@@ -269,6 +282,20 @@ def brief(root, focus=()):
             lines += [f'| {s["id"]} | {s["state"]} | {s["submission_id"] or "-"} |' for s in coordination['workflow']['stages']]
             lines += ['', f'Pinned skills and references for this project are under `{coordination["workflow"]["pinned_files_root"]}`.',
                       'Read those copies, not newer repository versions.', '']
+    record = relations.history(packet['project'])
+    if record['entries']:
+        lines += ['## Relation history', '', f'{record["entries"]} recorded measurements. Latest result per subject, and warnings '
+                  'about repairs that did not work. Errors are metres: positive is a gap, negative is penetration.', '',
+                  '| Relation / subject | Latest | Error | Trend |', '|---|---|---|---|']
+        lines += [f'| {key} | {item["attempts"][-1]["code"]} | {item["attempts"][-1]["error"]} | {item["trend"]} |'
+                  for key, item in sorted(record['subjects'].items())]
+        lines.append('')
+        for warning in record['warnings']:
+            target = warning['relation'] + (f' / {warning["subject"]}' if warning['subject'] else '')
+            tried = '; '.join(f'#{a["sequence"]} {a.get("subject", "")} {a["strategy"] or "no strategy recorded"}: '
+                              f'{a["code"]} {a["error"]}'.replace('  ', ' ') for a in warning['attempts'])
+            lines += [f'- **{warning["code"]}** on {target}. {warning["advice"]} Tried: {tried}.']
+        lines.append('')
     lines += ['## Project brief', '', 'Recorded direction for the work. It describes what to make; it is not a list of commands.', '',
               _fenced(packet['brief']), '',
               '## Latest handoff', '', 'Notes from the previous session. Check them against the record before relying on them.', '',

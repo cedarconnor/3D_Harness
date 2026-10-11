@@ -61,6 +61,12 @@ Since 0.8.0, `render SAVED.blend --blender PATH --output-dir NEW_FOLDER --projec
 
 Renders run one at a time per machine. `--detach` queues a render in a separate process and returns `QUEUED`; `render-wait FOLDER` waits up to `--timeout` seconds (default 100) and returns `waiting`, `running`, `done` or `failed`. The [agent quick reference](AGENT_QUICK_REFERENCE.md#3-render-review-views) shows a definition.
 
+## Relations and repair history
+
+Since 0.9.0, `relations SAVED.blend --blender PATH --output-dir NEW_FOLDER --project PROJECT --strategy "what this file changes"` measures the project's `supported_by` relations in a fresh background Blender and never saves. The definition is the decision `relations` (`dcc.relations.v1`), or a file passed with `--spec`. For each subject, such as a bench leg, vertical rays through its lowest vertices meet the declared support surface. The finding gives `OK`, `GAP`, `PENETRATION`, `OFF_SUPPORT` or `MISSING_TARGET`, a signed error in metres from the point closest to contact, the footprint's spread and its coverage. A relation whose subjects both float and sink is a `CONFLICT`: no rigid move of the group fixes it. A bounding-box estimate is reported beside each finding as `bounds_only` evidence that permits inspection, not repair; on sloped ground it reports penetration that the rays show is not there.
+
+With `--project`, every measurement is appended to the project's `relations/` record under the workflow lock, with the parent checkpoint, the file's hash and the strategy text. Entries are never rewritten. `brief` and `next` report the latest result per subject and warn when the last two attempts swung between gap and penetration (`OPPOSING`), changed the error by less than 20% (`NO_PROGRESS`), or the latest measurement is a `CONFLICT`. The [agent quick reference](AGENT_QUICK_REFERENCE.md#4-measure-what-rests-on-what) shows a definition.
+
 ## Interruptions and limitations
 
 After lost acknowledgement, quota exhaustion or an agent handoff, inspect the native result first. If it exists, freshly observe it and use `finish-edit --reconciled` to record the outcome without dispatching the write again. This is explicit observed reconciliation, not automatic crash recovery or exactly-once execution.

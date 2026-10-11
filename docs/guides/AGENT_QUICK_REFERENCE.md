@@ -1,6 +1,6 @@
 # Agent quick reference
 
-Version 0.8.0. The exact command sequences for the most common work, for an agent continuing a 3D Harness project. Every command below is checked against the real parser by `tests/test_quick_reference.py`. Values in `<angle brackets>` and capitalized placeholders such as `PARENT_ID` are yours to fill; quote every path.
+Version 0.9.0. The exact command sequences for the most common work, for an agent continuing a 3D Harness project. Every command below is checked against the real parser by `tests/test_quick_reference.py`. Values in `<angle brackets>` and capitalized placeholders such as `PARENT_ID` are yours to fill; quote every path.
 
 ## 1. Orient
 
@@ -80,7 +80,37 @@ A view definition, recorded once as the decision `review_views` (at `start`, or 
 
 `object_id` uses a camera in the scene by its stable ID. `lens`, `location` and `target` make a review-only camera that is never saved. `border` crops as fractions `[min_x, max_x, min_y, max_y]`. Engines are `CYCLES`, `BLENDER_EEVEE` and `BLENDER_WORKBENCH`. Keep the definition fixed: feedback verification compares the settings digest, so a changed view means a changed review.
 
-## 4. Respond to a feedback note
+## 4. Measure what rests on what
+
+```powershell
+python -m dcc_harness relations "<saved .blend>" --blender "<BLENDER>" --output-dir "<work>/relations-1" --project "<project>" --strategy "<what this file changes>"
+python -m dcc_harness relations "<saved .blend>" --blender "<BLENDER>" --output-dir "<work>/relations-2" --spec "<work>/relations.json"
+```
+
+`relations` opens the saved file in a fresh background Blender and never saves. For each subject it casts vertical rays through the subject's lowest vertices, its footprint, against the declared support surfaces. Each subject gets one finding:
+
+- **Code:** `OK`, `GAP`, `PENETRATION`, `OFF_SUPPORT` or `MISSING_TARGET`.
+- **Error:** in metres, positive for a gap and negative for penetration, taken from the footprint point closest to contact.
+- **Spread:** the difference between the footprint's highest and lowest points, such as a corner lifted on a slope.
+
+`CONFLICT` means that some subjects float while others sink, so moving the whole group cannot fix it: adjust them individually. A `bounds_estimate` that disagrees comes from bounding boxes and only permits inspection; never repair from it. The command exits 1 when a relation fails.
+
+With `--project`, each measurement joins the project's relation history, together with the `--strategy` text naming the repair the file tries. `brief` shows the history and warns when the last two attempts swung between gap and penetration (`OPPOSING`) or barely changed the error (`NO_PROGRESS`). Read it before choosing a repair, and don't repeat a strategy it marks as ineffective.
+
+A definition, recorded once as the decision `relations`:
+
+```json
+{
+  "schema": "dcc.relations.v1",
+  "relations": [
+    {"id": "bench-on-ground", "kind": "supported_by",
+     "subjects": ["bench.leg.0", "bench.leg.1", "bench.leg.2", "bench.leg.3"], "support": ["ground"],
+     "max_gap": 0.005, "max_penetration": 0.01, "footprint": 0.002}
+  ]
+}
+```
+
+## 5. Respond to a feedback note
 
 Write the response with `{"path": ...}` references, fill the hashes, then record it. `next` gives the expected revision and a fresh request ID.
 
@@ -108,7 +138,7 @@ python -m dcc_harness feedback-respond "<project>" --response "<work>/response.j
 
 `result` is the current checkpoint, from `brief`. Paths are relative to the response file's folder. Say exactly what changed, never "addressed". Don't verify your own response; a separate reviewer does, with `feedback-verify`.
 
-## 5. Submit a stage
+## 6. Submit a stage
 
 ```powershell
 python -m dcc_harness requirements "<project>" STAGE_ID --out "<work>/requirements.json"
