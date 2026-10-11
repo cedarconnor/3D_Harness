@@ -13,17 +13,23 @@ def default_manifest():
     return json.loads(files('dcc_harness').joinpath('data/environment-workflow.v1.json').read_text(encoding='utf-8'))
 
 
+# Comparison tooling: frozen packets carry their own copies, and the pinned runtime never imports
+# these modules (a test enforces it), so editing them must not invalidate workflow bindings.
+EXPERIMENT_TOOLING = frozenset({'blind.py', 'blind_review.py', 'continuity_trial.py', 'continuity_review.py', 'session_cost.py'})
+
+
 def runtime_stamp(root=None):
     """Version plus a source digest of this package, or of another source tree for comparison.
 
     Line endings are normalized so CRLF and LF checkouts of the same sources pin
-    the same runtime; any other byte change alters the digest.
+    the same runtime; any other byte change alters the digest. Experiment tooling
+    at the package top level is excluded.
     """
     from . import __version__
     root = Path(root) if root is not None else Path(__file__).parent
     return {'version': __version__, 'source_digest': digest({
         p.relative_to(root).as_posix(): hashlib.sha256(p.read_bytes().replace(b'\r\n', b'\n')).hexdigest()
-        for p in sorted(root.rglob('*.py'))})}
+        for p in sorted(root.rglob('*.py')) if p.relative_to(root).as_posix() not in EXPERIMENT_TOOLING})}
 
 
 def validate_manifest(value):

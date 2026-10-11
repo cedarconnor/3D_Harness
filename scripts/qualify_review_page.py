@@ -7,40 +7,26 @@ with owner questions, rebuilds the page and imports an approval that changes one
 the approval needs the owner, so a scripted console stands in for the owner's terminal.
 The browser interactions themselves are checked by hand; see the 0.11.0 report.
 """
-import argparse
 import json
 from pathlib import Path
-import re
 import shutil
-import subprocess
-import sys
 import uuid
 
 REPO = Path(__file__).resolve().parents[1]
 FIXTURE = REPO / 'runs/step-cost-comparison-2026-10-06/prepared/project'
 
-p = argparse.ArgumentParser()
-p.add_argument('--blender', required=True)
-p.add_argument('--out', required=True)
-p.add_argument('--runtime', help='Source checkout; omit for installed package testing')
-a = p.parse_args()
-if a.runtime:
-    sys.path.insert(0, a.runtime)
+from _launcher import Qualification, ScriptedOwner
+q = Qualification(__doc__)
+a, runtime, out = q.args, q.runtime, q.out
 import dcc_harness
 from dcc_harness import coordination as c, review_page
 from dcc_harness.evidence import read_json, write_json
 
-runtime = Path(dcc_harness.__file__).resolve().parent.parent
-out = Path(a.out).resolve()
-out.mkdir(parents=True, exist_ok=False)
 project = out / 'project'
 shutil.copytree(FIXTURE, project)
 
 
-def cli(*args):
-    proc = subprocess.run([sys.executable, '-m', 'dcc_harness', *map(str, args)], cwd=runtime, capture_output=True, text=True)
-    assert proc.returncode == 0, (args, proc.stderr[-1500:])
-    return json.loads(proc.stdout)
+cli = q.cli
 
 
 write_json(out / 'views.json', {'schema': 'dcc.review.views.v1', 'render': {'engine': 'CYCLES', 'resolution': [320, 200], 'samples': 8, 'seed': 0},
@@ -112,16 +98,6 @@ page3 = cli('review-page', project, '--output-dir', out / 'page-3', '--before-vi
 assert page3['submission'] == submitted['revision']
 review = {'reviewer': {**source, 'reference': 'Review page ' + page3['page_digest'][:12]}, 'verdict': 'pass',
           'finding': 'Direction reads well; warmer key light preferred', 'answers': {'light': 'Warm'}}
-class ScriptedOwner:
-    environ = {}
-
-    def isatty(self):
-        return True
-
-    def ask(self, text):
-        return re.search(r'Type ([A-Z0-9]{4})', text).group(1)
-
-
 imported = review_page.import_review(project, export(None, page3['page_digest'], review=review), out / 'page-3', ScriptedOwner())
 assert [(r['kind'], r['status']) for r in imported['results']] == [('stage.complete', 'COMMITTED')], imported
 completed = c.read(project)[-1]['result']

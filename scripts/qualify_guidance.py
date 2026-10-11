@@ -4,35 +4,25 @@ Runs the printed commands themselves where they need no agent input: the observe
 begin-edit steps from `next` are filled in and executed, then `next` must offer only the
 reserved edit's finish. Every other command must leave the copied stores unchanged.
 """
-import argparse
 import hashlib
 import json
 from pathlib import Path
 import shlex
 import shutil
-import subprocess
-import sys
 
 REPO = Path(__file__).resolve().parents[1]
 NOTES = REPO / 'runs/step-cost-comparison-2026-10-06/prepared/project'
 BOUND = REPO / 'runs/feedback-2026-10-06/source/project'
 
-p = argparse.ArgumentParser()
-p.add_argument('--blender', required=True)
-p.add_argument('--out', required=True)
-p.add_argument('--runtime', help='Source checkout; omit for installed package testing')
-a = p.parse_args()
-if a.runtime:
-    sys.path.insert(0, a.runtime)
+from _launcher import Qualification
+q = Qualification(__doc__)
+a, runtime, out = q.args, q.runtime, q.out
 import dcc_harness
 
-runtime = Path(dcc_harness.__file__).resolve().parent.parent
-out = Path(a.out).resolve()
-out.mkdir(parents=True, exist_ok=False)
 
 
 def cli(*args):
-    proc = subprocess.run([sys.executable, '-m', 'dcc_harness', *map(str, args)], cwd=runtime, capture_output=True, text=True)
+    proc = q.run(*args)
     return proc.returncode, proc.stdout, proc.stderr
 
 

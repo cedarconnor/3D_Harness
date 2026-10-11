@@ -8,33 +8,22 @@ commits the approval; the receipt must carry the owner provenance. A replay and 
 still work from the agent session. Run this from an agent session: it asserts that CLAUDECODE or
 another marker is set. A real terminal run by the owner is checked by hand.
 """
-import argparse
 import json
 import os
 from pathlib import Path
-import re
 import shutil
-import subprocess
-import sys
 import uuid
 
 REPO = Path(__file__).resolve().parents[1]
 FIXTURE = REPO / 'runs/step-cost-comparison-2026-10-06/prepared/project'
 
-p = argparse.ArgumentParser()
-p.add_argument('--blender', required=True)
-p.add_argument('--out', required=True)
-p.add_argument('--runtime', help='Source checkout; omit for installed package testing')
-a = p.parse_args()
-if a.runtime:
-    sys.path.insert(0, a.runtime)
+from _launcher import Qualification, ScriptedOwner
+q = Qualification(__doc__)
+a, runtime, out = q.args, q.runtime, q.out
 import dcc_harness
 from dcc_harness import coordination as c, owner, review_page
 from dcc_harness.evidence import read_json, write_json
 
-runtime = Path(dcc_harness.__file__).resolve().parent.parent
-out = Path(a.out).resolve()
-out.mkdir(parents=True, exist_ok=False)
 project = out / 'project'
 shutil.copytree(FIXTURE, project)
 markers = [m for m in owner.AGENT_MARKERS if os.environ.get(m)]
@@ -42,16 +31,7 @@ assert markers, 'Run this from an agent session; no agent marker is set'
 unmarked = {k: v for k, v in os.environ.items() if k not in owner.AGENT_MARKERS}
 
 
-def run(*args, env=None, stdin=subprocess.DEVNULL, input=None):
-    kwargs = {'input': input} if input is not None else {'stdin': stdin}
-    return subprocess.run([sys.executable, '-m', 'dcc_harness', *map(str, args)], cwd=runtime, capture_output=True, text=True,
-                          env=env or os.environ, **kwargs)
-
-
-def cli(*args):
-    proc = run(*args)
-    assert proc.returncode == 0, (args, proc.stderr[-1500:])
-    return json.loads(proc.stdout)
+run, cli = q.run, q.cli
 
 
 def refused(args, expected):
@@ -61,18 +41,6 @@ def refused(args, expected):
     assert proc.returncode != 0 and expected in message, (args, proc.stderr[-800:])
     assert len(c.read(project)) == before
     return message.split(': ', 1)[-1]
-
-
-class ScriptedOwner:
-    """Stands in for the owner's terminal: an interactive input outside any agent session, typing the shown code."""
-    environ, shown = {}, []
-
-    def isatty(self):
-        return True
-
-    def ask(self, text):
-        self.shown.append(text)
-        return re.search(r'Type ([A-Z0-9]{4})', text).group(1)
 
 
 # A workflow whose direction stage requires the artist, and a submission waiting for review.

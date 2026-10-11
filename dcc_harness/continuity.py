@@ -8,12 +8,10 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 from pathlib import Path
-import shutil
-import stat
 
 from .evidence import canonical, digest, file_hash, read_json, validate_observation
+from .files import copy_verified, json_bytes, reject_links, write_exclusive
 from .project import Project, now
 
 
@@ -27,21 +25,7 @@ LIMITS = (
 )
 
 
-def _plain(path):
-    """Reject redirecting files/directories before resolving a retained path.
-
-    lstat() inspects each component itself: stat() would follow a Windows
-    junction and report its target, letting the junction pass.
-    """
-    path = Path(path).absolute()
-    for part in (path, *path.parents):
-        try:
-            info = part.lstat()
-        except (FileNotFoundError, NotADirectoryError):
-            continue
-        if stat.S_ISLNK(info.st_mode) or getattr(info, "st_file_attributes", 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT:
-            raise ValueError(f"Links/reparse points are not supported: {part}")
-    return path
+_plain = reject_links  # Retained-path link rejection, shared with the other modules.
 
 
 def _mapping_keys(value, label):
@@ -60,15 +44,7 @@ def _sha(value):
     return isinstance(value, str) and len(value) == 64 and all(c in "0123456789abcdef" for c in value)
 
 
-def _write(path, data):
-    with path.open("xb") as stream:
-        stream.write(data)
-        stream.flush()
-        os.fsync(stream.fileno())
-
-
-def _json_bytes(value):
-    return (json.dumps(value, indent=2, sort_keys=True, allow_nan=False) + "\n").encode("utf-8")
+_write, _json_bytes = write_exclusive, json_bytes
 
 
 def _load_observation(path, checkpoint):
@@ -354,12 +330,7 @@ class Continuity:
         bundle = self.root / "checkpoints" / f"{sequence:06d}"
         bundle.mkdir()  # Exclusive reservation; any interruption here is a visible stop.
         for name, source in sources.items():
-            with source.open("rb") as incoming, (bundle / name).open("xb") as outgoing:
-                shutil.copyfileobj(incoming, outgoing)
-                outgoing.flush()
-                os.fsync(outgoing.fileno())
-            if file_hash(bundle / name) != hashes[name] or file_hash(source) != hashes[name]:
-                raise ValueError("Source changed during publication; inspect partial bundle")
+            copy_verified(source, bundle / name, hashes[name], "Source changed during publication; inspect partial bundle")
         for name, payload in data.items():
             _write(bundle / name, payload)
         # Revalidate copied evidence, then make the final commit marker. This is

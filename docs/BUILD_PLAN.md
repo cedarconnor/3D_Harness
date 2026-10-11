@@ -16,7 +16,7 @@ Earlier plans are archived verbatim in [archive/plans](archive/plans/). The Octo
 
 | | |
 |---|---|
-| Version | 0.13.0 on `main` |
+| Version | 0.13.1 on `main` |
 | Active | None; P11 finished |
 | Next | E5 can run at any time; P5–P8 remain |
 | Waiting on the user | E1–E3 artist review session; E4 decision on the realistic comparison |
@@ -41,10 +41,10 @@ These need artist time or a user decision rather than new code. Every stage afte
 | ID | Item | Owner | Status | Exit criteria |
 |---|---|---|---|---|
 | M1 | Version 0.5.1 correctness fixes ([details](#m1-version-051-correctness-maintenance)) | Agent | done | A regression test per defect, source and installed suites, native fixtures, and a [0.5.1 report](archive/releases/MAINTENANCE_0_5_1_RESULTS.md) |
-| M2 | Consolidate duplicated helpers: file hashing, link rejection, JSON writers, copy-then-verify | Agent | todo | No behavior change; suites and native fixtures pass |
-| M3 | Separate experiment tooling (`blind`, `blind_review`, `continuity_trial`, `continuity_review`) from the pinned runtime digest | Agent | todo | Experiment edits no longer invalidate workflow bindings; frozen packets are unaffected |
-| M4 | Shared launcher helper for the qualification orchestrators | Agent | todo | `qualify_*` and `run_*` scripts share one helper; evaluators copied into packets stay self-contained |
-| M5 | Record session cost in trial receipts ([details](#m5-session-cost)) | Agent | todo | Each trial session records turns, elapsed minutes, metered spend where known and cache-read share; reports compare spend with the trial ceilings |
+| M2 | Consolidate duplicated helpers: file hashing, link rejection, JSON writers, copy-then-verify | Agent | done | Done in 0.13.1: `files.py` holds them; continuity, coordination, revisions, checks, evidence and the blind tooling use it, keeping their messages. Suites and native fixtures pass ([report](archive/releases/MAINTENANCE_0_13_1_RESULTS.md)) |
+| M3 | Separate experiment tooling (`blind`, `blind_review`, `continuity_trial`, `continuity_review`) from the pinned runtime digest | Agent | done | Done in 0.13.1: the runtime digest excludes the experiment modules, and a test fails if the pinned runtime imports one ([report](archive/releases/MAINTENANCE_0_13_1_RESULTS.md)) |
+| M4 | Shared launcher helper for the qualification orchestrators | Agent | done | Done in 0.13.1 for the seven qualifications rerun every release: `scripts/_launcher.py`. Older one-off `qualify_*` and `run_*` scripts keep their own code, since they are tied to retired fixtures; evaluators stay self-contained ([report](archive/releases/MAINTENANCE_0_13_1_RESULTS.md)) |
+| M5 | Record session cost in trial receipts ([details](#m5-session-cost)) | Agent | done | Done in 0.13.1: `python -m dcc_harness.session_cost` writes turns, elapsed minutes, tokens, cache-read share and spend (unavailable unless reported) against the ceilings; first used for E5 ([report](archive/releases/MAINTENANCE_0_13_1_RESULTS.md)) |
 
 ### P: Product increments, ranked
 
@@ -194,7 +194,7 @@ An advisory, supervised prototype: one cooperating native writer, Blender 5.1.1 
 - Write usage documentation in `docs/guides/` for new entry points and a qualification report in `docs/archive/releases/`. Update the README and decision log when behavior or authority changes.
 - Run the source and installed-wheel suites, plus native positive and negative fixtures in a fresh `runs/` directory with `--python-exit-code 1`. Record the wheel hash. The [scripts index](../scripts/README.md) lists the fixtures for each version.
 - Retain failed trials, rejected candidates and superseded evaluators. Correct measurement policies by version, never in place.
-- Any package source change alters the pinned workflow runtime digest. Projects bound to an earlier runtime need that runtime for workflow mutations.
+- Any package source change alters the pinned workflow runtime digest, except the comparison tooling listed in `EXPERIMENT_TOOLING` (since 0.13.1). Projects bound to an earlier runtime need that runtime for workflow mutations.
 
 ### Creative trials
 
@@ -216,6 +216,8 @@ Capture fixed views at blockout, surface and lighting completion, pre-revision a
 
 Newest first. One line per status change.
 
+- **2026-10-11:** M2–M5 done in maintenance version 0.13.1: shared file helpers, experiment tooling outside the runtime digest, a shared qualification launcher and session cost receipts.
+- **2026-10-11:** E5 started: a sealed fresh-agent continuation of the production garden with three controlled notes.
 - **2026-10-10:** P11 done. Version 0.13.0 ships the learned check library: computed rules proven on their error, owner approval, pinning and repeat counts.
 - **2026-10-10:** P11 started; [implementation plan](archive/plans/P11_LEARNED_CHECKS.md) written and [D19](DESIGN_DECISIONS.md#d19-learned-checks-are-computed-rules-in-an-owner-approved-library) recorded.
 - **2026-10-10:** P12 done. Version 0.12.0 requires the owner's terminal for every artist authority; agent sessions and piped input are refused.

@@ -2,12 +2,12 @@
 from __future__ import annotations
 
 from pathlib import Path
-import shutil
 import uuid
 
 from .continuity import Continuity, _mapping, _plain, _sha
 from .continuity_checks import evaluate_stage, validate_contract
 from .evidence import file_hash, read_json, write_json
+from .files import copy_verified
 from .project import now
 from .workflow import _clean_observation, _reservations, writer_guard
 
@@ -79,10 +79,7 @@ def preview_revision(root, expected_parent, checkpoint, observation, contract, h
     check = evaluate_stage(before, obs, rules)
     out.mkdir(parents=True, exist_ok=False)
     for name, source in sources.items():
-        with source.open('rb') as incoming, (out / name).open('xb') as outgoing:
-            shutil.copyfileobj(incoming, outgoing)
-        if file_hash(out / name) != hashes[name] or file_hash(source) != hashes[name]:
-            raise ValueError('Revision input changed while freezing; inspect partial preview')
+        copy_verified(source, out / name, hashes[name], 'Revision input changed while freezing; inspect partial preview')
     if _clean_observation(out / 'observation.json', out / 'checkpoint.blend') != obs or read_json(out / 'contract.json') != rules:
         raise ValueError('Copied revision evidence differs from validated inputs')
     write_json(out / 'updates.json', updates)

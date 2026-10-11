@@ -11,12 +11,12 @@ import fnmatch
 import json
 import math
 from pathlib import Path
-import shutil
 
 from . import coordination as c, feedback, owner
 from .continuity import Continuity, _plain
 from .coordination_evidence import actor
 from .evidence import file_hash, read_json, write_json
+from .files import copy_verified
 from .project import now
 from .relations import IDENTIFIER, classify, validate_relations
 
@@ -330,9 +330,8 @@ def approve(library, project, revision, expected_version, console=None):
         kept[side] = {'checkpoint_sha256': event['result']['fixtures'][side]['checkpoint_sha256']}
         for label, source in (('observation', observation), ('measurement', measured)):
             if source is not None:
-                target = fixtures / f'{side}.{label}.json'
-                with source.open('rb') as incoming, target.open('xb') as outgoing:
-                    shutil.copyfileobj(incoming, outgoing)
+                target = copy_verified(source, fixtures / f'{side}.{label}.json', file_hash(source),
+                                       'Fixture changed while copying; inspect the partial library write')
                 kept[side][label] = _ref(root, target)
     check = {'id': proposal['id'], 'rule': proposal['rule'], 'stages': proposal['stages'], 'rationale': proposal['rationale'],
              'origin': {'project': payload['project'], 'proposal': revision, 'note': note, 'proposer': proposal['proposer']},
@@ -396,9 +395,7 @@ def export(library, out, version=None):
     if not current['path']:
         raise ValueError('The library has no approved checks yet')
     out = _plain(out)
-    out.parent.mkdir(parents=True, exist_ok=True)
-    with Path(current['path']).open('rb') as incoming, out.open('xb') as outgoing:
-        shutil.copyfileobj(incoming, outgoing)
+    copy_verified(current['path'], out, current['sha256'], 'Library version changed while exporting')
     return {'exported': str(out), 'version': current['version'], 'sha256': file_hash(out)}
 
 

@@ -5,38 +5,26 @@ determinism and the settings digest, commits a feedback response citing the evid
 entries, renders from a project's review_views decision through the command `next`
 prints, runs two detached jobs that must not overlap, and checks the failure paths.
 """
-import argparse
 import json
 from pathlib import Path
 import shlex
 import shutil
 import subprocess
-import sys
 import uuid
 
 REPO = Path(__file__).resolve().parents[1]
 PREPARED = REPO / 'runs/step-cost-comparison-2026-10-06/prepared'
 NOTE = '7e016b63-3642-49ba-a4d1-caf2380d6824'
 
-p = argparse.ArgumentParser()
-p.add_argument('--blender', required=True)
-p.add_argument('--out', required=True)
-p.add_argument('--runtime', help='Source checkout; omit for installed package testing')
-a = p.parse_args()
-if a.runtime:
-    sys.path.insert(0, a.runtime)
+from _launcher import Qualification
+q = Qualification(__doc__)
+a, runtime, out = q.args, q.runtime, q.out
 import dcc_harness
 from dcc_harness.evidence import file_hash, read_json, write_json
 
-runtime = Path(dcc_harness.__file__).resolve().parent.parent
-out = Path(a.out).resolve()
-out.mkdir(parents=True, exist_ok=False)
 
 
-def cli(*args, expect=0):
-    proc = subprocess.run([sys.executable, '-m', 'dcc_harness', *map(str, args)], cwd=runtime, capture_output=True, text=True)
-    assert proc.returncode == expect if expect is not None else proc.returncode != 0, (args, proc.returncode, proc.stderr[-2000:])
-    return json.loads(proc.stdout) if proc.stdout.strip() else None, proc.stderr
+cli = q.call
 
 
 VIEWS = {'schema': 'dcc.review.views.v1', 'render': {'engine': 'CYCLES', 'resolution': [320, 200], 'samples': 8, 'seed': 0},

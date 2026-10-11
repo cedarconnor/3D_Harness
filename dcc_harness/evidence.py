@@ -5,6 +5,8 @@ import hashlib
 import json
 from pathlib import Path
 
+from .files import file_hash, json_text  # noqa: F401  file_hash is re-exported for existing callers
+
 
 def canonical(value):
     return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False)
@@ -12,14 +14,6 @@ def canonical(value):
 
 def digest(value):
     return hashlib.sha256(canonical(value).encode()).hexdigest()
-
-
-def file_hash(path):
-    h = hashlib.sha256()
-    with open(path, "rb") as stream:
-        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-            h.update(chunk)
-    return h.hexdigest()
 
 
 def read_json(path):
@@ -35,9 +29,7 @@ def write_json(path, value, *, compact_observation=False):
     if compact_observation:
         from .observation_storage import pack_observation
         value = pack_observation(value)
-    data = json.dumps(value, indent=None if compact_observation else 2,
-                      separators=(",", ":") if compact_observation else None,
-                      sort_keys=True, allow_nan=False) + "\n"
+    data = json_text(value, compact=compact_observation)
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("x", encoding="utf-8") as stream:

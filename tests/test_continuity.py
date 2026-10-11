@@ -230,7 +230,7 @@ print(json.dumps(result))
                 native.write_bytes(b"concurrent native save")
             return result
 
-        with patch("dcc_harness.continuity.shutil.copyfileobj", side_effect=copy_then_mutate):
+        with patch("dcc_harness.files.shutil.copyfileobj", side_effect=copy_then_mutate):
             with self.assertRaisesRegex(ValueError, "Source changed"):
                 self.store.publish("change", first["active"]["id"], native, observation, handoff, {}, check)
         with self.assertRaisesRegex(RuntimeError, "Incomplete"):

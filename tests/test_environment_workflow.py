@@ -18,6 +18,33 @@ class RuntimeStampTests(unittest.TestCase):
         self.assertEqual(digests['lf'], digests['crlf'])
         self.assertNotEqual(digests['lf'], digests['changed'])
 
+    def test_experiment_tooling_is_outside_the_runtime_digest(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / 'core.py').write_text('x = 1\n'); (root / 'blind.py').write_text('y = 1\n')
+            first = ew.runtime_stamp(root)['source_digest']
+            (root / 'blind.py').write_text('y = 2\n')
+            self.assertEqual(ew.runtime_stamp(root)['source_digest'], first)
+            (root / 'core.py').write_text('x = 2\n')
+            self.assertNotEqual(ew.runtime_stamp(root)['source_digest'], first)
+
+    def test_the_pinned_runtime_never_imports_experiment_tooling(self):
+        import ast
+        package = Path(ew.__file__).parent
+        experiments = {name[:-3] for name in ew.EXPERIMENT_TOOLING}
+        for path in sorted(package.glob('*.py')):
+            if path.name in ew.EXPERIMENT_TOOLING:
+                continue
+            for node in ast.walk(ast.parse(path.read_text(encoding='utf-8'))):
+                if isinstance(node, ast.ImportFrom):
+                    names = [node.module or ''] + [a.name for a in node.names]
+                elif isinstance(node, ast.Import):
+                    names = [a.name for a in node.names]
+                else:
+                    continue
+                with self.subTest(module=path.name):
+                    self.assertFalse({n.split('.')[-1] for n in names} & experiments, names)
+
 
 class EnvironmentWorkflowTests(Fixture):
     def test_packaged_manifest_and_pin_is_independent_of_source(self):

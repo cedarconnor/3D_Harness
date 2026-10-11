@@ -6,43 +6,28 @@ records the two rigid translations a repair might try, and checks the history wa
 the guidance. Also leaves two project copies for the fresh-agent continuation: one with the
 history and one without.
 """
-import argparse
 import json
 from pathlib import Path
 import shlex
 import shutil
-import subprocess
-import sys
 
-p = argparse.ArgumentParser()
-p.add_argument('--blender', required=True)
-p.add_argument('--out', required=True)
-p.add_argument('--runtime', help='Source checkout; omit for installed package testing')
-a = p.parse_args()
-if a.runtime:
-    sys.path.insert(0, a.runtime)
+from _launcher import Qualification
+q = Qualification(__doc__)
+a, runtime, out = q.args, q.runtime, q.out
 import dcc_harness
 from dcc_harness.evidence import file_hash, write_json
 
-runtime = Path(dcc_harness.__file__).resolve().parent.parent
-out = Path(a.out).resolve()
-out.mkdir(parents=True, exist_ok=False)
 SPEC = {'schema': 'dcc.relations.v1', 'relations': [
     {'id': 'bench-on-ground', 'kind': 'supported_by', 'subjects': [f'bench.leg.{i}' for i in range(4)], 'support': ['ground'],
      'max_gap': 0.005, 'max_penetration': 0.01, 'footprint': 0.002}]}
 DOWN, UP = ('bench.leg.0', 'bench.leg.1'), ('bench.leg.2', 'bench.leg.3')  # downhill at y = -0.23, uphill at y = +0.23
 
 
-def cli(*args, expect=0):
-    proc = subprocess.run([sys.executable, '-m', 'dcc_harness', *map(str, args)], cwd=runtime, capture_output=True, text=True)
-    assert proc.returncode == expect, (args, proc.returncode, proc.stderr[-2000:])
-    return json.loads(proc.stdout) if proc.stdout.strip() and proc.stdout.lstrip().startswith('{') else proc.stdout
+cli = q.cli
 
 
 probe = Path(__file__).with_name('relations_native_probe.py').resolve()
-with (out / 'scenes.log').open('x', encoding='utf-8') as log:
-    subprocess.run([a.blender, '--background', '--factory-startup', '--disable-autoexec', '--python-exit-code', '1',
-                    '--python', str(probe), '--', '--out', str(out / 'scenes')], stdout=log, stderr=subprocess.STDOUT, check=True)
+q.blender('scenes.log', '--python', probe, '--', '--out', out / 'scenes')
 write_json(out / 'relations.json', SPEC)
 sources = {path.name: file_hash(path) for path in (out / 'scenes').glob('*.blend')}
 

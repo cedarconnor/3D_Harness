@@ -1,6 +1,6 @@
 # Documentation index
 
-Updated October 10, 2026, for version 0.13.0. Start with the repository [README](../README.md), then the [everyday workflow](guides/EVERYDAY_WORKFLOW.md). Agents continuing a project start with `brief` and the [agent quick reference](guides/AGENT_QUICK_REFERENCE.md). The [build plan](BUILD_PLAN.md) tracks current status and next work; the [changelog](../CHANGELOG.md) lists what each version delivered.
+Updated October 11, 2026, for version 0.13.1. Start with the repository [README](../README.md), then the [everyday workflow](guides/EVERYDAY_WORKFLOW.md). Agents continuing a project start with `brief` and the [agent quick reference](guides/AGENT_QUICK_REFERENCE.md). The [build plan](BUILD_PLAN.md) tracks current status and next work; the [changelog](../CHANGELOG.md) lists what each version delivered.
 
 Documents are split by whether they are still in use:
 
@@ -78,6 +78,7 @@ One report per version. The [changelog](../CHANGELOG.md) summarizes counts and n
 | 0.4.10 | [External revisions](archive/releases/REVISIONS_0_4_10_RESULTS.md) |
 | 0.5.0 | [Structured feedback](archive/releases/FEEDBACK_0_5_0_RESULTS.md) |
 | 0.5.1 | [Correctness maintenance](archive/releases/MAINTENANCE_0_5_1_RESULTS.md) |
+| 0.13.1 | [Maintenance: helpers, digest, launcher, session cost](archive/releases/MAINTENANCE_0_13_1_RESULTS.md) |
 | 0.13.0 | [Learned checks](archive/releases/CHECKS_0_13_0_RESULTS.md) |
 | 0.12.0 | [Owner approval](archive/releases/OWNER_APPROVAL_0_12_0_RESULTS.md) |
 | 0.11.0 | [Review page](archive/releases/REVIEW_PAGE_0_11_0_RESULTS.md) |

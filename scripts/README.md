@@ -8,12 +8,13 @@ Updated October 6, 2026. These scripts qualify releases, benchmark the runtime, 
 & 'C:/Program Files/Blender Foundation/Blender 5.1/blender.exe' --background --factory-startup --python-exit-code 1 --python scripts/qualify_visibility.py -- --repo . --out runs/NEW-FOLDER
 ```
 
-Scripts marked *launcher* run under system Python and start Blender themselves, so pass `--blender PATH`. Always choose a fresh output folder, and check both the process exit code and the report. Several studies were run on local scenes that are not in Git; those scripts cannot run from a fresh clone.
+Scripts marked *launcher* run under system Python and start Blender themselves, so pass `--blender PATH`. Since 0.13.1 the current qualifications share `_launcher.py` for their arguments, runtime selection, CLI calls and Blender runs. `python -m dcc_harness.session_cost TRANSCRIPT` records a trial session's turns, minutes, tokens, cache-read share and spend against the trial ceilings. Always choose a fresh output folder, and check both the process exit code and the report. Several studies were run on local scenes that are not in Git; those scripts cannot run from a fresh clone.
 
 ## Release qualification
 
 | Version | Scripts | Mode | Runs from a clone |
 |---|---|---|---|
+| 0.13.1 | The seven current qualifications (`checks`, `owner`, `review_page`, `guidance`, `render`, `relations`, `instances`) moved onto `_launcher.py` and rerun unchanged in what they assert | launcher | As for each script |
 | 0.13.0 | `qualify_checks.py`: on the relations probe's bench scenes, two checks proposed and proven natively, a wrong and a taste proposal refused, approval refused from the agent session and given by a scripted owner console, then a second project that pins the library: blocked by both checks, a counted repeat, and completion after the fix. The 0.7.0–0.12.0 qualifications rerun | launcher | Yes: builds its scenes |
 | 0.12.0 | `qualify_owner.py`: from an agent session, approvals through `review-import` and `stage-complete` are refused, and again with the agent variables removed but input piped; a scripted owner console commits with provenance; replay and notes-only import still work. `qualify_review_page.py` takes its approval through the same console; the 0.7.0–0.10.0 qualifications rerun | launcher | No: copies a local project from `runs/` |
 | 0.11.0 | `qualify_review_page.py`: a rendered and reopened page on the comparison project, a pinned note and a stage approval imported and replayed; the 0.7.0–0.10.0 qualifications rerun | launcher | No: copies a local project from `runs/` |

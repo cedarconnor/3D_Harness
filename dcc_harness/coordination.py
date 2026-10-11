@@ -7,6 +7,7 @@ import uuid
 
 from .continuity import Continuity, _plain, _sha, _write, _json_bytes
 from .evidence import canonical, digest, file_hash, read_json
+from .files import copy_verified
 from .project import now
 
 
@@ -162,15 +163,8 @@ def transact(root, kind, payload, expected_revision, request_id, base, build, ap
         directory = _plain(Path(root) / 'coordination' / 'events' / f'{len(events) + 1:06d}')
         directory.mkdir(parents=True, exist_ok=False)
         for name, (source, sha) in context.files.items():
-            target = relative(directory / 'artifacts', name)
-            target.parent.mkdir(parents=True, exist_ok=True)
-            with source.open('rb') as incoming, target.open('xb') as outgoing:
-                import shutil
-                import os
-                shutil.copyfileobj(incoming, outgoing)
-                outgoing.flush(); os.fsync(outgoing.fileno())
-            if file_hash(source) != sha or file_hash(target) != sha:
-                raise ValueError('Source changed during coordination publication; inspect partial event')
+            copy_verified(source, relative(directory / 'artifacts', name), sha,
+                          'Source changed during coordination publication; inspect partial event')
         _write(directory / 'event.json', _json_bytes(event))
         inventory = {p.relative_to(directory).as_posix(): file_hash(p) for p in directory.rglob('*') if p.is_file()}
         _write(directory / 'manifest.json', _json_bytes({'schema': 'dcc.coordination.manifest.v1',

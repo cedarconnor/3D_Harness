@@ -4,36 +4,23 @@ Builds scenes and libraries with scripts/instances_native_probe.py, then checks 
 compatibility with the previous runtime, the stored-copy library limit, scoped edits that move or
 swap instances, an in-place library edit, the issue paths and adoption of an instanced collection.
 """
-import argparse
 import json
 from pathlib import Path
 import shutil
 import subprocess
 import sys
 
-p = argparse.ArgumentParser()
-p.add_argument('--blender', required=True)
-p.add_argument('--out', required=True)
-p.add_argument('--baseline-runtime', required=True, help='Folder holding the previous release, for the compatibility check')
-p.add_argument('--runtime', help='Source checkout; omit for installed package testing')
-a = p.parse_args()
-if a.runtime:
-    sys.path.insert(0, a.runtime)
+from _launcher import Qualification
+q = Qualification(__doc__, [('--baseline-runtime', {'required': True, 'help': 'Folder holding the previous release, for the compatibility check'})])
+a, runtime, out = q.args, q.runtime, q.out
 import dcc_harness
 from dcc_harness.evidence import file_hash, read_json, write_json
 
 REPO = Path(__file__).resolve().parents[1]
-runtime = Path(dcc_harness.__file__).resolve().parent.parent
-out = Path(a.out).resolve()
-out.mkdir(parents=True, exist_ok=False)
 probe = Path(__file__).with_name('instances_native_probe.py').resolve()
 
 
-def cli(*args, expect=0, cwd=None):
-    proc = subprocess.run([sys.executable, '-m', 'dcc_harness', *map(str, args)], cwd=cwd or runtime, capture_output=True, text=True)
-    assert proc.returncode == expect if expect is not None else proc.returncode != 0, (args, proc.returncode, proc.stderr[-1500:])
-    text = proc.stdout.strip()
-    return (json.loads(text) if text.startswith('{') else text), proc.stderr
+cli = q.call
 
 
 def blender_probe(action, folder):
@@ -86,8 +73,18 @@ current, _ = cli('observe', fixture, '--blender', a.blender, '--output-dir', out
 proc = subprocess.run([sys.executable, '-m', 'dcc_harness', 'observe', str(fixture), '--blender', a.blender, '--output-dir',
                        str(out / 'compat-previous')], cwd=a.baseline_runtime, capture_output=True, text=True, check=True)
 previous = json.loads(proc.stdout)
-assert current['revision'] == previous['revision'], (current['revision'], previous['revision'])
-summary['compatibility'] = {'previous_runtime': str(a.baseline_runtime), 'same_revision': True}
+# Two Blender processes can differ by float noise in evaluated UVs; the qualified comparator accepts
+# exactly that and nothing else, so compatibility means equal apart from qualified noise.
+from dcc_harness.uv_guard import evaluated_uv_noise_only
+now_obs, old_obs = read_json(current['observation']), read_json(previous['observation'])
+differing = sorted(i for i in now_obs['objects'].keys() | old_obs['objects'].keys()
+                   if now_obs['objects'].get(i) != old_obs['objects'].get(i))
+assert now_obs['objects'].keys() == old_obs['objects'].keys(), 'object sets differ'
+assert all(evaluated_uv_noise_only(old_obs['objects'][i], now_obs['objects'][i]) for i in differing), differing
+assert all(now_obs[k] == old_obs[k] for k in ('materials', 'scene', 'coverage', 'issues'))
+summary['compatibility'] = {'previous_runtime': str(a.baseline_runtime),
+                            'same_revision': current['revision'] == previous['revision'],
+                            'uv_noise_only_objects': differing}
 
 # A project on the instanced scene. The stored checkpoint copy cannot reach its relative library.
 (out / 'BRIEF.md').write_text('Instanced garden fixture; not a production scene.\n', encoding='utf-8')

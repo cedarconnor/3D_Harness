@@ -7,21 +7,20 @@ path, never the private manifest. This module neither runs Blender nor scores ar
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 from pathlib import Path
 import random
 import re
 import secrets
-import shutil
-import stat
 from typing import Any
+
+from .files import copy_verified, file_hash, reject_links
 
 
 SCHEMA = "dcc.blind-round.v1"
 RUN_ID = re.compile(r"t-[0-9a-f]{12}\Z")
-HELPER_FILES = ("__init__.py", "__main__.py", "evidence.py", "observation_storage.py", "blender.py", "project.py")
+HELPER_FILES = ("__init__.py", "__main__.py", "evidence.py", "files.py", "observation_storage.py", "blender.py", "project.py")
 POLICY = """Work only in this context folder and its included inputs. Do not read
 parent directories, other task folders, repository source, previous chats, or
 files outside this packet. The host may display a global skill catalog; only
@@ -38,25 +37,12 @@ The included inputs are frozen: write new artifacts only under output/.
 """
 
 
-def _digest(path: Path) -> str:
-    value = hashlib.sha256()
-    with path.open("rb") as stream:
-        for block in iter(lambda: stream.read(1024 * 1024), b""):
-            value.update(block)
-    return value.hexdigest()
+_digest = file_hash
 
 
 def _reject_link(path: Path) -> None:
     """Reject symlinks and Windows junction/reparse paths, including ancestors."""
-    for candidate in (path, *path.parents):
-        try:
-            info = candidate.lstat()
-        except FileNotFoundError:
-            continue
-        if stat.S_ISLNK(info.st_mode) or (
-            getattr(info, "st_file_attributes", 0) & 0x400
-        ):
-            raise ValueError(f"Linked/reparse paths are not allowed: {candidate}")
+    reject_links(path, "Linked/reparse paths are not allowed")
 
 
 def _absolute(path: str | Path) -> Path:
@@ -96,12 +82,7 @@ def _copy_file(source: Path, destination: Path, expected: str | None = None) -> 
     _reject_link(destination)
     if not source.is_file():
         raise ValueError(f"Missing file: {source}")
-    expected = expected or _digest(source)
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    with source.open("rb") as original, destination.open("xb") as copied:
-        shutil.copyfileobj(original, copied)
-    if _digest(destination) != expected or _digest(source) != expected:
-        raise ValueError(f"Input changed during copy: {source}")
+    copy_verified(source, destination, expected or _digest(source), f"Input changed during copy: {source}")
 
 
 def _copy_tree(source: Path, destination: Path) -> dict[str, str]:

@@ -8,69 +8,31 @@ session is refused; a scripted console stands in for the owner's terminal. Proje
 sunk bench and pins the library: its assembly submission fails both checks and completion is
 refused; a note there counts a repeat; after the fix, both pass and the stage completes.
 """
-import argparse
 import json
 import os
 from pathlib import Path
-import re
 import shlex
 import shutil
-import subprocess
-import sys
 import uuid
 
 REPO = Path(__file__).resolve().parents[1]
-p = argparse.ArgumentParser()
-p.add_argument('--blender', required=True)
-p.add_argument('--out', required=True)
-p.add_argument('--runtime', help='Source checkout; omit for installed package testing')
-a = p.parse_args()
-if a.runtime:
-    sys.path.insert(0, a.runtime)
+from _launcher import Qualification, ScriptedOwner
+q = Qualification(__doc__)
+a, runtime, out = q.args, q.runtime, q.out
 import dcc_harness
 from dcc_harness import checks, owner
 from dcc_harness.evidence import read_json, write_json
 
-runtime = Path(dcc_harness.__file__).resolve().parent.parent
-out = Path(a.out).resolve()
-out.mkdir(parents=True, exist_ok=False)
 assert any(os.environ.get(m) for m in owner.AGENT_MARKERS), 'Run this from an agent session'
 library = out / 'library'
 summary = {'runtime': str(runtime), 'version': dcc_harness.__version__}
 
 
-def run(*args):
-    return subprocess.run([sys.executable, '-m', 'dcc_harness', *map(str, args)], cwd=runtime, capture_output=True, text=True,
-                          stdin=subprocess.DEVNULL)
-
-
-def cli(*args, expect=0):
-    proc = run(*args)
-    assert proc.returncode == expect, (args, proc.returncode, proc.stderr[-2000:])
-    return json.loads(proc.stdout)
-
-
-def refused(args, message):
-    proc = run(*args)
-    assert proc.returncode != 0 and message in proc.stderr, (args, proc.stderr[-1500:])
-    return proc.stderr.strip().splitlines()[-1].split(': ', 1)[-1]
-
-
-class ScriptedOwner:
-    environ, shown = {}, []
-
-    def isatty(self):
-        return True
-
-    def ask(self, text):
-        self.shown.append(text)
-        return re.search(r'Type ([A-Z0-9]{4})', text).group(1)
+run, cli, refused = q.run, q.cli, q.refused
 
 
 probe = REPO / 'scripts/relations_native_probe.py'
-with (out / 'scenes.log').open('x', encoding='utf-8') as log:
-    subprocess.run([a.blender, '--background', '--factory-startup', '--disable-autoexec', '--python-exit-code', '1',
-                    '--python', str(probe), '--', '--out', str(out / 'scenes')], stdout=log, stderr=subprocess.STDOUT, check=True)
+q.blender('scenes.log', '--python', probe, '--', '--out', out / 'scenes')
 observed = {name: cli('observe', out / 'scenes' / f'{name}.blend', '--blender', a.blender, '--output-dir', out / f'observe-{name}')['observation']
             for name in ('raised', 'sunk', 'flat')}
 (out / 'edit.py').write_text('# Reserved for qualification; the candidates were built by the probe.\n', encoding='utf-8')

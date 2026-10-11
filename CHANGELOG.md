@@ -2,6 +2,16 @@
 
 Each version is a bounded increment with its own qualification report. Test counts are portable-suite results on Windows; the two skips in each count are host symlink-permission cases. Native qualification uses Blender 5.1.1 on Windows. Studies are listed with the versions they exercised. The [build plan](docs/BUILD_PLAN.md) explains what remains open, and reports that link into `runs/` refer to local evidence excluded from Git.
 
+## 0.13.1 — October 11, 2026
+
+Maintenance, build-plan items M2–M5. No runtime behavior change.
+
+- **M2:** `dcc_harness/files.py` holds file hashing, link rejection, canonical JSON text, exclusive writes and verified copies. Continuity, coordination, revisions, checks, evidence and the blind tooling use it; their error messages are unchanged.
+- **M3:** the pinned runtime digest excludes the comparison tooling (`blind`, `blind_review`, `continuity_trial`, `continuity_review`, `session_cost`), so editing it no longer invalidates workflow bindings. A test fails if the pinned runtime imports any of them.
+- **M4:** `scripts/_launcher.py` gives the qualifications rerun every release one way to parse arguments, select the runtime, call the CLI and run background Blender.
+- **M5:** `python -m dcc_harness.session_cost TRANSCRIPT` writes a `dcc.trial.session-cost.v1` receipt: turns, elapsed minutes, tokens, cache-read share and spend against the trial ceilings. Spend is unavailable unless the transcript reports it.
+- **Qualification:** 390 tests from source and from the installed wheel; the seven native qualifications passed again through the shared launcher. [Report](docs/archive/releases/MAINTENANCE_0_13_1_RESULTS.md)
+
 ## 0.13.0 — October 10, 2026
 
 Learned check library, build-plan item P11 ([plan](docs/archive/plans/P11_LEARNED_CHECKS.md), decision [D19](docs/DESIGN_DECISIONS.md#d19-learned-checks-are-computed-rules-in-an-owner-approved-library)).
