@@ -1,6 +1,6 @@
 # Documentation index
 
-Updated October 11, 2026, for version 0.16.0. Start with the repository [README](../README.md), then the [everyday workflow](guides/EVERYDAY_WORKFLOW.md). Agents continuing a project start with `brief` and the [agent quick reference](guides/AGENT_QUICK_REFERENCE.md). The [build plan](BUILD_PLAN.md) tracks current status and next work; the [changelog](../CHANGELOG.md) lists what each version delivered.
+Updated October 11, 2026, for version 0.17.0. Start with the repository [README](../README.md), then the [everyday workflow](guides/EVERYDAY_WORKFLOW.md). Agents continuing a project start with `brief` and the [agent quick reference](guides/AGENT_QUICK_REFERENCE.md). The [build plan](BUILD_PLAN.md) tracks current status and next work; the [changelog](../CHANGELOG.md) lists what each version delivered.
 
 Documents are split by whether they are still in use:
 
@@ -45,6 +45,7 @@ Each was qualified on one production scene: [ground](recipes/GROUND_RECIPE.md), 
 |---|---|
 | [Artist review session](studies/ARTIST_REVIEW_SESSION.md) | Protocol for build-plan items E1–E3: scores, timed repair and ranked pairs from finished work |
 | [Realistic comparison](studies/REALISM_COMPARISON.md) and [progress](studies/REALISM_PROGRESS.md) | Interrupted after one partial build. Resuming or retiring it is item E4. |
+| [P5 skill regressions](studies/P5_SKILL_REGRESSIONS.md) | Six sealed failure situations graded on actions and artifacts; all passed on 0.16.0 |
 | [E5 continuation results](studies/E5_CONTINUATION_RESULTS.md) | One sealed fresh-agent continuation of the production garden: all three notes found and answered in 32 minutes; artist repair time pending |
 
 ## Reference
@@ -80,6 +81,7 @@ One report per version. The [changelog](../CHANGELOG.md) summarizes counts and n
 | 0.4.10 | [External revisions](archive/releases/REVISIONS_0_4_10_RESULTS.md) |
 | 0.5.0 | [Structured feedback](archive/releases/FEEDBACK_0_5_0_RESULTS.md) |
 | 0.5.1 | [Correctness maintenance](archive/releases/MAINTENANCE_0_5_1_RESULTS.md) |
+| 0.17.0 | [Modifier and node permissions](archive/releases/MODIFIERS_0_17_0_RESULTS.md) |
 | 0.16.0 | [Revision relocation](archive/releases/RELOCATION_0_16_0_RESULTS.md) |
 | 0.15.0 | [Coverage and rechecks](archive/releases/COVERAGE_0_15_0_RESULTS.md) |
 | 0.14.0 | [GLB delivery](archive/releases/DELIVERY_0_14_0_RESULTS.md) |

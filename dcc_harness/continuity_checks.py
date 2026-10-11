@@ -11,7 +11,7 @@ SCHEMA = "dcc.continuity.contract.v1"
 CONTRACT_FIELDS = {"schema", "spec", "allowed_object_prefixes", "allowed_material_inputs",
                    "allowed_new_prefixes", "centers", "center_tolerance", "preserve_centers",
                    "exact_asset_counts", "sharing_groups", "allowed_deleted_ids", "allowed_new_lights",
-                   "allowed_scene_fields"}
+                   "allowed_scene_fields", "allowed_modifier_settings", "allowed_material_node_fields"}
 OBJECT_FIELDS = {"name", "type", "asset_id", "matrix_world", "parent", "collections", "visibility",
                  "material_ids", "vertices", "triangles", "geometry_hash", "uv_hash", "uv_layers",
                  "bounds", "dimensions", "light", "camera", "source_mesh_hash", "source_uv_hash",
@@ -51,6 +51,22 @@ def validate_contract(contract):
     scene_fields = contract.get("allowed_scene_fields", [])
     if not isinstance(scene_fields, list) or any(not isinstance(f, str) or not f for f in scene_fields) or len(set(scene_fields)) != len(scene_fields):
         raise ValueError("allowed_scene_fields requires distinct scene field names")
+    modifiers = contract.get("allowed_modifier_settings", {})
+    if not isinstance(modifiers, dict):
+        raise ValueError("allowed_modifier_settings must be a mapping")
+    _prefixes(list(modifiers), "allowed_modifier_settings")
+    for named in modifiers.values():
+        if not isinstance(named, dict) or not named or any(
+                not isinstance(name, str) or not name or not isinstance(keys, list) or not keys
+                or any(not isinstance(k, str) or not k or k == "name" for k in keys) for name, keys in named.items()):
+            raise ValueError("allowed_modifier_settings maps modifier names to setting names")
+    node_fields = contract.get("allowed_material_node_fields", {})
+    if not isinstance(node_fields, dict) or any(
+            not isinstance(mid, str) or not isinstance(nodes, dict) or not nodes or any(
+                not isinstance(node, str) or not isinstance(values, dict) or not values
+                or any(f in ("name", "type", "inputs") or not isinstance(f, str) for f in values) for node, values in nodes.items())
+            for mid, nodes in node_fields.items()):
+        raise ValueError("allowed_material_node_fields maps materials to nodes to field values; inputs use allowed_material_inputs")
     _prefixes(contract.get("preserve_centers", []), "preserve_centers")
     tolerance = contract.get("center_tolerance", .001)
     if isinstance(tolerance, bool) or not isinstance(tolerance, (int, float)) or not math.isfinite(tolerance) or tolerance < 0:
@@ -91,6 +107,20 @@ def _center(record):
     return [(bounds[0][i] + bounds[1][i]) / 2 for i in range(3)]
 
 
+def _modifiers_within(old, new, permitted):
+    """Same stack, same order and names; only the permitted settings of named modifiers differ."""
+    if not isinstance(old, list) or not isinstance(new, list) or len(old) != len(new):
+        return False
+    for a, b in zip(old, new):
+        if a.get("type") != b.get("type") or a.get("settings", {}).get("name") != b.get("settings", {}).get("name"):
+            return False
+        allowed = permitted.get(a.get("settings", {}).get("name"), set())
+        keys = set(a.get("settings", {})) | set(b.get("settings", {}))
+        if any(a["settings"].get(k) != b["settings"].get(k) for k in keys - allowed):
+            return False
+    return True
+
+
 def evaluate_stage(before, after, contract):
     """Check required results and exact preservation outside concrete permissions.
 
@@ -128,6 +158,16 @@ def evaluate_stage(before, after, contract):
             fields.update(("uv_hash", "evaluated_uv_values"))
             if any(old.get(k) != new.get(k) for k in ("uv_hash", "evaluated_uv_values")):
                 uv_noise.append(iid)
+        permitted = {}
+        for prefix, named in contract.get("allowed_modifier_settings", {}).items():
+            if iid.startswith(prefix):
+                for name, keys in named.items():
+                    permitted.setdefault(name, set()).update(keys)
+        if permitted and iid in after["objects"] and old.get("modifier_settings") != new.get("modifier_settings"):
+            if _modifiers_within(old.get("modifier_settings"), new.get("modifier_settings"), permitted):
+                fields.add("modifier_settings")
+            else:
+                failures.append(f"Modifier settings differ beyond the permitted settings: {iid}")
         allow["objects"][iid] = sorted(fields)
         if iid in deleted:
             allow['objects'][iid].append('deleted')
@@ -138,13 +178,21 @@ def evaluate_stage(before, after, contract):
             allow["objects"][iid] = ["created"]
     for mid in after["materials"].keys() - before["materials"].keys():
         allow["materials"][mid] = ["created"]
-    for mid, node_inputs in contract.get("allowed_material_inputs", {}).items():
+    node_fields = contract.get("allowed_material_node_fields", {})
+    for mid in sorted(set(contract.get("allowed_material_inputs", {})) | set(node_fields)):
+        node_inputs = contract.get("allowed_material_inputs", {}).get(mid, {})
         expected = copy.deepcopy(before["materials"].get(mid))
         if expected is None:
             failures.append(f"Material input target missing before stage: {mid}")
             continue
         graph = expected.get("graph") or {}
         nodes = {node["name"]: node for node in graph.get("nodes", [])}
+        for name, values in node_fields.get(mid, {}).items():
+            node = nodes.get(name)
+            if node is None or any(field not in node for field in values):
+                failures.append(f"Material node field target missing: {mid}/{name}")
+            else:
+                node.update(copy.deepcopy(values))
         for name, inputs in node_inputs.items():
             node = nodes.get(name, {})
             for socket, value in inputs.items():

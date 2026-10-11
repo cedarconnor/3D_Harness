@@ -16,9 +16,9 @@ Earlier plans are archived verbatim in [archive/plans](archive/plans/). The Octo
 
 | | |
 |---|---|
-| Version | 0.16.0 on `main` |
-| Active | None; P11 finished |
-| Next | P5 skill regressions, P13 native coverage |
+| Version | 0.17.0 on `main` |
+| Active | P13, native UV overlap and texel density |
+| Next | P13's observer fields; then the X items wait on the gate |
 | Waiting on the user | E1–E3 artist review session; E4 decision on the realistic comparison; E5 artist repair time |
 | Investment gate | Open |
 
@@ -60,11 +60,11 @@ Ranked by expected effect on the gate. Each ships as its own version.
 | P2 | Relationship checks with evidence reliability and repair history ([plan](archive/plans/P2_RELATIONSHIP_CHECKS.md)) | Agent | done | Shipped in 0.9.0: `supported_by` qualified natively against hand-computed scenes. A fresh agent with a history of failed whole-bench moves avoided them and fixed the bench per leg on the first attempt; a control without history did the same from the measured `CONFLICT`, so the history's own effect is not isolated ([report](archive/releases/RELATIONS_0_9_0_RESULTS.md)) |
 | P3 | Collection instances and linked libraries ([plan](archive/plans/P3_COLLECTION_INSTANCES.md)) | Agent | done | Shipped in 0.10.0: local, linked and nested collection instances observe `READY` and `start`; moves, protected moves, library swaps and an in-place library edit behave as contracted; D5 settled ([report](archive/releases/INSTANCES_0_10_0_RESULTS.md)) |
 | P4 | Before/after review page over immutable checkpoints, with owner questions and a camera sheet ([plan](archive/plans/P4_REVIEW_PAGE.md)) | Agent | done | Shipped in 0.11.0: `review-page` and `review-import`. Native page on the comparison project with bound renders, changes by stable ID, linked notes and a reopened checkpoint; a pinned note and a stage approval with one changed answer round-tripped through the browser and import ([report](archive/releases/REVIEW_PAGE_0_11_0_RESULTS.md)) |
-| P5 | Skill behavior regressions | Agent | todo | Sealed packets for six known failure situations, graded on actions and artifacts |
+| P5 | Skill behavior regressions | Agent | done | Done October 11 ([results](studies/P5_SKILL_REGRESSIONS.md)): six sealed packets (lost acknowledgement, stale image, shared material, missing view definition, artist-saved revision, conflicting late request) passed on 0.16.0, graded on actions and artifacts by `scripts/p5_grade.py`. One run each; rerun after skill or guide changes |
 | P6 | Evidence and coverage depth ([plan](archive/plans/P6_COVERAGE.md)) | Agent | done | First part shipped in 0.15.0: `allowed_new_lights`, `allowed_scene_fields`, dependency-aware rechecks with a `validity_reason`, and deliberate `removed_targets`. Natively, a lamp and world edit was refused, then published with permissions, while a verified leg note stayed current until the leg moved ([report](archive/releases/COVERAGE_0_15_0_RESULTS.md)). UV overlap, texel density and modifier/node fields moved to P13 |
 | P7 | Revision dependency relocation ([plan](archive/plans/P7_RELOCATION.md)) | Agent | done | Textures done in 0.16.0: `preview-revision --blender` packs unpacked textures into an owned copy, proven equivalent to the candidate, judged with packing as storage, and published self-contained ([report](archive/releases/RELOCATION_0_16_0_RESULTS.md)). Linked libraries stay refused, since packing changes their collections' asset identity |
 | P8 | GLB delivery receipt ([plan](archive/plans/P8_GLB_DELIVERY.md)) | Agent | done | Shipped in 0.14.0: `deliver-glb` exports, reimports into an empty scene in a second process and compares by stable ID, with a receipt bound to the checkpoint. Natively, a moved copy failed with `BOUNDS`, a truncated GLB failed to import, and the production garden's 1,285 meshes matched ([report](archive/releases/DELIVERY_0_14_0_RESULTS.md)) |
-| P13 | Native UV overlap, texel density and fine-grained modifier and node permissions (moved from P6) | Agent | todo | Observer fields with native positive and negative fixtures; contracts can permit one modifier setting or node field without the whole stack or graph |
+| P13 | Native UV overlap, texel density and fine-grained modifier and node permissions (moved from P6) | Agent | active | Permissions done in 0.17.0: `allowed_modifier_settings` and `allowed_material_node_fields`, qualified natively ([report](archive/releases/MODIFIERS_0_17_0_RESULTS.md)). UV overlap and texel density remain: they need new observer fields and an observation version so earlier checkpoints are not read as changed |
 
 ### R: Repository
 
@@ -217,6 +217,8 @@ Capture fixed views at blockout, surface and lighting completion, pre-revision a
 
 Newest first. One line per status change.
 
+- **2026-10-11:** P13 started; its contract permissions shipped in 0.17.0.
+- **2026-10-11:** P5 done: six sealed regression packets passed on actions and artifacts; the builder and grader are in `scripts/`.
 - **2026-10-11:** P7 done for textures in 0.16.0; linked libraries remain refused with the reason.
 - **2026-10-11:** P6 first part done in 0.15.0; the native remainder moves to the new item P13.
 - **2026-10-11:** P8 done. Version 0.14.0 ships `deliver-glb`, built ahead of a required export at the user's request to push through the plan.

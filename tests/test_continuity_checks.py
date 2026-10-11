@@ -128,6 +128,46 @@ class ContinuityCheckTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             evaluate_stage(before, resign(after), c)
 
+    def test_contract_can_permit_named_settings_of_one_modifier(self):
+        before = observation()
+        before["objects"]["ext.table.top"]["modifier_settings"] = [
+            {"type": "BEVEL", "settings": {"name": "Edge", "segments": 2, "width": 0.01}},
+            {"type": "WEIGHTED_NORMAL", "settings": {"name": "Normals", "weight": 50}}]
+        resign(before)
+        after = copy.deepcopy(before)
+        after["objects"]["ext.table.top"]["modifier_settings"][0]["settings"]["segments"] = 3
+        resign(after)
+        self.assertFalse(evaluate_stage(before, after, contract())["passed"])
+        c = contract()
+        c["allowed_modifier_settings"] = {"ext.table.": {"Edge": ["segments"]}}
+        self.assertTrue(evaluate_stage(before, after, c)["passed"])
+        for change in (lambda m: m[0]["settings"].update(width=0.02), lambda m: m[1]["settings"].update(weight=60),
+                       lambda m: m.append({"type": "SOLIDIFY", "settings": {"name": "Thick"}}), lambda m: m.reverse()):
+            changed = copy.deepcopy(after)
+            change(changed["objects"]["ext.table.top"]["modifier_settings"])
+            with self.subTest(change=change):
+                self.assertFalse(evaluate_stage(before, resign(changed), c)["passed"])
+        c["allowed_modifier_settings"] = {"ext.table.": {"Edge": []}}
+        with self.assertRaises(ValueError):
+            evaluate_stage(before, after, c)
+
+    def test_contract_can_set_named_material_node_fields(self):
+        before = observation()
+        before["materials"]["stone"]["graph"]["nodes"].append({"name": "Grain", "type": "ShaderNodeTexImage", "inputs": {}, "interpolation": "Linear"})
+        resign(before)
+        after = copy.deepcopy(before)
+        after["materials"]["stone"]["graph"]["nodes"][-1]["interpolation"] = "Closest"
+        resign(after)
+        self.assertFalse(evaluate_stage(before, after, contract())["passed"])
+        c = contract()
+        c["allowed_material_node_fields"] = {"stone": {"Grain": {"interpolation": "Closest"}}}
+        self.assertTrue(evaluate_stage(before, after, c)["passed"])
+        c["allowed_material_node_fields"] = {"stone": {"Grain": {"interpolation": "Cubic"}}}
+        self.assertFalse(evaluate_stage(before, after, c)["passed"])
+        c["allowed_material_node_fields"] = {"stone": {"Grain": {"inputs": {}}}}
+        with self.assertRaises(ValueError):
+            evaluate_stage(before, after, c)
+
     def test_late_stage_creation_prefixes_reject_unrelated_geometry(self):
         before = observation()
         after = copy.deepcopy(before)

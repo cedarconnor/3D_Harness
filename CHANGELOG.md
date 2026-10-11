@@ -2,6 +2,14 @@
 
 Each version is a bounded increment with its own qualification report. Test counts are portable-suite results on Windows; the two skips in each count are host symlink-permission cases. Native qualification uses Blender 5.1.1 on Windows. Studies are listed with the versions they exercised. The [build plan](docs/BUILD_PLAN.md) explains what remains open, and reports that link into `runs/` refer to local evidence excluded from Git.
 
+## 0.17.0 — October 11, 2026
+
+Fine-grained modifier and node permissions, the first part of build-plan item P13.
+
+- **Added:** `allowed_modifier_settings` permits named settings of a named modifier on matching objects. The stack, its order, types and names must stay the same, and the geometry the change produces still needs its own fields.
+- **Added:** `allowed_material_node_fields` sets exact desired values for named node fields such as `blend_type`, beside `allowed_material_inputs`.
+- **Qualification:** 408 tests from source and from the installed wheel. Native bevel-segment change published and bevel-width change refused; Mix blend change published at the desired value and refused at another. [Report](docs/archive/releases/MODIFIERS_0_17_0_RESULTS.md)
+
 ## 0.16.0 — October 11, 2026
 
 Revision relocation for textures, build-plan item P7 ([plan](docs/archive/plans/P7_RELOCATION.md)).

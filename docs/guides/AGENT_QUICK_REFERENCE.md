@@ -1,6 +1,6 @@
 # Agent quick reference
 
-Version 0.15.0. The exact command sequences for the most common work, for an agent continuing a 3D Harness project. Every command below is checked against the real parser by `tests/test_quick_reference.py`. Values in `<angle brackets>` and capitalized placeholders such as `PARENT_ID` are yours to fill; quote every path.
+Version 0.17.0. The exact command sequences for the most common work, for an agent continuing a 3D Harness project. Every command below is checked against the real parser by `tests/test_quick_reference.py`. Values in `<angle brackets>` and capitalized placeholders such as `PARENT_ID` are yours to fill; quote every path.
 
 ## 1. Orient
 
@@ -52,7 +52,7 @@ A contract names everything that must hold afterwards and permits only the inten
 }
 ```
 
-List every object that must survive under `required`; `resume PROJECT --focus ID` shows an object's measured fields. New objects need an `ext.` prefix in `allowed_new_prefixes`. Grant per-object fields with `allowed_object_prefixes`, such as `{"ext.bench.": ["matrix_world", "bounds", "dimensions"]}`, never the whole scene. A new light also needs `allowed_new_lights` (for example `["ext.lamp."]`), and a world or other scene-setting change needs `allowed_scene_fields` (for example `["world"]`). Deleting an object needs its exact ID in `allowed_deleted_ids`.
+List every object that must survive under `required`; `resume PROJECT --focus ID` shows an object's measured fields. New objects need an `ext.` prefix in `allowed_new_prefixes`. Grant per-object fields with `allowed_object_prefixes`, such as `{"ext.bench.": ["matrix_world", "bounds", "dimensions"]}`, never the whole scene. A new light also needs `allowed_new_lights` (for example `["ext.lamp."]`), and a world or other scene-setting change needs `allowed_scene_fields` (for example `["world"]`). Deleting an object needs its exact ID in `allowed_deleted_ids`. To change one modifier setting, name it in `allowed_modifier_settings` (for example `{"bench.top": {"Edge": ["segments"]}}`) and grant the geometry fields it changes; to set a node field, use `allowed_material_node_fields` (for example `{"timber": {"Tint": {"blend_type": "MULTIPLY"}}}`).
 
 ## 3. Render review views
 
