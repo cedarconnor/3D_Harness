@@ -14,6 +14,7 @@ Scripts marked *launcher* run under system Python and start Blender themselves, 
 
 | Version | Scripts | Mode | Runs from a clone |
 |---|---|---|---|
+| Skills, after 0.18.0 | `qualify_blender_skills.py` with `blender_skills_native.py`: every `python verify` block in the 25 `blender-*` skills, one background Blender per skill; `--only NAME...` limits the run. Passed on 5.1.1 and 5.2.1 | launcher | Yes: every block builds its own scene |
 | 0.18.0 | `qualify_uv_report.py`: seven planes with exactly known UVs (density, overlap, outside, no UV, small-triangle path) and the production garden's timing. The earlier twelve rerun | launcher | Yes: builds its scene; the production timing needs the local garden |
 | 0.17.0 | `qualify_modifiers.py`: a bevel-segment change published and a bevel-width change refused under `allowed_modifier_settings`; a Mix blend change published at the desired value and refused at another. The earlier eleven rerun. Also `p5_build_packets.py` and `p5_grade.py`, the P5 skill regression suite | launcher | Yes: builds its scenes |
 | 0.16.0 | `qualify_relocation.py`: a panel reading an external PNG; an artist candidate changing only roughness is refused without `--blender`, packed and accepted with it, still `READY` after the PNG is moved, and a changed PNG is refused. The 0.4.10 `qualify_revisions.py` and the earlier nine rerun | launcher | Yes: builds its scene |

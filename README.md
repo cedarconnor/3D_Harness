@@ -132,8 +132,9 @@ For an artist edit made outside a reservation, use [external revision review](do
 | [`dcc-environment-assembly`](.agents/skills/dcc-environment-assembly/SKILL.md) | Ground support, planting, circulation, boundaries, and purposeful detail |
 | [`dcc-lighting-review`](.agents/skills/dcc-lighting-review/SKILL.md) | Lighting intent, camera framing, and controlled comparisons |
 | [`dcc-blind-test`](.agents/skills/dcc-blind-test/SKILL.md) | Coordinate explicitly requested independent comparisons |
+| [`blender-craft`](.agents/skills/blender-craft/SKILL.md) | Index of 25 general Blender craft skills: modeling, sculpting, CAD, Geometry Nodes, UVs, shading, baking, lighting, camera, rendering, compositing, animation, motion design, Grease Pencil, rigging, skinning, mocap, hair, simulation, matchmove, realtime export and pipeline |
 
-Read [craft capabilities and recipe boundaries](docs/guides/CRAFT_SKILLS.md) before treating a skill as a general-purpose geometry or artistic-quality validator.
+Read [craft capabilities and recipe boundaries](docs/guides/CRAFT_SKILLS.md) before treating a skill as a general-purpose geometry or artistic-quality validator. The `blender-*` skills each carry code that `scripts/qualify_blender_skills.py` runs in Blender; they passed on 5.1.1 and 5.2.1 ([library guide](docs/guides/BLENDER_SKILL_LIBRARY.md)). That proves their methods work, not that following them produces good-looking results.
 
 ## Validation and current limits
 
@@ -160,7 +161,7 @@ Current boundaries:
 - Hashes bind evidence to files; they do not authenticate producer truthfulness or establish artistic quality.
 - Agent reviews are caller-attributed. Since 0.12.0 an artist's approval needs the artist's own terminal, and agent sessions are refused. This guards against an agent approving its own work through the commands; an agent with an unrestricted shell on the same account could still get around it ([owner approval](docs/guides/OWNER_APPROVAL.md)).
 - Learned checks cover object fields and supported-by relations only. A project keeps the library version it was bound with, and repeats are counted by hand ([learned checks](docs/guides/LEARNED_CHECKS.md)).
-- Animation, motion graphics, broader design-taste skills, and client installers remain future work.
+- Animation and motion design have craft skills, but the harness does not yet observe or check animation over time. Design taste stays the artist's call, and client installers remain future work.
 
 ## Development and tests
 

@@ -2,6 +2,14 @@
 
 Each version is a bounded increment with its own qualification report. Test counts are portable-suite results on Windows; the two skips in each count are host symlink-permission cases. Native qualification uses Blender 5.1.1 on Windows. Studies are listed with the versions they exercised. The [build plan](docs/BUILD_PLAN.md) explains what remains open, and reports that link into `runs/` refer to local evidence excluded from Git.
 
+## Skill library — October 11, 2026
+
+Not a runtime release: skills ship with the repository, not the wheel.
+
+- **Added:** 25 `blender-*` craft skills and the `blender-craft` index, covering modeling, sculpting and retopology, precision CAD, Geometry Nodes, UVs, shading, baking, lighting, camera, rendering, compositing, animation, motion design, Grease Pencil, rigging, skinning, mocap, hair, simulation, matchmove, realtime assets, pipeline and visual design. `dcc-harness` routes to the index.
+- **Added:** `scripts/qualify_blender_skills.py` runs every skill's `python verify` block in background Blender, and `tests/test_blender_skills.py` checks coverage, the index, frontmatter, links and the blocks.
+- **Qualification:** all 25 blocks passed on Blender 5.1.1 and 5.2.1. Running them corrected thirteen claims, including the bake image-node rule, `transform_apply` defaults, IK pole angles and the 5.2 Geometry Nodes input API. [Guide](docs/guides/BLENDER_SKILL_LIBRARY.md)
+
 ## 0.18.0 — October 11, 2026
 
 UV report, completing build-plan item P13.

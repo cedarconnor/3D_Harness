@@ -34,6 +34,7 @@ Archived documents stay as written. They remain the evidence for the claims in t
 | [Quality loop](guides/QUALITY_LOOP_USAGE.md) | Reference-led rounds, reserved-space preflight and visibility probes | 0.2.0 |
 | [Observation storage](guides/OBSERVATION_STORAGE.md) | Compact, lossless observation files | 0.4.6 |
 | [Observation performance](guides/OBSERVATION_PERFORMANCE.md) | Within-call reuse and its limits | 0.4.8 |
+| [Blender skill library](guides/BLENDER_SKILL_LIBRARY.md) | The 25 `blender-*` craft skills: areas, sources, verification on Blender 5.1 and 5.2, corrections found by running them, and limits | After 0.18.0 |
 | [Craft skills](guides/CRAFT_SKILLS.md) | What the architecture, materials, assembly and lighting skills support, and what they do not | 0.4.0 |
 
 ## Recipes

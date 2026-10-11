@@ -65,6 +65,7 @@ Ranked by expected effect on the gate. Each ships as its own version.
 | P7 | Revision dependency relocation ([plan](archive/plans/P7_RELOCATION.md)) | Agent | done | Textures done in 0.16.0: `preview-revision --blender` packs unpacked textures into an owned copy, proven equivalent to the candidate, judged with packing as storage, and published self-contained ([report](archive/releases/RELOCATION_0_16_0_RESULTS.md)). Linked libraries stay refused, since packing changes their collections' asset identity |
 | P8 | GLB delivery receipt ([plan](archive/plans/P8_GLB_DELIVERY.md)) | Agent | done | Shipped in 0.14.0: `deliver-glb` exports, reimports into an empty scene in a second process and compares by stable ID, with a receipt bound to the checkpoint. Natively, a moved copy failed with `BOUNDS`, a truncated GLB failed to import, and the production garden's 1,285 meshes matched ([report](archive/releases/DELIVERY_0_14_0_RESULTS.md)) |
 | P13 | Native UV overlap, texel density and fine-grained modifier and node permissions (moved from P6) | Agent | done | Permissions in 0.17.0 ([report](archive/releases/MODIFIERS_0_17_0_RESULTS.md)); UV overlap and texel density in 0.18.0 as the separate `uv-report` measurement rather than observer fields, so earlier checkpoints are unaffected ([report](archive/releases/UV_0_18_0_RESULTS.md)) |
+| P14 | Blender craft skill library across modeling, surfaces, look, motion, characters, effects and delivery, requested by the owner ([guide](guides/BLENDER_SKILL_LIBRARY.md)) | Agent | done | Done October 11: 25 `blender-*` skills and a `blender-craft` index, synthesized from 30 supplied sources and the Blender docs. Every skill's `python verify` block passed on Blender 5.1.1 and 5.2.1 through `scripts/qualify_blender_skills.py`; running them corrected thirteen claims. Craft quality and fresh-agent use are not yet measured, and P5 should be rerun because `dcc-harness` now links the index |
 
 ### R: Repository
 
@@ -217,6 +218,7 @@ Capture fixed views at blockout, surface and lighting completion, pre-revision a
 
 Newest first. One line per status change.
 
+- **2026-10-11:** P14 done: the Blender craft skill library, 25 skills with code verified on Blender 5.1.1 and 5.2.1. Added at the owner's request; not a runtime release.
 - **2026-10-11:** P13 done. Version 0.18.0 ships `uv-report` for texel density, UV overlap and UVs outside the unit square.
 - **2026-10-11:** P13 started; its contract permissions shipped in 0.17.0.
 - **2026-10-11:** P5 done: six sealed regression packets passed on actions and artifacts; the builder and grader are in `scripts/`.
