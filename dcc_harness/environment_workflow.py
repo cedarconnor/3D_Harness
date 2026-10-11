@@ -330,6 +330,7 @@ def summary(events, native):
     bound = feedback.binding(events)
     rows = [{'id': nid, 'stage_id': n['note']['stage_id'], 'text': n['note']['text'],
              'priority': n['note']['priority'], 'status': n['status'], 'current_validity': n['current_validity'],
+             'validity_reason': n['validity_reason'],
              'response_id': n['response_id'], 'missing_targets': n['missing_targets'], 'event_id': n['event_id']}
             for nid, n in notes.items()]
     return {'revision': events[-1]['id'], 'workflow': None if bound is None else {

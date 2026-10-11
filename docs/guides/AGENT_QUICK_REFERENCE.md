@@ -1,6 +1,6 @@
 # Agent quick reference
 
-Version 0.13.0. The exact command sequences for the most common work, for an agent continuing a 3D Harness project. Every command below is checked against the real parser by `tests/test_quick_reference.py`. Values in `<angle brackets>` and capitalized placeholders such as `PARENT_ID` are yours to fill; quote every path.
+Version 0.15.0. The exact command sequences for the most common work, for an agent continuing a 3D Harness project. Every command below is checked against the real parser by `tests/test_quick_reference.py`. Values in `<angle brackets>` and capitalized placeholders such as `PARENT_ID` are yours to fill; quote every path.
 
 ## 1. Orient
 
@@ -52,7 +52,7 @@ A contract names everything that must hold afterwards and permits only the inten
 }
 ```
 
-List every object that must survive under `required`; `resume PROJECT --focus ID` shows an object's measured fields. New objects need an `ext.` prefix in `allowed_new_prefixes`. Grant per-object fields with `allowed_object_prefixes`, such as `{"ext.bench.": ["matrix_world", "bounds", "dimensions"]}`, never the whole scene.
+List every object that must survive under `required`; `resume PROJECT --focus ID` shows an object's measured fields. New objects need an `ext.` prefix in `allowed_new_prefixes`. Grant per-object fields with `allowed_object_prefixes`, such as `{"ext.bench.": ["matrix_world", "bounds", "dimensions"]}`, never the whole scene. A new light also needs `allowed_new_lights` (for example `["ext.lamp."]`), and a world or other scene-setting change needs `allowed_scene_fields` (for example `["world"]`). Deleting an object needs its exact ID in `allowed_deleted_ids`.
 
 ## 3. Render review views
 
@@ -147,7 +147,7 @@ python -m dcc_harness fill-hashes "<work>/response.draft.json" "<work>/response.
 python -m dcc_harness feedback-respond "<project>" --response "<work>/response.json" --expected-revision REVISION --request-id REQUEST_UUID
 ```
 
-`result` is the current checkpoint, from `brief`. Paths are relative to the response file's folder. Say exactly what changed, never "addressed". Don't verify your own response; a separate reviewer does, with `feedback-verify`.
+`result` is the current checkpoint, from `brief`. Paths are relative to the response file's folder. If the change deletes one of the note's objects, list it in `removed_targets` and cite the contract that permits the deletion; never hide an object to keep a note verifiable. Say exactly what changed, never "addressed". Don't verify your own response; a separate reviewer does, with `feedback-verify`.
 
 ## 7. Submit a stage
 

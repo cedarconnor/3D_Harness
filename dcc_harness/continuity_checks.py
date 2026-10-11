@@ -10,7 +10,8 @@ from .uv_guard import evaluated_uv_noise_only, UV_NOISE_TOLERANCE, UV_ADJACENT_M
 SCHEMA = "dcc.continuity.contract.v1"
 CONTRACT_FIELDS = {"schema", "spec", "allowed_object_prefixes", "allowed_material_inputs",
                    "allowed_new_prefixes", "centers", "center_tolerance", "preserve_centers",
-                   "exact_asset_counts", "sharing_groups", "allowed_deleted_ids"}
+                   "exact_asset_counts", "sharing_groups", "allowed_deleted_ids", "allowed_new_lights",
+                   "allowed_scene_fields"}
 OBJECT_FIELDS = {"name", "type", "asset_id", "matrix_world", "parent", "collections", "visibility",
                  "material_ids", "vertices", "triangles", "geometry_hash", "uv_hash", "uv_layers",
                  "bounds", "dimensions", "light", "camera", "source_mesh_hash", "source_uv_hash",
@@ -43,6 +44,13 @@ def validate_contract(contract):
     _prefixes(new, "allowed_new_prefixes")
     if any(not p.startswith("ext.") for p in new):
         raise ValueError("New object prefixes must be scoped beneath ext.")
+    lights = contract.get("allowed_new_lights", [])
+    _prefixes(lights, "allowed_new_lights")
+    if any(not p.startswith("ext.") for p in lights):
+        raise ValueError("New light prefixes must be scoped beneath ext.")
+    scene_fields = contract.get("allowed_scene_fields", [])
+    if not isinstance(scene_fields, list) or any(not isinstance(f, str) or not f for f in scene_fields) or len(set(scene_fields)) != len(scene_fields):
+        raise ValueError("allowed_scene_fields requires distinct scene field names")
     _prefixes(contract.get("preserve_centers", []), "preserve_centers")
     tolerance = contract.get("center_tolerance", .001)
     if isinstance(tolerance, bool) or not isinstance(tolerance, (int, float)) or not math.isfinite(tolerance) or tolerance < 0:
@@ -105,7 +113,7 @@ def evaluate_stage(before, after, contract):
             if obj.get("type") == "MESH" and any(field not in obj for field in (
                     "source_mesh_hash", "source_uv_hash", "modifier_settings", "evaluated_uv_values", "mesh_datablock")):
                 failures.append(f"{label} mesh coverage missing: {iid}")
-    allow = {"objects": {}, "materials": {}}
+    allow = {"objects": {}, "materials": {}, "scene": list(contract.get("allowed_scene_fields", []))}
     deleted = contract.get('allowed_deleted_ids', [])
     if any(i not in before['objects'] for i in deleted):
         failures.append('Deletion scope names objects missing from the before observation')
@@ -124,7 +132,7 @@ def evaluate_stage(before, after, contract):
         if iid in deleted:
             allow['objects'][iid].append('deleted')
     for iid in after["objects"].keys() - before["objects"].keys():
-        if after["objects"][iid].get("type") == "LIGHT":
+        if after["objects"][iid].get("type") == "LIGHT" and not any(iid.startswith(p) for p in contract.get("allowed_new_lights", [])):
             failures.append(f"New light is outside the fixed illumination contract: {iid}")
         if any(iid.startswith(p) for p in contract.get("allowed_new_prefixes", ["ext."])):
             allow["objects"][iid] = ["created"]

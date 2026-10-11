@@ -50,13 +50,49 @@ def state(events, native):
                     note.update(status='reopened', verified_checkpoint=None, response_id=None)
     active = native['active']
     obs = read_json(active['observation'])
+    observations = {active['id']: obs}
     for note in notes.values():
         anchor = note['note']['anchor']
         note['missing_targets'] = [i for i in anchor.get('instance_ids', []) if i not in obs['objects']]
         note['missing_targets'] += [i for i in anchor.get('material_ids', []) if i not in obs['materials']]
         closed = note['status'] in ('resolved', 'deferred', 'not_applicable')
-        note['current_validity'] = ('current' if note['verified_checkpoint'] == active['id'] else 'needs_recheck') if closed else 'unresolved'
+        note['current_validity'], note['validity_reason'] = (
+            _validity(note, native, observations) if closed else ('unresolved', None))
     return notes
+
+
+def _targets(note, observation):
+    """What a technical note depends on: its objects and their materials, plus its named materials."""
+    anchor = note['note']['anchor']
+    objects = {i: observation['objects'].get(i) for i in anchor.get('instance_ids', [])}
+    materials = set(anchor.get('material_ids', []))
+    for record in objects.values():
+        materials.update((record or {}).get('material_ids', []))
+    return {'objects': objects, 'materials': {m: observation['materials'].get(m) for m in sorted(materials)}}
+
+
+def _validity(note, native, observations):
+    """Current at the closing checkpoint; afterwards only if nothing it depends on changed (P6).
+
+    Visual notes depend on everything an image could show, so any observed change needs a recheck.
+    Technical notes depend on their anchored objects and materials only.
+    """
+    verified = note['verified_checkpoint']
+    if verified == native['active']['id']:
+        return 'current', 'closed at the active checkpoint'
+    entry = next((e for e in native['task_history'] if e['id'] == verified), None)
+    if entry is None:
+        return 'needs_recheck', 'the closing checkpoint is not in the history'
+    if verified not in observations:
+        observations[verified] = read_json(entry['observation'])
+    before, after = observations[verified], observations[native['active']['id']]
+    if before['revision'] == after['revision']:
+        return 'current', 'nothing observed changed since it was closed'
+    anchor = note['note']['anchor']
+    technical = note['note'].get('requires', ['technical'] if note['note']['category'] == 'technical' else ['visual']) == ['technical']
+    if technical and (anchor.get('instance_ids') or anchor.get('material_ids')) and _targets(note, before) == _targets(note, after):
+        return 'current', 'targets unchanged since verification'
+    return 'needs_recheck', 'observed changes since it was closed may affect it'
 
 
 def unresolved(events, native, stage=None):
@@ -113,15 +149,31 @@ def _add(ctx, value):
 
 
 def _respond(ctx, value):
-    c.fields(value, {'schema', 'note_id', 'author', 'disposition', 'change', 'result', 'evidence'})
+    c.fields(value, {'schema', 'note_id', 'author', 'disposition', 'change', 'result', 'evidence'}, {'removed_targets'})
     if value['schema'] != 'dcc.feedback.response.v1' or value['disposition'] not in ('implemented', 'partial', 'deferred', 'not_applicable'):
         raise ValueError('Unsupported feedback response')
-    _note(ctx, value['note_id']); c.text(value['author']); c.text(value['change'])
-    ctx.checkpoint(value['result'], current=True)
+    note = _note(ctx, value['note_id']); c.text(value['author']); c.text(value['change'])
+    result = ctx.checkpoint(value['result'], current=True)
     if value['disposition'] in ('implemented', 'partial') and not value['evidence']:
         raise ValueError('Implementation requires evidence')
     reports = evidence.validate(ctx, value['evidence'], value['result'])
+    if 'removed_targets' in value:
+        _removed(ctx, note, value, read_json(result['observation']))
     return {'note_id': value['note_id'], 'response': value, 'reports': reports}
+
+
+def _removed(ctx, note, value, observed):
+    """A deliberate removal: the note's own objects, gone at the result, deleted under a cited contract."""
+    removed = value['removed_targets']
+    if not isinstance(removed, list) or not removed or len(set(removed)) != len(removed):
+        raise ValueError('removed_targets must list distinct object IDs')
+    for iid in removed:
+        if iid not in note['note']['anchor'].get('instance_ids', []) or iid in observed['objects']:
+            raise ValueError(f"A removed target must be one of the note's objects and absent at the result: {iid}")
+        permitted = any(item.get('kind') == 'native_contract' and iid in read_json(ctx.artifact(item['contract'])).get('allowed_deleted_ids', [])
+                        for item in value['evidence'])
+        if not permitted:
+            raise ValueError(f'No contract in the evidence permits its deletion: {iid}')
 
 
 def _verify(ctx, value):
@@ -129,12 +181,13 @@ def _verify(ctx, value):
     if value['schema'] != 'dcc.feedback.verification.v1' or value['verdict'] not in ('pass', 'fail', 'uncertain'):
         raise ValueError('Unsupported feedback verification')
     note = _note(ctx, value['note_id'])
-    if note['missing_targets']:
-        raise ValueError('Feedback targets are missing; record an explicit disposition before closure')
     if note['response_id'] != value['response_id']:
         raise ValueError('Stale feedback response')
     event = next(e for e in ctx.events if e['id'] == value['response_id'])
     response = event['result']['response']
+    removed = set(response.get('removed_targets', []))
+    if set(note['missing_targets']) - removed:
+        raise ValueError('Feedback targets are missing; record an explicit disposition before closure')
     if response['disposition'] != 'implemented':
         raise ValueError('Partial or deferred work cannot be verified as resolved')
     ctx.checkpoint(response['result'], current=True)
@@ -151,7 +204,7 @@ def _verify(ctx, value):
         targets = {i for r in contracts for i in r['targets']}
         materials = {i for r in contracts for i in r['materials']}
         anchor = note['note']['anchor']
-        if not set(anchor.get('instance_ids', [])) <= targets or not set(anchor.get('material_ids', [])) <= materials:
+        if not set(anchor.get('instance_ids', [])) - removed <= targets or not set(anchor.get('material_ids', [])) <= materials:
             raise ValueError('Contract does not cover the feedback targets')
     if not isinstance(value['views'], list) or any(not isinstance(v, str) for v in value['views']):
         raise ValueError('Inspected views must be a list')

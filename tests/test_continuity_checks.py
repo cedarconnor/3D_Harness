@@ -100,6 +100,34 @@ class ContinuityCheckTests(unittest.TestCase):
         self.assertFalse(result["passed"])
         self.assertTrue(any("New light" in failure for failure in result["failures"]))
 
+    def test_contract_can_permit_a_named_new_light(self):
+        before = observation()
+        after = copy.deepcopy(before)
+        after["objects"]["ext.entry_lantern.light"] = {"name": "Lantern", "type": "LIGHT", "asset_id": None,
+                                                       "material_ids": [], "light": {"energy": 100}}
+        c = contract()
+        c["allowed_new_lights"] = ["ext.entry_lantern."]
+        self.assertTrue(evaluate_stage(before, resign(after), c)["passed"])
+        c["allowed_new_lights"] = ["ext.other."]
+        self.assertFalse(evaluate_stage(before, resign(after), c)["passed"])
+        c["allowed_new_lights"] = ["lantern."]
+        with self.assertRaisesRegex(ValueError, "beneath ext"):
+            evaluate_stage(before, resign(after), c)
+
+    def test_contract_can_permit_named_scene_fields(self):
+        before = observation()
+        after = copy.deepcopy(before)
+        after["scene"]["world"] = "evening"
+        self.assertFalse(evaluate_stage(before, resign(after), contract())["passed"])
+        c = contract()
+        c["allowed_scene_fields"] = ["world"]
+        self.assertTrue(evaluate_stage(before, resign(after), c)["passed"])
+        after["scene"]["render"] = {"samples": 64}
+        self.assertFalse(evaluate_stage(before, resign(after), c)["passed"])
+        c["allowed_scene_fields"] = [""]
+        with self.assertRaises(ValueError):
+            evaluate_stage(before, resign(after), c)
+
     def test_late_stage_creation_prefixes_reject_unrelated_geometry(self):
         before = observation()
         after = copy.deepcopy(before)

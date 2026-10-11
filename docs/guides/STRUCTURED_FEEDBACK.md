@@ -68,7 +68,7 @@ Verification schema `dcc.feedback.verification.v1` requires `note_id`, `response
 
 Use `feedback-decide --decision FILE` for `reopen`, `reassign`, `deferred` or `not_applicable`. Its schema is `dcc.feedback.decision.v1` with `note_id`, `action`, `reason`, `authority: {role, author, reference}`, and current `result`; reassignment also needs `stage_id`. Blocking deferral/non-applicability requires an artist decision, which since 0.12.0 comes only through the owner's terminal. Historical notes are never deleted or rewritten. Supersession is represented by a new note plus an explicit disposition of the old one, not an implicit replacement.
 
-A resolved note is current only at its verified checkpoint. After another native publication, it remains historically resolved but becomes `needs_recheck`. Repeat the response/verification against the new evidence. No field-dependency guessing or automatic carry-forward waiver is performed.
+A resolved note is current at its verified checkpoint. Since 0.15.0 it stays `current` after a later checkpoint in two cases. The first is when nothing observed changed. The second is for a technical note with targets whose anchored objects, their materials and its named materials are all unchanged. Otherwise, including any change for a visual note, it remains historically resolved but becomes `needs_recheck`; repeat the response and verification against the new evidence. Each note's `validity_reason` says which case applied. A response that deliberately deletes one of the note's objects lists it in `removed_targets`, citing a contract whose `allowed_deleted_ids` permits the deletion; verification then accepts it as missing.
 
 ## Artist authority
 

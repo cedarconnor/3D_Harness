@@ -6,7 +6,7 @@ import sys
 
 from coordination_helpers import Fixture
 from dcc_harness import workflow, coordination as c
-from dcc_harness.evidence import write_json, digest
+from dcc_harness.evidence import write_json, digest, file_hash
 
 
 class FeedbackTests(Fixture):
@@ -30,11 +30,97 @@ class FeedbackTests(Fixture):
         self.verify(nid, second)
         self.assertEqual(len(c.read(self.root)), 4)
 
-    def test_changed_checkpoint_requires_recheck(self):
+    def publish_table(self, low):
+        """Publish a checkpoint whose table rests at `low`, under a contract permitting that."""
+        contract = self.base / f'contract-{low}.json'
+        write_json(contract, {'schema': 'dcc.continuity.contract.v1', 'allowed_object_prefixes': {'ext.table.': ['bounds']},
+                              'spec': {'schema': 'dcc.spec.v1', 'required': {'ext.table.top': {'type': 'MESH'}}}})
+        active = workflow.resume(self.root)['active']
+        edit = workflow.begin_edit(self.root, active['id'], active['checkpoint'], active['observation'], self.script, contract, f'table-{low}')
+        native = self.base / f'table-{low}.blend'; native.write_bytes(f'synthetic table {low}'.encode())
+        obs = copy.deepcopy(self.obs); obs['checkpoint_sha256'] = file_hash(native)
+        obs['objects']['ext.table.top']['bounds'] = [[-1, -.5, low], [1, .5, low + 1]]
+        path = self.base / f'table-{low}.json'; self.save_observation(path, obs)
+        self.assertEqual(workflow.finish_edit(self.root, edit['edit'], native, path, self.handoff, {})['status'], 'PUBLISHED')
+
+    def publish_world(self, strength):
+        """Publish a checkpoint whose world strength differs, under a contract permitting the world."""
+        contract = self.base / f'contract-world-{strength}.json'
+        write_json(contract, {'schema': 'dcc.continuity.contract.v1', 'allowed_scene_fields': ['world'],
+                              'spec': {'schema': 'dcc.spec.v1', 'required': {'ext.table.top': {'type': 'MESH'}}}})
+        active = workflow.resume(self.root)['active']
+        edit = workflow.begin_edit(self.root, active['id'], active['checkpoint'], active['observation'], self.script, contract, f'world-{strength}')
+        native = self.base / f'world-{strength}.blend'; native.write_bytes(f'synthetic world {strength}'.encode())
+        obs = copy.deepcopy(self.obs); obs['checkpoint_sha256'] = file_hash(native)
+        obs['scene']['world']['nodes'][0]['inputs']['Strength'] = strength
+        path = self.base / f'world-{strength}.json'; self.save_observation(path, obs)
+        self.assertEqual(workflow.finish_edit(self.root, edit['edit'], native, path, self.handoff, {})['status'], 'PUBLISHED')
+
+    def note_state(self):
+        return workflow.resume(self.root)['coordination']['notes'][0]
+
+    def test_a_technical_note_stays_current_while_its_targets_are_unchanged(self):
         nid = self.add(); self.verify(nid, self.respond(nid))
+        self.publish_world(2)
+        self.assertEqual(self.note_state()['current_validity'], 'current')
+        self.assertEqual(self.note_state()['validity_reason'], 'targets unchanged since verification')
+
+    def test_a_changed_target_requires_recheck(self):
+        nid = self.add(); self.verify(nid, self.respond(nid))
+        self.publish_table(0.2)
+        self.assertEqual(self.note_state()['current_validity'], 'needs_recheck')
+
+    def test_a_visual_note_rechecks_after_any_observed_change(self):
+        nid = self.add(category='visual', priority='advisory')
+        decision = {'schema': 'dcc.feedback.decision.v1', 'note_id': nid, 'action': 'deferred', 'reason': 'Later round',
+                    'authority': self.actor(), 'result': self.cp()}
+        self.apply('feedback.decide', decision)
         edit = self.begin(); native, obs = self.candidate()
         workflow.finish_edit(self.root, edit['edit'], native, obs, self.handoff, {})
-        self.assertEqual(workflow.resume(self.root)['coordination']['notes'][0]['current_validity'], 'needs_recheck')
+        self.assertEqual(self.note_state()['current_validity'], 'current', 'a re-save that changes nothing observed')
+        self.assertEqual(self.note_state()['validity_reason'], 'nothing observed changed since it was closed')
+        self.publish_world(2)
+        self.assertEqual(self.note_state()['current_validity'], 'needs_recheck')
+
+    def publish_puddle(self, present):
+        """Publish a checkpoint with (or, deleting it, without) a puddle object beside the table."""
+        rules = {'schema': 'dcc.continuity.contract.v1', 'allowed_new_prefixes': ['ext.puddle'],
+                 'spec': {'schema': 'dcc.spec.v1', 'required': {'ext.table.top': {'type': 'MESH'}}}}
+        if not present:
+            rules['allowed_deleted_ids'] = ['ext.puddle']
+        contract = self.base / f'contract-puddle-{present}.json'; write_json(contract, rules)
+        active = workflow.resume(self.root)['active']
+        edit = workflow.begin_edit(self.root, active['id'], active['checkpoint'], active['observation'], self.script, contract, f'puddle-{present}')
+        native = self.base / f'puddle-{present}.blend'; native.write_bytes(f'synthetic puddle {present}'.encode())
+        obs = copy.deepcopy(self.obs); obs['checkpoint_sha256'] = file_hash(native)
+        if present:
+            obs['objects']['ext.puddle'] = {**copy.deepcopy(obs['objects']['ext.table.top']), 'name': 'Puddle', 'asset_id': 'puddle'}
+        path = self.base / f'puddle-{present}.json'; self.save_observation(path, obs)
+        self.assertEqual(workflow.finish_edit(self.root, edit['edit'], native, path, self.handoff, {})['status'], 'PUBLISHED')
+        return contract
+
+    def test_a_response_may_remove_its_target_deliberately(self):
+        self.publish_puddle(True)
+        before = self.cp()
+        nid = self.add(priority='advisory', text='Take the puddle out', anchor={**before, 'instance_ids': ['ext.puddle']})
+        contract = self.publish_puddle(False)
+        evidence = [{'kind': 'native_contract', 'before': before, 'contract': self.ref(contract)}]
+        silent = self.respond(nid, evidence=evidence)
+        with self.assertRaisesRegex(ValueError, 'targets are missing'):
+            self.verify(nid, silent)
+        with self.assertRaisesRegex(ValueError, 'removed target'):
+            self.respond(nid, evidence=evidence, removed_targets=['ext.table.top'])
+        removed = self.respond(nid, evidence=evidence, removed_targets=['ext.puddle'])
+        self.assertTrue(self.verify(nid, removed)['result']['passed'])
+
+    def test_a_removed_target_needs_a_contract_permitting_its_deletion(self):
+        self.publish_puddle(True)
+        before = self.cp()
+        nid = self.add(priority='advisory', text='Take the puddle out', anchor={**before, 'instance_ids': ['ext.puddle']})
+        self.publish_puddle(False)
+        evidence = [{'kind': 'native_contract', 'before': self.cp(), 'contract': self.ref(self.contract)}]
+        with self.assertRaisesRegex(ValueError, 'permits its deletion'):
+            self.respond(nid, evidence=evidence, removed_targets=['ext.puddle'])
 
     def test_wrong_checkpoint_target_or_pin_rejected(self):
         for anchor in ({**self.cp(), 'instance_ids': ['missing']}, {**self.cp(), 'checkpoint_id': '0'*64},

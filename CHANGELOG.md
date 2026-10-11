@@ -2,6 +2,15 @@
 
 Each version is a bounded increment with its own qualification report. Test counts are portable-suite results on Windows; the two skips in each count are host symlink-permission cases. Native qualification uses Blender 5.1.1 on Windows. Studies are listed with the versions they exercised. The [build plan](docs/BUILD_PLAN.md) explains what remains open, and reports that link into `runs/` refer to local evidence excluded from Git.
 
+## 0.15.0 — October 11, 2026
+
+Coverage and rechecks, the first part of build-plan item P6 ([plan](docs/archive/plans/P6_COVERAGE.md)).
+
+- **Added:** contract permissions `allowed_new_lights` (prefixes beneath `ext.`) and `allowed_scene_fields` (named top-level scene fields such as `world`).
+- **Changed:** a closed feedback note stays `current` after a later checkpoint when nothing observed changed. A technical note also stays current while its anchored objects and materials are unchanged. Visual notes recheck on any other change. Notes carry a `validity_reason`.
+- **Added:** feedback responses may declare `removed_targets`, objects deliberately deleted under a cited contract; verification accepts them as missing.
+- **Qualification:** 403 tests from source and from the installed wheel. Native lamp and world edit refused, then published with permissions; a verified leg note stayed current until the leg moved. [Report](docs/archive/releases/COVERAGE_0_15_0_RESULTS.md)
+
 ## 0.14.0 — October 11, 2026
 
 GLB delivery receipt, build-plan item P8 ([plan](docs/archive/plans/P8_GLB_DELIVERY.md)).
