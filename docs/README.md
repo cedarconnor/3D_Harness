@@ -1,6 +1,6 @@
 # Documentation index
 
-Updated October 10, 2026, for version 0.9.0. Start with the repository [README](../README.md), then the [everyday workflow](guides/EVERYDAY_WORKFLOW.md). Agents continuing a project start with `brief` and the [agent quick reference](guides/AGENT_QUICK_REFERENCE.md). The [build plan](BUILD_PLAN.md) tracks current status and next work; the [changelog](../CHANGELOG.md) lists what each version delivered.
+Updated October 10, 2026, for version 0.10.0. Start with the repository [README](../README.md), then the [everyday workflow](guides/EVERYDAY_WORKFLOW.md). Agents continuing a project start with `brief` and the [agent quick reference](guides/AGENT_QUICK_REFERENCE.md). The [build plan](BUILD_PLAN.md) tracks current status and next work; the [changelog](../CHANGELOG.md) lists what each version delivered.
 
 Documents are split by whether they are still in use:
 
@@ -75,6 +75,7 @@ One report per version. The [changelog](../CHANGELOG.md) summarizes counts and n
 | 0.4.10 | [External revisions](archive/releases/REVISIONS_0_4_10_RESULTS.md) |
 | 0.5.0 | [Structured feedback](archive/releases/FEEDBACK_0_5_0_RESULTS.md) |
 | 0.5.1 | [Correctness maintenance](archive/releases/MAINTENANCE_0_5_1_RESULTS.md) |
+| 0.10.0 | [Collection instances](archive/releases/INSTANCES_0_10_0_RESULTS.md) |
 | 0.9.0 | [Relationship checks](archive/releases/RELATIONS_0_9_0_RESULTS.md) |
 | 0.8.0 | [Fixed-view render command](archive/releases/RENDER_0_8_0_RESULTS.md) |
 | 0.7.0 | [Agent guidance](archive/releases/GUIDANCE_0_7_0_RESULTS.md) |
@@ -94,6 +95,7 @@ Artist scoring for the first two studies is still open; it is item E1.
 
 These are not implementation authority. Their example APIs and status claims may be unimplemented or superseded.
 
+- [P3 plan](archive/plans/P3_COLLECTION_INSTANCES.md), implemented in 0.10.0.
 - [P2 plan](archive/plans/P2_RELATIONSHIP_CHECKS.md), implemented in 0.9.0.
 - [P10 plan](archive/plans/P10_RENDER_COMMAND.md), implemented in 0.8.0.
 - [P9 plan](archive/plans/P9_AGENT_GUIDANCE.md), implemented in 0.7.0.

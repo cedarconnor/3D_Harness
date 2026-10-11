@@ -12,8 +12,8 @@ Reviewed October 6, 2026. The table records how each decision held up; the entri
 | D2 Native observation over existing transport | Followed: `blender.py` and `continuity_blender.py`, run through the existing MCP or owned background Blender. |
 | D3 Advisory versus managed | Followed. Everything built is advisory. Edit reservations and coordination request IDs serialize cooperating callers; they do not intercept writes. |
 | D4 Operation identity | Partial analogues only: runtime-issued edit IDs over frozen script/contract hashes, one pending edit, stale-parent rejection and coordination request replay. No execute step, attempt IDs or executor-owned retries. Storage is files, not SQLite. |
-| D5 File ownership and publishing | Single-writer and immutable-checkpoint rules hold, using owned background files rather than one GUI writer. Library publishing is not built. The observer rejects instancers and the revision path rejects linked libraries, so revisit this before stage C. |
-| D6 Asset and instance identity | Identity rules are implemented: adoption, registry and shared-user queries. The pilot plan's "ordinary collection instances" are not supported by the current observer; production used shared mesh datablocks. Geometry Nodes identity is not started. |
+| D5 File ownership and publishing | Settled in 0.10.0 for collection instances: versioned libraries by relative path, switched by scoped edits; in-place library edits are caught, not accepted. External revisions still reject linked libraries (P7), and library overrides are unsupported. |
+| D6 Asset and instance identity | Identity rules are implemented: adoption, registry and shared-user queries. Ordinary collection instances are observed since 0.10.0, with the collection as the asset identity. Geometry Nodes identity is not started. |
 | D7 Scoped assert-first | Followed in `dcc-build-revise` and continuity contracts. |
 | D8 Packaging | Deferred as planned. Its note that Codex hosted the planning chat is historical. |
 | D9 Document authority | Followed. The [documentation index](README.md) classifies active and historical documents. |
@@ -66,6 +66,8 @@ The pilot uses one GUI writer. Rendering can read immutable snapshots but cannot
 Independent builders later own different asset files. Publish new versioned `.blend` libraries; a single assembly writer links their collections into a master. Never point multiple writers at the same output path. Review copies and renderer processes are read-only with respect to published sources. Use explicit new versions or controlled overrides for artist revisions to linked data.
 
 This replaces scene-per-job isolation with file/process ownership and native library composition. It does not require parallel processes in week one.
+
+**Settled October 10, 2026, in 0.10.0 (P3).** The observer records each collection instance with its collection's asset identity, the library's stored relative path and SHA-256, and a definition hash taken in the collection's own space. Publish an asset change as a new versioned library and switch instances to it in a scoped edit that permits the `instance` field. Editing a library in place changes its hash and every instance's definition, so the next reservation refuses until the change is handled explicitly; it is never accepted silently. Libraries are referenced, not copied into the project store: the stored checkpoint cannot resolve relative library paths, so native commands run on the working copy beside its libraries. Library overrides remain unsupported, and one writer owns the assembly file. ([report](archive/releases/INSTANCES_0_10_0_RESULTS.md))
 
 ## D6 Asset and instance identity are separate
 

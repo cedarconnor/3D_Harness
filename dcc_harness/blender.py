@@ -11,7 +11,7 @@ import hashlib
 from pathlib import Path
 
 import bpy
-from mathutils import Vector
+from mathutils import Matrix, Vector
 
 from .evidence import digest, file_hash, write_json
 from .project import now
@@ -92,6 +92,106 @@ def mesh_record(obj, deps):
         evaluated.to_mesh_clear()
 
 
+def _mesh_hash(mesh):
+    h = hashlib.sha256()
+    for collection, prop, length, kind in ((mesh.vertices,"co",len(mesh.vertices)*3,"f"),
+                                          (mesh.loops,"vertex_index",len(mesh.loops),"i"),
+                                          (mesh.polygons,"loop_total",len(mesh.polygons),"i"),
+                                          (mesh.polygons,"material_index",len(mesh.polygons),"i")):
+        data = array.array(kind,[0])*length
+        collection.foreach_get(prop,data)
+        h.update(data.tobytes())
+    return h.hexdigest()
+
+
+def _library_path(library):
+    """The stored path with forward slashes, so the same project records the same path on any system."""
+    return library.filepath.replace("\\", "/") if library else None
+
+
+def evaluated_member(member):
+    """Evaluated mesh data of one instanced object, read while the depsgraph instance is valid."""
+    mesh = member.data
+    return {"co":[vertex.co.copy() for vertex in mesh.vertices],"geometry_hash":_mesh_hash(mesh),
+            "triangles":sum(len(polygon.vertices) - 2 for polygon in mesh.polygons),
+            "materials":[slot.material.name_full if slot.material else None for slot in member.material_slots]}
+
+
+def _definition(collection, chain, evaluated, issues, points, totals, depth=0):
+    """Entries for a collection in its own space, recursing into nested collection instances.
+
+    Uses each object's own matrix within its collection, never the instancer's placement, so
+    moving an instance cannot change its definition. Points are collected in definition space.
+    """
+    if depth > 16:
+        issues.append(f"Collection instances nested too deeply: {collection.name_full}")
+        return []
+    offset = Matrix.Translation(-collection.instance_offset)
+    entries = []
+    for obj in sorted(collection.all_objects, key=lambda o: o.name_full):
+        local = offset @ obj.matrix_world
+        entry = {"name":obj.name_full,"type":obj.type,"library":_library_path(obj.library),"matrix":value(local)}
+        if obj.type == "MESH":
+            data = evaluated.get(obj.as_pointer())
+            if data is None:
+                entry["geometry_hash"] = None  # Not evaluated as an instance, for example hidden from rendering.
+            else:
+                entry.update(geometry_hash=data["geometry_hash"], materials=data["materials"])
+                transform = chain @ local
+                points.extend(transform @ co for co in data["co"])
+                totals["vertices"] += len(data["co"])
+                totals["triangles"] += data["triangles"]
+        if obj.instance_type == "COLLECTION" and obj.instance_collection is not None:
+            nested = obj.instance_collection
+            entry["instance"] = {"collection":nested.name_full,"library":_library_path(nested.library),
+                                 "definition":digest(_definition(nested, chain @ local, evaluated, issues, points, totals, depth + 1))}
+        elif obj.instance_type != "NONE":
+            issues.append(f"Unsupported instancer in collection {collection.name_full}: {obj.name}")
+        entries.append(entry)
+    return entries
+
+
+def instance_record(obj, evaluated, issues):
+    """Measure a collection instance: identity, library provenance, definition and extent.
+
+    The definition hash and dimensions are taken in the collection's own space, so moving the
+    instance changes only its transform and world bounds.
+    """
+    collection = obj.instance_collection
+    library = collection.library
+    asset, source = collection.get("dcc_asset_id"), "collection"
+    if not isinstance(asset, str) or not asset:
+        if library:
+            asset, source = f"library:{_library_path(library)}#{collection.name}", "library_path"
+        else:
+            issues.append(f"Missing asset ID: collection {collection.name_full}")
+            asset, source = None, None
+    own = obj.get("dcc_asset_id")
+    if own and own != asset:
+        issues.append(f"Instance asset ID differs from its collection: {obj.name}")
+    provenance = None
+    if library:
+        path = Path(bpy.path.abspath(library.filepath))
+        exists = path.is_file()
+        if not exists:
+            issues.append(f"Missing library: {_library_path(library)}")
+        provenance = {"path":_library_path(library),"relative":library.filepath.startswith("//"),"exists":exists,
+                      "sha256":file_hash(path) if exists else None}
+    points, totals = [], {"vertices":0,"triangles":0}
+    entries = _definition(collection, Matrix.Identity(4), evaluated, issues, points, totals)
+    linear = obj.matrix_world.to_3x3()
+    world = [obj.matrix_world @ p for p in points]
+    oriented = [linear @ p for p in points]
+    def extent(values):
+        if not values:
+            return [0.0,0.0,0.0], [0.0,0.0,0.0]
+        return [min(p[i] for p in values) for i in range(3)], [max(p[i] for p in values) for i in range(3)]
+    lo, hi = extent(world)
+    olo, ohi = extent(oriented)
+    return {"asset_id":asset,"vertices":totals["vertices"],"triangles":totals["triangles"],"bounds":[value(lo),value(hi)],
+            "dimensions":value([ohi[i]-olo[i] for i in range(3)]),
+            "instance":{"collection":collection.name_full,"asset_id":asset,"asset_id_source":source,"library":provenance,
+                        "definition_hash":digest(entries),"members":len(entries),"triangles":totals["triangles"]}}
 def observe(scene=None):
     scene = scene or bpy.context.scene
     if scene != bpy.context.scene:
@@ -102,6 +202,14 @@ def observe(scene=None):
     # Cache by real datablock, never caller-owned IDs. Keep this local so the
     # next observation re-reads shaders and external image contents.
     material_records = {}
+    evaluated = {}
+    if any(o.instance_type == "COLLECTION" for o in scene.objects):
+        # Instance objects are only valid during iteration, so read their evaluated meshes here.
+        for inst in deps.object_instances:
+            if inst.is_instance and inst.object.type == "MESH":
+                key = inst.object.original.as_pointer()
+                if key not in evaluated:
+                    evaluated[key] = evaluated_member(inst.object)
     for obj in sorted(scene.objects,key=lambda o:o.name):
         iid = obj.get("dcc_instance_id")
         if not isinstance(iid,str) or not iid:
@@ -118,7 +226,10 @@ def observe(scene=None):
                "collections":sorted(c.name for c in obj.users_collection),
                "visibility":{"render":not obj.hide_render,"viewport":not obj.hide_viewport,"hidden":obj.hide_get()},
                "material_ids":[]}
-        if obj.instance_type != "NONE": issues.append(f"Unsupported instancer: {obj.name}")
+        if obj.instance_type == "COLLECTION" and obj.instance_collection is not None:
+            rec.update(instance_record(obj, evaluated, issues))
+        elif obj.instance_type != "NONE": issues.append(f"Unsupported instancer: {obj.name}")
+        if obj.override_library: issues.append(f"Unsupported library override: {obj.name}")
         if obj.type == "MESH": rec.update(mesh_record(obj,deps))
         if obj.type == "LIGHT":
             rec["light"] = {key:value(getattr(obj.data,key)) for key in ("type","energy","color","shadow_soft_size","angle","size") if hasattr(obj.data,key)}
@@ -154,6 +265,13 @@ def observe(scene=None):
                        "exposure":scene.view_settings.exposure,"gamma":scene.view_settings.gamma}}
     coverage = {"version":1,"measured":["active-scene object IDs and transforms","evaluated mesh coordinates/topology/material indices","evaluated UV coordinates","material binding and selected shader inputs/links","image dependencies and hashes","world nodes","camera optics","light settings","render and color settings"],
                 "not_measured":["other scenes","arbitrary modifiers and node properties","animation curves across time","simulation caches","rig semantics","collection/Geometry Nodes instances","general topology quality","UV overlap/texel density","artistic quality"]}
+    if any("instance" in rec for rec in objects.values()):
+        # Present only when instances exist, so scenes without them observe exactly as before.
+        coverage["collection_instances"] = {"version":1,
+            "measured":["collection instance identity and placement","definition hash of instanced meshes in instance space",
+                        "world extent of instanced geometry","library stored path, existence and SHA-256"],
+            "not_measured":["Geometry Nodes, particle and vertex or face instancing","library override properties",
+                            "per-member shader inputs of instanced definitions beyond material names and the library hash"]}
     payload = {"objects":objects,"materials":materials,"scene":config,"issues":sorted(set(issues)),"coverage":coverage}
     return {"schema":"dcc.observation.v1","observed_at":now(),"blender":bpy.app.version_string,
             "file":bpy.data.filepath,"revision":digest(payload),**payload}

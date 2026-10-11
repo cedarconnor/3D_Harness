@@ -51,6 +51,13 @@ EVIDENCE = {
     'feedback_reconciliation': ('No fields; passes only when no applicable blocking note is unresolved.', lambda before: {})}
 
 
+def _libraries(packet):
+    """Stored paths of libraries linked by the active checkpoint's collection instances."""
+    from .evidence import read_json
+    objects = read_json(packet['active']['observation'])['objects']
+    return sorted({o['instance']['library']['path'] for o in objects.values() if (o.get('instance') or {}).get('library')})
+
+
 def _q(value):
     return '"' + str(value) + '"'
 
@@ -139,23 +146,30 @@ def _steps(packet, state, events):
                               'why': f'Stage {stage["id"]} is {stage["state"].replace("_", " ")}. `requirements` prints the '
                                      'evidence it needs and a submission skeleton; fill it, hash it, submit it.'})
     checkpoint = _q(active['checkpoint'])
+    libraries = _libraries(packet)
+    note = ''
+    if libraries:
+        # The stored checkpoint is a copy; relative library paths resolve only beside the original.
+        checkpoint = '"<your working copy beside its libraries .blend>"'
+        note = (' This project uses linked libraries (' + ', '.join(libraries) + ') by relative path, which the stored '
+                'checkpoint cannot reach; use your working copy beside them, byte-identical to the active checkpoint.')
     used = ', '.join(h['step_id'] for h in state['task_history'])
     edits = [{'id': 'observe', 'command': (
         f'{RUN} observe {checkpoint} --blender "<BLENDER>" --output-dir "<new folder>"'),
-        'why': 'Observe the accepted checkpoint in a fresh background Blender for begin-edit. The file is never saved.'},
+        'why': 'Observe the accepted checkpoint in a fresh background Blender for begin-edit. The file is never saved.' + note},
         {'id': 'begin-edit', 'command': (
         f'{RUN} begin-edit {project} --parent {active["id"]} --current {checkpoint} '
         '--observation "<new folder>/observation.json" --script "<edit .py>" --contract "<contract .json>" --label "<new step label>"'),
         'why': (f'Reserve a scoped edit. Step labels already used: {used}. The reservation does not run anything: run the '
-                'retained script it returns once against an owned copy, save, observe the result, then finish-edit.')}]
+                'retained script it returns once against an owned copy, save, observe the result, then finish-edit.' + note)}]
     if views:
         edits.append(render(checkpoint, (
             'Render the project\'s review views of the active checkpoint, for a review or as response evidence. The file is '
-            'never saved. Add --detach for a long render and wait with render-wait. The output includes evidence entries.')))
+            'never saved. Add --detach for a long render and wait with render-wait. The output includes evidence entries.' + note)))
     if measured:
         edits.append(relate(checkpoint, (
             'Measure the project\'s supported_by relations on the active checkpoint. Check the relation history in brief before '
-            'choosing a repair, and do not repeat a strategy it marks as ineffective.')))
+            'choosing a repair, and do not repeat a strategy it marks as ineffective.' + note)))
     return steps + review + edits + follow
 
 
@@ -234,6 +248,10 @@ def brief(root, focus=()):
              'never edit or save over it.',
              f'- **Scene:** {counts["objects"]} objects, {counts["materials"]} materials, {counts["assets"]} assets, '
              f'{counts["triangles"]} triangles.']
+    libraries = _libraries(packet)
+    if libraries:
+        lines.append('- **Linked libraries:** ' + ', '.join(f'`{path}`' for path in libraries) + '. They are referenced, not '
+                     'copied into the store: work on the working copy beside them, and publish asset changes as new library versions.')
     if packet.get('coordination'):
         lines.append(f'- **Coordination revision:** `{packet["coordination"]["revision"]}`.')
     lines += ['', '| Recent step | Native check |', '|---|---|']

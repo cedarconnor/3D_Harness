@@ -135,7 +135,12 @@ def compare(before, after, allowed=None):
         if before["scene"].get(field) != after["scene"].get(field):
             changes.append({"category":"scene","id":"scene","field":field,
                             "allowed":field in allowed.get("scene", [])})
-    coverage_matches = before["coverage"] == after["coverage"]
+    # Instance coverage appears only when a scene has collection instances; a side without
+    # any measured nothing to compare. When both sides measured instances, it must match.
+    old_coverage, new_coverage = dict(before["coverage"]), dict(after["coverage"])
+    if ("collection_instances" in old_coverage) != ("collection_instances" in new_coverage):
+        old_coverage.pop("collection_instances", None); new_coverage.pop("collection_instances", None)
+    coverage_matches = old_coverage == new_coverage
     issues = before["issues"] + after["issues"]
     return {"schema":"dcc.delta.v1","before":before["revision"],"after":after["revision"],
             "changes":changes,"coverage_matches":coverage_matches,"issues":issues,

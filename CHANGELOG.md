@@ -2,6 +2,17 @@
 
 Each version is a bounded increment with its own qualification report. Test counts are portable-suite results on Windows; the two skips in each count are host symlink-permission cases. Native qualification uses Blender 5.1.1 on Windows. Studies are listed with the versions they exercised. The [build plan](docs/BUILD_PLAN.md) explains what remains open, and reports that link into `runs/` refer to local evidence excluded from Git.
 
+## 0.10.0 — October 10, 2026
+
+Collection instances and linked libraries, build-plan item P3 ([plan](docs/archive/plans/P3_COLLECTION_INSTANCES.md)).
+
+- **Added:** the observer supports collection instances, local or linked from a library, including nested sets. Each instancer records the collection, its asset identity, the library's stored path and SHA-256, a definition hash taken in the collection's own space, world bounds and orientation-only dimensions. Moving an instance changes only its transform and bounds.
+- **Added:** `instance` is a contract field, `exact_asset_counts` counts instances, and adoption assigns asset IDs to local instanced collections.
+- **Added:** `brief` lists linked libraries and `next` points native commands at the working copy beside them, since the stored checkpoint cannot resolve relative library paths.
+- **Changed:** vertex, face and particle instancing, library overrides, missing libraries and unlabelled local instanced collections are reported as issues. Scenes without instances observe byte-for-byte as in 0.9.0, and the comparator ignores instance coverage present on only one side.
+- **Decision:** [D5](docs/DESIGN_DECISIONS.md#d5-file-ownership-and-asset-publishing) settled: publish asset changes as versioned libraries switched by scoped edits; in-place library edits are caught at the next reservation.
+- **Qualification:** 336 tests, 334 passed, from source; the installed wheel passed the same runtime tests. Native fixtures from both runtimes: instanced scenes observed `READY` with exact bounds and dimensions; the comparison fixture kept its 0.9.0 revision; permitted moves and library swaps published and protected ones were rejected for exactly the changed fields; an in-place library edit was refused; adoption produced `READY_FOR_START`. [Report](docs/archive/releases/INSTANCES_0_10_0_RESULTS.md)
+
 ## 0.9.0 — October 10, 2026
 
 Relationship checks, build-plan item P2 ([plan](docs/archive/plans/P2_RELATIONSHIP_CHECKS.md)).

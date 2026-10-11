@@ -14,7 +14,7 @@ CONTRACT_FIELDS = {"schema", "spec", "allowed_object_prefixes", "allowed_materia
 OBJECT_FIELDS = {"name", "type", "asset_id", "matrix_world", "parent", "collections", "visibility",
                  "material_ids", "vertices", "triangles", "geometry_hash", "uv_hash", "uv_layers",
                  "bounds", "dimensions", "light", "camera", "source_mesh_hash", "source_uv_hash",
-                 "modifier_settings", "evaluated_uv_values", "mesh_datablock"}
+                 "modifier_settings", "evaluated_uv_values", "mesh_datablock", "instance"}
 
 
 def _prefixes(items, label):
@@ -168,7 +168,8 @@ def evaluate_stage(before, after, contract):
         if observed is None or any(abs(a-b) > tolerance for a,b in zip(desired, observed)):
             failures.append(f"Desired center differs or missing: {iid}")
     for aid, count in contract.get("exact_asset_counts", {}).items():
-        actual = sum(obj.get("type") == "MESH" and obj.get("asset_id") == aid for obj in after["objects"].values())
+        actual = sum((obj.get("type") == "MESH" or "instance" in obj) and obj.get("asset_id") == aid
+                     for obj in after["objects"].values())
         if actual != count:
             failures.append(f"Asset count differs: {aid}: {actual} != {count}")
     for group in contract.get("sharing_groups", []):

@@ -1,6 +1,6 @@
 # Agent quick reference
 
-Version 0.9.0. The exact command sequences for the most common work, for an agent continuing a 3D Harness project. Every command below is checked against the real parser by `tests/test_quick_reference.py`. Values in `<angle brackets>` and capitalized placeholders such as `PARENT_ID` are yours to fill; quote every path.
+Version 0.10.0. The exact command sequences for the most common work, for an agent continuing a 3D Harness project. Every command below is checked against the real parser by `tests/test_quick_reference.py`. Values in `<angle brackets>` and capitalized placeholders such as `PARENT_ID` are yours to fill; quote every path.
 
 ## 1. Orient
 
@@ -160,4 +160,5 @@ python -m dcc_harness stage-submit "<project>" --submission "<work>/stage.json" 
 | `Stale coordination revision; resume before continuing` | Something was recorded since you read the revision | Run `next` for the current revision and a new request ID |
 | `Missing or changed artifact` | A hash or path in the payload is wrong | Rerun `fill-hashes` on the draft |
 | `ALREADY_COMMITTED` | A retry of a request that already succeeded | Use the returned result; do nothing again |
+| `Missing library` | A collection instance's library file is not where its stored relative path points | Work on the copy beside its libraries, never the stored checkpoint |
 | `HAS_ISSUES` from `observe`, exit 1 | The saved file has missing IDs or unsupported data | Read the issues; see the scene adoption guide |

@@ -43,6 +43,8 @@ These are example paths, not bundled inputs. Adoption does not create a project 
 | Different meshes with missing asset IDs | Generate separate definitions; no semantic grouping is guessed |
 | Explicit asset grouping across different meshes | Preserve it |
 | Missing material ID | Assign one ID to that actual shared material |
+| Local collection instanced by the active scene without an asset ID (0.10.0) | Assign one asset ID to the collection; every instance of it shares that definition |
+| Linked collection without an asset ID | Leave it alone: its identity is its library path and collection name |
 | Present empty/invalid ID or duplicate instance/material ID touching the active scene | Block; do not guess an original or repair IDs |
 | Missing asset ID with conflicting IDs among shared mesh users | Block for an explicit binding decision |
 | A proposed write touches a linked/override object or material | Block for explicit local ownership |
@@ -54,7 +56,7 @@ All active-scene objects are included, including hidden ones. Global datablocks 
 
 ## Boundaries and validation
 
-The helper writes identity metadata only. It does not repair topology, missing textures, unsupported instancing or observation coverage gaps. Separate observation can still reject the result. It neither packs external dependencies nor establishes correspondence for Geometry Nodes instances. Changes to external images/libraries are not covered by the source `.blend` hash.
+The helper writes identity metadata only. It does not repair topology, missing textures, unsupported instancing (anything other than collection instances) or observation coverage gaps. Separate observation can still reject the result. It neither packs external dependencies nor establishes correspondence for Geometry Nodes instances. Changes to external images/libraries are not covered by the source `.blend` hash.
 
 Blender starts with factory settings and automatic script execution disabled. This is not a sandbox or a native transaction, and it does not fence other writers. Keep the input and external dependencies stable during the operation. A repeated deliberate apply of the same frozen plan to a different empty directory produces another copy with the same proposed IDs; there is no global consumed-plan ledger.
 

@@ -54,7 +54,9 @@ def inventory():
         record = base(mat, mat in used_materials, ('dcc_material_id',))
         record['outside_users'] = outside_material_users(mat)
         materials.append(record)
-    return {'scene': scene.name, 'objects': objects, 'materials': materials}
+    instanced = {o.instance_collection for o in active if o.instance_type == 'COLLECTION' and o.instance_collection}
+    collections = [base(c, c in instanced, ('dcc_asset_id',)) for c in sorted(bpy.data.collections, key=lambda c: c.name_full)]
+    return {'scene': scene.name, 'objects': objects, 'materials': materials, 'collections': collections}
 
 
 def main():
@@ -77,7 +79,8 @@ def main():
         # Resolve and check every target before the first property write.
         targets = []
         for assignment in plan['assignments']:
-            pool = bpy.data.objects if assignment['kind'] == 'object' else bpy.data.materials
+            pool = {'object': bpy.data.objects, 'material': bpy.data.materials,
+                    'collection': bpy.data.collections}[assignment['kind']]
             item = next(x for x in pool if x.name_full == assignment['name'])
             if assignment['property'] in item:
                 raise ValueError('Identity property appeared after preview')

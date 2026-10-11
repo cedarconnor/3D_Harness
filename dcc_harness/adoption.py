@@ -84,6 +84,14 @@ def plan_identities(inventory, source, namespace=None):
             assign('material', record, 'dcc_material_id',
                    generated('material.adopted', 'material:' + record['name'], material_ids)
                    if 'dcc_material_id' not in record['properties'] else None)
+    # Collections instanced by the active scene. A linked collection's identity is its library
+    # provenance, and its properties belong to the library, so only local ones are assigned.
+    collections = inventory.get('collections', [])
+    collection_ids = unique(collections, 'dcc_asset_id')
+    for record in collections:
+        if record['scope'] and not record['read_only'] and 'dcc_asset_id' not in record['properties']:
+            assign('collection', record, 'dcc_asset_id',
+                   generated('asset.adopted', 'collection:' + record['name'], asset_ids | collection_ids))
     issues = sorted(set(issues))
     return {'schema': 'dcc.identity-plan.v1', 'source': source, 'namespace': namespace,
             'inventory': inventory, 'inventory_sha256': digest(inventory),
@@ -103,14 +111,15 @@ def validate_plan(plan, inventory, source):
 def verify_applied_plan(plan, inventory):
     """Check the reopened identities, including every previously present scoped ID."""
     expected = copy.deepcopy(plan['inventory'])
+    pools = {'object': 'objects', 'material': 'materials', 'collection': 'collections'}
     for assignment in plan['assignments']:
-        records = expected['objects' if assignment['kind'] == 'object' else 'materials']
+        records = expected[pools[assignment['kind']]]
         record = next(r for r in records if r['name'] == assignment['name'])
         record['properties'][assignment['property']] = assignment['value']
 
     def identities(value):
-        return {kind: {r['name']: r['properties'] for r in value[kind] if r['scope']}
-                for kind in ('objects', 'materials')}
+        return {kind: {r['name']: r['properties'] for r in value.get(kind, []) if r['scope']}
+                for kind in ('objects', 'materials', 'collections')}
 
     if identities(inventory) != identities(expected):
         raise ValueError('Saved identities do not match the applied plan; inspect retained files')

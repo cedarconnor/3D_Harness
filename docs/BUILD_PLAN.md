@@ -16,9 +16,9 @@ Earlier plans are archived verbatim in [archive/plans](archive/plans/). The Octo
 
 | | |
 |---|---|
-| Version | 0.9.0 on `main` |
-| Active | None; P2 finished |
-| Next | P3 collection instances; E5 can run at any time |
+| Version | 0.10.0 on `main` |
+| Active | None; P3 finished |
+| Next | P4 review page; E5 can run at any time |
 | Waiting on the user | E1–E3 artist review session; E4 decision on the realistic comparison; GitHub write access for R1 |
 | Investment gate | Open |
 
@@ -58,7 +58,7 @@ Ranked by expected effect on the gate. Each ships as its own version.
 | P11 | Learned check library: errors no check caught become owner-approved, versioned checks for later projects | Agent | todo | A caught error yields a proposed check; once approved it runs in a new project; positive and negative native fixtures; taste stays project-scoped |
 | P12 | Owner-only approval channel the agent's tools cannot reach | Agent | todo | Artist acceptance and check approval enter only through an owner path; an agent-written artist authority is rejected; decision recorded in the decision log |
 | P2 | Relationship checks with evidence reliability and repair history ([plan](archive/plans/P2_RELATIONSHIP_CHECKS.md)) | Agent | done | Shipped in 0.9.0: `supported_by` qualified natively against hand-computed scenes. A fresh agent with a history of failed whole-bench moves avoided them and fixed the bench per leg on the first attempt; a control without history did the same from the measured `CONFLICT`, so the history's own effect is not isolated ([report](archive/releases/RELATIONS_0_9_0_RESULTS.md)) |
-| P3 | Collection instances and linked libraries | Agent | todo | Instanced scenes can `start`; D5 publishing model decided; positive and negative native fixtures |
+| P3 | Collection instances and linked libraries ([plan](archive/plans/P3_COLLECTION_INSTANCES.md)) | Agent | done | Shipped in 0.10.0: local, linked and nested collection instances observe `READY` and `start`; moves, protected moves, library swaps and an in-place library edit behave as contracted; D5 settled ([report](archive/releases/INSTANCES_0_10_0_RESULTS.md)) |
 | P4 | Before/after review page over immutable checkpoints, with owner questions and a camera sheet | Agent | todo | Changed objects by stable ID with bound renders and linked notes, checked against reopened checkpoints; submission questions answered with defaults |
 | P5 | Skill behavior regressions | Agent | todo | Sealed packets for six known failure situations, graded on actions and artifacts |
 | P6 | Evidence and coverage depth | Agent | todo | Dependency-aware invalidation; contracts cover new lights, world edits, modifier and node fields, UV overlap and texel density |
@@ -216,6 +216,8 @@ Capture fixed views at blockout, surface and lighting completion, pre-revision a
 
 Newest first. One line per status change.
 
+- **2026-10-10:** P3 done. Version 0.10.0 observes collection instances and linked libraries; D5 settled.
+- **2026-10-10:** P3 started; [implementation plan](archive/plans/P3_COLLECTION_INSTANCES.md) written.
 - **2026-10-10:** P2 done. Version 0.9.0 ships `relations` with a retained repair history. Both fresh agents, with and without history, fixed the sloped bench per leg on the first attempt.
 - **2026-10-10:** P2 started; [implementation plan](archive/plans/P2_RELATIONSHIP_CHECKS.md) written for the `supported_by` family.
 - **2026-10-10:** P10 done. Version 0.8.0 ships `render`, `render-wait` and the `dcc.review.views.v1` definition; repeat renders are byte-identical once PNG stamps are removed.

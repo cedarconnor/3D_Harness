@@ -14,6 +14,7 @@ Scripts marked *launcher* run under system Python and start Blender themselves, 
 
 | Version | Scripts | Mode | Runs from a clone |
 |---|---|---|---|
+| 0.10.0 | `qualify_instances.py` with `instances_native_probe.py`: observation, compatibility with the previous release (`--baseline-runtime`), scoped instance edits, an in-place library edit, issues and adoption; the 0.7.0–0.9.0 qualifications rerun | launcher | Needs a previous release for the compatibility check |
 | 0.9.0 | `qualify_relations.py` with `relations_native_probe.py`: eight exact bench scenes, the project history and the guidance; `qualify_guidance.py` and `qualify_render.py` rerun | launcher | Yes |
 | 0.8.0 | `qualify_render.py`: repeat, moved-camera, EEVEE, failure, evidence, project-definition and detached-queue renders on a copy of the comparison fixture; `qualify_guidance.py` rerun | launcher | No: copies a local fixture from `runs/` |
 | 0.7.0 | `qualify_guidance.py`: `brief`, `next` and `requirements` on copies of two retained projects, then the printed `observe` and `begin-edit` commands executed | launcher | No: copies local projects from `runs/` |
