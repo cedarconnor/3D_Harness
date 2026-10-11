@@ -1,6 +1,6 @@
 # Agent quick reference
 
-Version 0.11.0. The exact command sequences for the most common work, for an agent continuing a 3D Harness project. Every command below is checked against the real parser by `tests/test_quick_reference.py`. Values in `<angle brackets>` and capitalized placeholders such as `PARENT_ID` are yours to fill; quote every path.
+Version 0.12.0. The exact command sequences for the most common work, for an agent continuing a 3D Harness project. Every command below is checked against the real parser by `tests/test_quick_reference.py`. Values in `<angle brackets>` and capitalized placeholders such as `PARENT_ID` are yours to fill; quote every path.
 
 ## 1. Orient
 
@@ -119,6 +119,8 @@ python -m dcc_harness review-import "<project>" "<export .json>" --page "<work>/
 
 `review-page` writes a local page comparing the active checkpoint with its parent, with renders, changes by stable ID, notes and any stage waiting for review. Give the artist `index.html`. The export they download comes back through `review-import`, which completes the stage with their answers and adds their notes. When submitting a stage the artist must decide on, add `questions` to the submission, each with a `default` where you have one; see the [review page guide](REVIEW_PAGE.md).
 
+Only the artist can approve. An export that approves a stage, or any payload whose reviewer or authority is the artist, needs the owner's confirmation at an interactive terminal and is refused from your session. Hand the artist the exact command to run in their own terminal ([owner approval](OWNER_APPROVAL.md)). Never claim the artist role, remove the session variables or pipe in a code. Exports with only notes import from your session.
+
 ## 6. Respond to a feedback note
 
 Write the response with `{"path": ...}` references, fill the hashes, then record it. `next` gives the expected revision and a fresh request ID.
@@ -169,5 +171,8 @@ python -m dcc_harness stage-submit "<project>" --submission "<work>/stage.json" 
 | `Stale coordination revision; resume before continuing` | Something was recorded since you read the revision | Run `next` for the current revision and a new request ID |
 | `Missing or changed artifact` | A hash or path in the payload is wrong | Rerun `fill-hashes` on the draft |
 | `ALREADY_COMMITTED` | A retry of a request that already succeeded | Use the returned result; do nothing again |
+| `Owner approval is refused inside an agent session` | The payload claims the artist's authority | Give the artist the exact command to run in their own terminal; never work around it |
+| `Owner approval required` | An artist authority reached the record without the owner's confirmation | The same: only the artist approves |
+| `Relaxing an artist-required stage` | The binding lowers a stage the manifest gives to the artist | Keep the manifest's policy, or ask the artist to bind it |
 | `Missing library` | A collection instance's library file is not where its stored relative path points | Work on the copy beside its libraries, never the stored checkpoint |
 | `HAS_ISSUES` from `observe`, exit 1 | The saved file has missing IDs or unsupported data | Read the issues; see the scene adoption guide |

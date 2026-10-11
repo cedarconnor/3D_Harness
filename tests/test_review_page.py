@@ -7,7 +7,7 @@ import sys
 import uuid
 from unittest import mock
 
-from coordination_helpers import Fixture
+from coordination_helpers import Console, Fixture
 from dcc_harness import coordination as c, review_page, workflow
 from dcc_harness.continuity import Continuity
 from dcc_harness.evidence import digest, file_hash, read_json, write_json
@@ -174,14 +174,31 @@ class ImportTests(PageFixture):
         review = {'reviewer': {'role': 'artist', 'author': 'Reviewer', 'reference': 'Review page'}, 'verdict': 'pass',
                   'finding': 'Direction reads well', 'answers': {'path': 'Gravel'}}
         bundle = self.bundle(result, after, review, [self.note(after)])
-        first = review_page.import_review(self.root, bundle, self.base / 'page')
+        first = review_page.import_review(self.root, bundle, self.base / 'page', Console())
         self.assertEqual([r['status'] for r in first['results']], ['COMMITTED', 'COMMITTED'])
         self.assertEqual(first['results'][0]['kind'], 'stage.complete')
+        self.assertEqual(c.read(self.root)[-2]['result']['owner_approval']['channel'], 'owner_terminal')
         events = c.read(self.root)
         self.assertEqual(events[-2]['result']['answers'][1], {'id': 'path', 'text': QUESTIONS[1]['text'], 'answer': 'Gravel', 'used_default': False})
         again = review_page.import_review(self.root, bundle, self.base / 'page')
         self.assertEqual([r['status'] for r in again['results']], ['ALREADY_COMMITTED', 'ALREADY_COMMITTED'])
         self.assertEqual(len(c.read(self.root)), len(events))
+
+    def test_an_approval_from_an_agent_session_imports_nothing(self):
+        result, after, submitted = self.page_with_submission()
+        review = {'reviewer': {'role': 'artist', 'author': 'Reviewer', 'reference': 'Review page'}, 'verdict': 'pass', 'finding': 'Fine'}
+        bundle = self.bundle(result, after, review, [self.note(after)])
+        before = len(c.read(self.root))
+        with self.assertRaisesRegex(RuntimeError, 'agent session'):
+            review_page.import_review(self.root, bundle, self.base / 'page', Console(environ={'CLAUDECODE': '1'}))
+        self.assertEqual(len(c.read(self.root)), before)
+        imported = subprocess.run([sys.executable, '-m', 'dcc_harness', 'review-import', str(self.root), str(bundle), '--page', str(self.base / 'page')],
+                                  capture_output=True, text=True, stdin=subprocess.DEVNULL, env={**__import__('os').environ, 'CLAUDECODE': '1'})
+        self.assertNotEqual(imported.returncode, 0)
+        self.assertIn('agent session', imported.stderr)
+        self.assertEqual(len(c.read(self.root)), before)
+        notes_only = self.bundle(result, after, None, [self.note(after)])
+        self.assertEqual([r['status'] for r in review_page.import_review(self.root, notes_only, self.base / 'page')['results']], ['COMMITTED'])
 
     def test_export_from_another_page_is_refused(self):
         result, after, submitted = self.page_with_submission()

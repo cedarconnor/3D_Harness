@@ -128,9 +128,10 @@ def checkpoint_ref(entry):
     return {'checkpoint_id': entry['id'], 'checkpoint_sha256': entry['checkpoint_sha256']}
 
 
-def transact(root, kind, payload, expected_revision, request_id, base, build):
+def transact(root, kind, payload, expected_revision, request_id, base, build, approval=None):
     """Commit once. Retried requests recover receipts without repeating native work."""
     from .workflow import writer_guard
+    from . import owner
     if kind not in KINDS:
         raise ValueError('Unknown coordination operation')
     identifier(request_id)
@@ -145,11 +146,14 @@ def transact(root, kind, payload, expected_revision, request_id, base, build):
                     raise ValueError('Request ID reused with different content')
                 return {'status': 'ALREADY_COMMITTED', 'revision': event['id'],
                         'current_revision': events[-1]['id'], 'result': event['result']}
+        owner_approval = owner.require(kind, payload, request_hash, approval)
         previous = events[-1]['id'] if events else 'none'
         if expected_revision != previous:
             raise ValueError('Stale coordination revision; resume before continuing')
         context = Context(root, native, events, base)
         result = build(context, copy.deepcopy(payload))
+        if owner_approval is not None:
+            result = {**result, 'owner_approval': owner_approval}
         canonical(result)
         event = {'schema': 'dcc.coordination.event.v1', 'kind': kind, 'request_id': request_id,
                  'request_hash': request_hash, 'previous': previous, 'project_sha256': file_hash(Path(root) / 'project.json'),

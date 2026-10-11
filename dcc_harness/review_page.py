@@ -187,9 +187,12 @@ def build(root, out, *, from_id=None, to_id=None, before_views=None, after_views
             'next_action': f'Open the page. Import its export with: python -m dcc_harness review-import "{root}" "<export .json>" --page "{folder}"'}
 
 
-def import_review(root, export, page):
-    """Commit a page export: the stage review first, then each note. A retry replays."""
-    from . import environment_workflow
+def import_review(root, export, page, console=None):
+    """Commit a page export: the stage review first, then each note. A retry replays.
+
+    An artist's stage review needs the owner's confirmation before anything is committed.
+    """
+    from . import environment_workflow, owner
     page = _plain(page)
     value = read_json(_plain(export))
     if not isinstance(value, dict) or value.get('schema') != 'dcc.review.export.v1' or not isinstance(value.get('notes'), list):
@@ -203,8 +206,9 @@ def import_review(root, export, page):
         submission = data.get('submission')
         if submission is None:
             raise ValueError('The page had no stage submission to review')
-        outcome = environment_workflow.apply(root, 'stage.complete', {'submission_id': submission['id'], 'review': value['review']},
-                                             submission['id'], str(uuid.uuid5(NAMESPACE, key + ':review')), page)
+        payload, request = {'submission_id': submission['id'], 'review': value['review']}, str(uuid.uuid5(NAMESPACE, key + ':review'))
+        approval = owner.authorize(root, 'stage.complete', payload, request, console)
+        outcome = environment_workflow.apply(root, 'stage.complete', payload, submission['id'], request, page, approval=approval)
         results.append({'kind': 'stage.complete', 'status': outcome['status'], 'revision': outcome['revision']})
     for index, note in enumerate(value['notes']):
         events = c.read(root)

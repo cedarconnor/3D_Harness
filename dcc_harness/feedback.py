@@ -178,7 +178,7 @@ def _verify(ctx, value):
             'checkpoint_id': response['result']['checkpoint_id'], 'verification': value,
             'passed': value['verdict'] == 'pass' and all(r['passed'] for r in reports), 'reports': reports,
             'review_independence': 'same_author' if value['reviewer']['author'] == response['author'] else 'different_authors_declared_not_authenticated',
-            'artistic_acceptance': 'artist_declared' if value['reviewer']['role'] == 'artist' else 'not_evaluated'}
+            'artistic_acceptance': 'artist_confirmed' if value['reviewer']['role'] == 'artist' else 'not_evaluated'}
 
 
 def _decide(ctx, value):
@@ -202,5 +202,5 @@ def _decide(ctx, value):
 BUILDERS = {'feedback.add': _add, 'feedback.respond': _respond, 'feedback.verify': _verify, 'feedback.decide': _decide}
 
 
-def apply(root, kind, payload, expected_revision, request_id, base=None):
-    return c.transact(root, kind, payload, expected_revision, request_id, base or Path.cwd(), BUILDERS[kind])
+def apply(root, kind, payload, expected_revision, request_id, base=None, approval=None):
+    return c.transact(root, kind, payload, expected_revision, request_id, base or Path.cwd(), BUILDERS[kind], approval)

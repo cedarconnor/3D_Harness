@@ -86,7 +86,8 @@ class NextStepTests(Fixture):
         self.submit()
         complete = step(guidance.next_steps(self.root), 'stage-complete')
         self.assertTrue(complete['artist_required'])
-        self.assertIn('artist', complete['why'])
+        self.assertIn('review-page', complete['why'])
+        self.assertIn('own terminal', complete['why'])
 
     def publish_review_views(self):
         from dcc_harness import workflow

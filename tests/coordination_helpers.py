@@ -1,11 +1,28 @@
 import copy
 from pathlib import Path
+import re
 import unittest
 import uuid
 
 import test_workflow as existing
-from dcc_harness import coordination as c, feedback, environment_workflow as ew, workflow
+from dcc_harness import coordination as c, feedback, environment_workflow as ew, owner, workflow
 from dcc_harness.evidence import digest, file_hash, write_json
+
+
+class Console:
+    """A scripted stand-in for the owner's terminal; 'code' types the code the prompt shows."""
+
+    def __init__(self, answer='code', tty=True, environ=None):
+        self.answer, self.tty, self.environ, self.shown = answer, tty, environ or {}, []
+
+    def isatty(self):
+        return self.tty
+
+    def ask(self, text):
+        self.shown.append(text)
+        if self.answer == 'code':
+            return re.search(r'Type ([A-Z0-9]{4})', text).group(1)
+        return self.answer
 
 
 class Fixture(unittest.TestCase):
@@ -26,8 +43,9 @@ class Fixture(unittest.TestCase):
 
     def apply(self, kind, value, **kwargs):
         module = feedback if kind.startswith('feedback.') else ew
+        approval = owner.confirm(kind, value, Console()) if kwargs.get('owner') else kwargs.get('approval')
         return module.apply(self.root, kind, value, kwargs.get('expected', self.revision()),
-                            kwargs.get('request', str(uuid.uuid4())), self.base)
+                            kwargs.get('request', str(uuid.uuid4())), self.base, approval=approval)
 
     def cp(self):
         return c.checkpoint_ref(workflow.resume(self.root)['active'])
@@ -64,7 +82,7 @@ class Fixture(unittest.TestCase):
                     {'id': 'delivery', 'after': ['direction'], 'skills': ['dcc-review-continue'], 'deliverables': ['native'],
                      'evidence': ['native_reopen', 'native_contract', 'feedback_reconciliation', 'handoff'], 'review': 'agent_within_brief'}]}
 
-    def bind(self, manifest=None, **updates):
+    def bind(self, manifest=None, owner=False, **updates):
         manifest = manifest or self.manifest()
         skill_files = {}
         for name in {n for s in manifest['stages'] for n in s['skills']}:
@@ -75,7 +93,7 @@ class Fixture(unittest.TestCase):
         binding = {'schema': 'dcc.environment.binding.v1', 'checkpoint': self.cp(), 'authority': self.actor(),
                    'review_policies': {}, 'inherited': {}, 'skill_files': skill_files, 'references': []}
         binding.update(updates)
-        return self.apply('workflow.bind', {'manifest': manifest, 'binding': binding})
+        return self.apply('workflow.bind', {'manifest': manifest, 'binding': binding}, owner=owner)
 
     def submit(self, **updates):
         notes = feedback.state(c.read(self.root), c.Continuity(self.root).status())
@@ -85,10 +103,10 @@ class Fixture(unittest.TestCase):
         value.update(updates)
         return self.apply('stage.submit', value)
 
-    def complete(self, submitted, **updates):
+    def complete(self, submitted, owner=False, **updates):
         review = {'reviewer': self.actor(), 'verdict': 'pass', 'finding': 'Reviewed the stated direction'}
         review.update(updates)
-        return self.apply('stage.complete', {'submission_id': submitted['revision'], 'review': review})
+        return self.apply('stage.complete', {'submission_id': submitted['revision'], 'review': review}, owner=owner)
 
     def render(self, checkpoint=None, view='DETAIL'):
         folder = self.base / ('render-' + uuid.uuid4().hex)

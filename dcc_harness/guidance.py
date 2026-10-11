@@ -122,7 +122,8 @@ def _steps(packet, state, events):
                     f'{RUN} stage-complete {project} --submission-id {sub} --review "<review .json>" '
                     f'--expected-revision {sub} --request-id {uuid.uuid4()}'),
                     'why': (f'Stage {stage["id"]} is submitted and awaits review. '
-                            + ('Its policy requires the artist: do not complete it as an agent. ' if artist else
+                            + ('Its policy requires the artist: build a page with review-page and give it to the artist, who runs '
+                               'review-import in their own terminal. An artist review from an agent session is refused. ' if artist else
                                'Agent review within the brief is allowed. ')
                             + 'Anything recorded after the submission makes it stale; then submit again.')})
         for note in coordination['notes']:
@@ -131,7 +132,7 @@ def _steps(packet, state, events):
                 review.append({'id': 'feedback-verify', 'note_id': note['id'], 'response_id': note['response_id'], 'command': (
                     f'{RUN} feedback-verify {project} --verification "<verification .json>" {request()}'),
                     'why': f'{text} has an implemented response. It needs verification by a separate reviewer; '
-                           'same-author review is disclosed, and artist-required notes need the artist.'})
+                           'same-author review is disclosed, and artist-required notes need the artist in their own terminal.'})
             elif note['status'] in ('open', 'reopened', 'in_progress') or note['current_validity'] == 'needs_recheck':
                 reason = ('was closed at an earlier checkpoint; respond again against the current one'
                           if note['current_validity'] == 'needs_recheck' else f'is {note["status"].replace("_", " ")}')

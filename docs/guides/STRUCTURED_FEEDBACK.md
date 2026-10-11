@@ -66,9 +66,13 @@ Response schema `dcc.feedback.response.v1` requires `note_id`, `author`, `dispos
 
 Verification schema `dcc.feedback.verification.v1` requires `note_id`, `response_id` (the response event's revision), `reviewer: {role, author, reference}`, `finding`, `verdict: pass|fail|uncertain` and `views: [view_id...]`. Technical contracts are recomputed from the retained inputs. Visual verification requires declared inspection of bound views; if the original note has a view, its settings digest must match. Partial work cannot be verified as resolved. Missing anchored targets require an explicit disposition instead of silently rebinding names. Same-author review is disclosed. Agent review never becomes artist acceptance.
 
-Use `feedback-decide --decision FILE` for `reopen`, `reassign`, `deferred` or `not_applicable`. Its schema is `dcc.feedback.decision.v1` with `note_id`, `action`, `reason`, `authority: {role, author, reference}`, and current `result`; reassignment also needs `stage_id`. Blocking deferral/non-applicability requires an attributed artist decision in this first release. Historical notes are never deleted or rewritten. Supersession is represented by a new note plus an explicit disposition of the old one, not an implicit replacement.
+Use `feedback-decide --decision FILE` for `reopen`, `reassign`, `deferred` or `not_applicable`. Its schema is `dcc.feedback.decision.v1` with `note_id`, `action`, `reason`, `authority: {role, author, reference}`, and current `result`; reassignment also needs `stage_id`. Blocking deferral/non-applicability requires an artist decision, which since 0.12.0 comes only through the owner's terminal. Historical notes are never deleted or rewritten. Supersession is represented by a new note plus an explicit disposition of the old one, not an implicit replacement.
 
 A resolved note is current only at its verified checkpoint. After another native publication, it remains historically resolved but becomes `needs_recheck`. Repeat the response/verification against the new evidence. No field-dependency guessing or automatic carry-forward waiver is performed.
+
+## Artist authority
+
+Since 0.12.0, a verification, decision, binding, reopening or completion whose reviewer or authority has `role: artist` is committed only with the owner's confirmation. The artist runs the command in their own terminal and types the code it shows. Agent sessions and piped input are refused. The receipt records `artistic_acceptance: artist_confirmed` with the `owner_approval` provenance. A binding that relaxes a stage the manifest marks `artist_required` needs the artist's authority. Notes and evidence producers stay attributions. See [owner approval](OWNER_APPROVAL.md) for strength and limits.
 
 ## Evidence entries
 

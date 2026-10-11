@@ -35,8 +35,10 @@ python -m dcc_harness review-import "<project>" "<downloaded export .json>" --pa
 
 `review-import` refuses an export from another or changed page. It completes the stage first, then adds each note as a `dcc.feedback.note.v1` anchored to the after checkpoint, with the pinned render. Request IDs come from the export's content, so running the same import again returns `ALREADY_COMMITTED` for each item instead of adding duplicates. If anything was recorded after the submission, completion is refused as stale; build a new page.
 
+Since 0.12.0, an export that approves a stage is imported only by the artist, in their own terminal. The command shows the review and asks for a short code before committing anything. From an agent session it is refused and nothing is imported, notes included. An export with only notes imports from anywhere. See [owner approval](OWNER_APPROVAL.md).
+
 ## Limits
 
-- **Attribution only.** The export says it is from the artist, and nothing checks that yet. P12 will restrict who can import an artist's approval.
+- **Owner approval is a guard.** An approval needs the artist's own terminal, which stops an agent approving its own work through the commands. It is not a wall against an agent with an unrestricted shell. Notes stay attributions.
 - **Local only.** The page is a local folder; sharing or hosting it is up to you.
 - **Pins.** Pins are fractions of the after image. A note pinned on a view keeps meaning only while that view's settings stay the same.

@@ -130,7 +130,7 @@ def main():
                 _write_failed(parser, exc)
         return
     if args.command in COORDINATION_COMMANDS:
-        from . import feedback, environment_workflow
+        from . import feedback, environment_workflow, owner
         kind, argument = COORDINATION_COMMANDS[args.command]
         source = Path(getattr(args, argument))
         payload = read_json(source)
@@ -139,7 +139,9 @@ def main():
         elif kind == 'stage.complete':
             payload = {'submission_id': args.submission_id, 'review': payload}
         module = feedback if kind.startswith('feedback.') else environment_workflow
-        result = module.apply(args.project, kind, payload, args.expected_revision, args.request_id, args.evidence_root or source.absolute().parent)
+        approval = owner.authorize(args.project, kind, payload, args.request_id)
+        result = module.apply(args.project, kind, payload, args.expected_revision, args.request_id, args.evidence_root or source.absolute().parent,
+                              approval=approval)
     elif args.command == 'next':
         from .guidance import next_steps
         result = next_steps(args.project)

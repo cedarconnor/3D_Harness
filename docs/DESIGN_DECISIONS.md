@@ -21,6 +21,7 @@ Reviewed October 6, 2026. The table records how each decision held up; the entri
 | D13 Realism recalibration | Interrupted after one partial build. Resuming or retiring the comparison is an open decision, tracked as build-plan item E4. |
 | D14–D16 | Implemented in 0.4.9, 0.4.10 and 0.5.0. |
 | D17 Bounded increments | Records the October 5 authorization. |
+| D18 Owner approval | Decided October 10 for 0.12.0: artist authority comes only through the owner's terminal. A guard, not a wall. |
 
 ## D1 Creative value comes before infrastructure breadth
 
@@ -146,6 +147,27 @@ The fresh-context exercise found that a view-settings hash without the underlyin
 On October 5, after reviewing the comparison evidence, the user authorized improving the harness and skills. Until now, that authorization appeared only in build-plan status notes. It covers the bounded usability, craft and continuity increments of versions 0.4.0–0.5.0: everyday entry points, visual rejection, recipes, observation performance, adoption, external revisions and structured feedback.
 
 It does not pass the creative investment gate (D1). No artist scores, repair-time measurements or completed held-out comparison exist, and D13's comparison remains interrupted. Stage C–E breadth still waits for that gate: linked publishing at scale, managed execution, unattended runs, client packaging and other DCCs. Each increment keeps its own qualification and states that it establishes no comparative quality advantage.
+
+## D18 Artist authority comes only through the owner's terminal
+
+Decided October 10, 2026, for version 0.12.0 (build-plan item P12). Until now every role in the coordination record was the caller's claim, so an agent could write `role: "artist"` and complete a stage whose policy requires the artist, or waive a blocking note.
+
+A record that rests on the artist's authority is committed only with an owner approval issued for that exact request. These are:
+
+- a stage completion or feedback verification with an artist reviewer;
+- a feedback decision, stage reopening or workflow binding with artist authority;
+- a binding that relaxes a stage the manifest marks `artist_required`.
+
+The runtime issues an approval only from an interactive terminal outside an agent session:
+
+- It refuses when a known agent-session variable is set, or when standard input is not a terminal.
+- It shows what will be recorded and requires the owner to type a short code derived from the request.
+
+The receipt records the channel, time, operating-system user and code, and artist acceptance becomes `artist_confirmed`. Records committed earlier keep `artist_declared`; nothing is rewritten.
+
+Notes and evidence producers remain attributions. A note adds work and cannot accept anything, so an agent may import a review page's notes. Only the owner imports an export that approves a stage.
+
+This is a guard, not a wall. It stops an agent from approving its own work through the documented commands, payload files or a page export, whether by accident or casually. An agent with an unrestricted shell can still remove the variables and fake a terminal, construct an approval in Python, or rewrite the record and its hashes. A wall needs the owner's records to be written by a process the agent's account cannot reach, and the Windows sessions used here have no such separation. Learned-check approval (P11) will use the same channel.
 
 ## Disposition of Claude feedback (retained review)
 

@@ -3,12 +3,14 @@
 Renders both checkpoints in Blender, re-observes the after checkpoint, checks the page's changes,
 notes and verification, then imports an export shaped exactly as the page's script writes it (a
 pinned note on the after render) and replays it. Finally binds a small workflow, submits a stage
-with owner questions, rebuilds the page and imports an approval that changes one answer.
+with owner questions, rebuilds the page and imports an approval that changes one answer. Since 0.12.0
+the approval needs the owner, so a scripted console stands in for the owner's terminal.
 The browser interactions themselves are checked by hand; see the 0.11.0 report.
 """
 import argparse
 import json
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -25,7 +27,7 @@ a = p.parse_args()
 if a.runtime:
     sys.path.insert(0, a.runtime)
 import dcc_harness
-from dcc_harness import coordination as c
+from dcc_harness import coordination as c, review_page
 from dcc_harness.evidence import read_json, write_json
 
 runtime = Path(dcc_harness.__file__).resolve().parent.parent
@@ -110,11 +112,21 @@ page3 = cli('review-page', project, '--output-dir', out / 'page-3', '--before-vi
 assert page3['submission'] == submitted['revision']
 review = {'reviewer': {**source, 'reference': 'Review page ' + page3['page_digest'][:12]}, 'verdict': 'pass',
           'finding': 'Direction reads well; warmer key light preferred', 'answers': {'light': 'Warm'}}
-imported = cli('review-import', project, export(None, page3['page_digest'], review=review), '--page', out / 'page-3')
+class ScriptedOwner:
+    environ = {}
+
+    def isatty(self):
+        return True
+
+    def ask(self, text):
+        return re.search(r'Type ([A-Z0-9]{4})', text).group(1)
+
+
+imported = review_page.import_review(project, export(None, page3['page_digest'], review=review), out / 'page-3', ScriptedOwner())
 assert [(r['kind'], r['status']) for r in imported['results']] == [('stage.complete', 'COMMITTED')], imported
 completed = c.read(project)[-1]['result']
 assert [(x['id'], x['answer'], x['used_default']) for x in completed['answers']] == [('finish', 'Oiled', True), ('light', 'Warm', False)]
-assert completed['artistic_acceptance'] == 'artist_declared'
+assert completed['artistic_acceptance'] == 'artist_confirmed' and completed['owner_approval']['channel'] == 'owner_terminal'
 summary['stage_review'] = {'stage': 'direction', 'answers': completed['answers'], 'status': 'COMMITTED'}
 summary['passed'] = True
 write_json(out / 'summary.json', summary)

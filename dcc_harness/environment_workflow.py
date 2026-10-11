@@ -140,6 +140,9 @@ def _bind(ctx, value):
             raise ValueError('Existing feedback references an unknown stage')
     if not isinstance(binding['review_policies'], dict) or not set(binding['review_policies']) <= keys or any(p not in ('agent_within_brief', 'artist_required') for p in binding['review_policies'].values()):
         raise ValueError('Unknown review policy/stage')
+    relaxed = [s['id'] for s in manifest['stages'] if s['review'] == 'artist_required' and binding['review_policies'].get(s['id']) == 'agent_within_brief']
+    if relaxed and binding['authority']['role'] != 'artist':
+        raise ValueError("Relaxing an artist-required stage needs the artist's authority: " + ', '.join(relaxed))
     if not isinstance(binding['inherited'], dict) or not set(binding['inherited']) <= keys - {'delivery'}:
         raise ValueError('Unknown inherited stage; delivery cannot be inherited')
     inherited_seen = set()
@@ -284,7 +287,7 @@ def _complete(ctx, value):
         raise ValueError('Artist review is required by the stage policy')
     return {'stage_id': sid, 'submission_id': event['id'], 'checkpoint': submitted['submission']['checkpoint'],
             'review': review, 'answers': answers, 'reports': refreshed['reports'], 'predecessors': refreshed['predecessors'],
-            'artistic_acceptance': 'artist_declared' if review['reviewer']['role'] == 'artist' else 'not_evaluated'}
+            'artistic_acceptance': 'artist_confirmed' if review['reviewer']['role'] == 'artist' else 'not_evaluated'}
 
 
 def _reopen(ctx, value):
@@ -301,8 +304,8 @@ def _reopen(ctx, value):
 BUILDERS = {'workflow.bind': _bind, 'stage.submit': _submit, 'stage.complete': _complete, 'stage.reopen': _reopen}
 
 
-def apply(root, kind, payload, expected_revision, request_id, base=None):
-    return c.transact(root, kind, payload, expected_revision, request_id, base or Path.cwd(), BUILDERS[kind])
+def apply(root, kind, payload, expected_revision, request_id, base=None, approval=None):
+    return c.transact(root, kind, payload, expected_revision, request_id, base or Path.cwd(), BUILDERS[kind], approval)
 
 
 def summary(events, native):
@@ -319,4 +322,4 @@ def summary(events, native):
                 'stages': list(stages(events).values())},
             'notes': rows, 'total_notes': len(rows), 'unresolved_blockers': feedback.unresolved(events, native),
             'artistic_acceptance': 'not_evaluated',
-            'limits': 'Caller-attributed reviews; historical resolutions require recheck on changed checkpoints. Older/direct writers bypass this extension.'}
+            'limits': "Agent reviews are caller-attributed; artist reviews need the owner's terminal (a guard, not a wall); historical resolutions require recheck on changed checkpoints. Older/direct writers bypass this extension."}

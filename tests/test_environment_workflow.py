@@ -73,7 +73,7 @@ class EnvironmentWorkflowTests(Fixture):
         submitted = self.submit()
         with self.assertRaisesRegex(ValueError, 'Artist review'):
             self.complete(submitted)
-        self.complete(submitted, reviewer=self.actor('artist'))
+        self.complete(submitted, reviewer=self.actor('artist'), owner=True)
 
     def test_missing_stage_evidence_can_be_submitted_but_not_completed(self):
         self.bind(); submitted = self.submit(evidence=[])

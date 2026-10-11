@@ -2,6 +2,17 @@
 
 Each version is a bounded increment with its own qualification report. Test counts are portable-suite results on Windows; the two skips in each count are host symlink-permission cases. Native qualification uses Blender 5.1.1 on Windows. Studies are listed with the versions they exercised. The [build plan](docs/BUILD_PLAN.md) explains what remains open, and reports that link into `runs/` refer to local evidence excluded from Git.
 
+## 0.12.0 — October 10, 2026
+
+Owner approval channel, build-plan item P12 ([plan](docs/archive/plans/P12_OWNER_APPROVAL.md), decision [D18](docs/DESIGN_DECISIONS.md#d18-artist-authority-comes-only-through-the-owners-terminal)).
+
+- **Changed:** a payload that claims the artist as its reviewer or authority now needs the owner's confirmation for that exact request: a stage completion, feedback verification, feedback decision, stage reopening or workflow binding. The command shows what will be recorded and asks for a four-character code at an interactive terminal. It refuses inside an agent session (`CLAUDECODE`, `AI_AGENT`, `CODEX_SANDBOX`, `GEMINI_CLI`, `DCC_HARNESS_AGENT`) and with piped input. Replays of committed requests do not ask again.
+- **Changed:** such receipts record `owner_approval` (channel, time, operating-system user, code) and `artistic_acceptance: artist_confirmed`. Earlier records keep `artist_declared`.
+- **Changed:** `review-import` asks once before committing anything when the export approves a stage, and imports nothing if the owner does not confirm. Notes-only exports import as before.
+- **Changed:** a binding that relaxes a stage the manifest marks `artist_required` needs the artist's authority. `brief` and `next` tell agents to hand artist-required stages to the artist.
+- **Added:** the [owner approval guide](docs/guides/OWNER_APPROVAL.md). It states the limit: this is a guard against an agent approving its own work, not a wall against one with an unrestricted shell.
+- **Qualification:** 365 tests from source and from the installed wheel. Native refusals and a scripted owner approval on the comparison project from both runtimes. [Report](docs/archive/releases/OWNER_APPROVAL_0_12_0_RESULTS.md)
+
 ## 0.11.0 — October 10, 2026
 
 Before/after review page, build-plan item P4 ([plan](docs/archive/plans/P4_REVIEW_PAGE.md)).

@@ -1,4 +1,4 @@
 """Advisory DCC harness. Does not intercept arbitrary native writes."""
 
-__version__ = "0.11.0"
+__version__ = "0.12.0"
 
