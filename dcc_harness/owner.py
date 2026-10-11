@@ -19,7 +19,8 @@ AGENT_MARKERS = ('CLAUDECODE', 'AI_AGENT', 'CODEX_SANDBOX', 'GEMINI_CLI', 'DCC_H
 # Where each kind names the actor whose authority it rests on. Notes and evidence producers are attributions only.
 AUTHORITY = {'stage.complete': ('review', 'reviewer'), 'feedback.verify': ('reviewer',), 'feedback.decide': ('authority',),
              'stage.reopen': ('authority',), 'workflow.bind': ('binding', 'authority')}
-SHOWN = ('stage_id', 'note_id', 'action', 'verdict', 'finding', 'reason', 'answers', 'review_policies')
+SHOWN = ('stage_id', 'note_id', 'action', 'verdict', 'finding', 'reason', 'answers', 'review_policies',
+         'check_id', 'note', 'rationale', 'rule', 'stages')
 
 
 class OwnerRequired(RuntimeError):
@@ -63,8 +64,9 @@ def claims_artist(kind, payload):
 
 
 def describe(kind, payload):
-    actor = _actor(kind, payload) or {}
-    lines = [f"Record {kind} as the artist's decision, by {actor.get('author', 'unnamed')}."]
+    actor = _actor(kind, payload)
+    lines = [f"Record {kind} as the artist's decision, by {actor.get('author', 'unnamed')}." if actor is not None
+             else f'Approve {kind} as the owner.']
     for part in (payload, payload.get('review'), payload.get('binding')):
         if isinstance(part, dict):
             lines += [f'  {key}: ' + (part[key] if isinstance(part[key], str) else json.dumps(part[key])) for key in SHOWN if key in part]

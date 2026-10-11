@@ -12,6 +12,8 @@ Any payload whose reviewer or authority is the artist:
 - reopening a stage;
 - binding a workflow, including a binding that relaxes a stage the manifest marks `artist_required`.
 
+Approving a [learned check](LEARNED_CHECKS.md) into a library (`check-approve`) needs the owner too. The prompt shows the rule, its stages, its rationale and the note it came from.
+
 Notes, including those written on the review page, are not approvals. An agent may still import them.
 
 ## How to approve

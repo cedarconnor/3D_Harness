@@ -1,6 +1,6 @@
 # Agent quick reference
 
-Version 0.12.0. The exact command sequences for the most common work, for an agent continuing a 3D Harness project. Every command below is checked against the real parser by `tests/test_quick_reference.py`. Values in `<angle brackets>` and capitalized placeholders such as `PARENT_ID` are yours to fill; quote every path.
+Version 0.13.0. The exact command sequences for the most common work, for an agent continuing a 3D Harness project. Every command below is checked against the real parser by `tests/test_quick_reference.py`. Values in `<angle brackets>` and capitalized placeholders such as `PARENT_ID` are yours to fill; quote every path.
 
 ## 1. Orient
 
@@ -157,7 +157,19 @@ python -m dcc_harness fill-hashes "<work>/stage.draft.json" "<work>/stage.json"
 python -m dcc_harness stage-submit "<project>" --submission "<work>/stage.json" --expected-revision REVISION --request-id REQUEST_UUID
 ```
 
-`requirements` lists the evidence the stage needs and returns a `skeleton`. Save the skeleton as `stage.draft.json`, replace every `<placeholder>`, and keep `feedback_ids` exactly as given.
+`requirements` lists the evidence the stage needs and returns a `skeleton`. Save the skeleton as `stage.draft.json`, replace every `<placeholder>`, and keep `feedback_ids` exactly as given. If the workflow pinned learned checks, `requirements` also lists them with their current result. For each relation check, save its `spec`, run the `relations ... --spec` command it gives and keep the `check_measurements` path. A failed or unmeasured check blocks completion; fix the scene, don't argue with the check.
+
+## 8. Propose a learned check
+
+When the artist's note describes an error that no check caught, and a rule can measure it, propose a check. The rule must fail on the note's checkpoint and pass on the fix. Taste is not a check. See [learned checks](LEARNED_CHECKS.md) for the rule and proposal formats.
+
+```powershell
+python -m dcc_harness check-propose "<project>" --proposal "<work>/proposal.json" --expected-revision REVISION --request-id REQUEST_UUID
+python -m dcc_harness checks "<library>"
+python -m dcc_harness check-occurrence "<library>" --project "<project>" --note NOTE_ID --check CHECK_ID
+```
+
+Only the owner approves a check, with `check-approve` in their own terminal; give them the proposal revision. If an existing library check covers the error, count it with `check-occurrence` instead of proposing it again.
 
 ## Stops
 
@@ -174,5 +186,8 @@ python -m dcc_harness stage-submit "<project>" --submission "<work>/stage.json" 
 | `Owner approval is refused inside an agent session` | The payload claims the artist's authority | Give the artist the exact command to run in their own terminal; never work around it |
 | `Owner approval required` | An artist authority reached the record without the owner's confirmation | The same: only the artist approves |
 | `Relaxing an artist-required stage` | The binding lowers a stage the manifest gives to the artist | Keep the manifest's policy, or ask the artist to bind it |
+| `The rule does not fail on the note` | The proposed rule would not have caught the error | Change the rule, or keep the lesson as a skill note |
+| `Taste stays project direction` | The note is taste, not an error | Record it in the brief or decisions |
+| `Pinned library checks failed or were not measured` | A pinned check fails, or a relation check has no measurement | Fix the scene, or add the measurement `requirements` names, then submit again |
 | `Missing library` | A collection instance's library file is not where its stored relative path points | Work on the copy beside its libraries, never the stored checkpoint |
 | `HAS_ISSUES` from `observe`, exit 1 | The saved file has missing IDs or unsupported data | Read the issues; see the scene adoption guide |

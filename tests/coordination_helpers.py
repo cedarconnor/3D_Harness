@@ -5,7 +5,7 @@ import unittest
 import uuid
 
 import test_workflow as existing
-from dcc_harness import coordination as c, feedback, environment_workflow as ew, owner, workflow
+from dcc_harness import checks, coordination as c, feedback, environment_workflow as ew, owner, workflow
 from dcc_harness.evidence import digest, file_hash, write_json
 
 
@@ -42,7 +42,7 @@ class Fixture(unittest.TestCase):
         return events[-1]['id'] if events else 'none'
 
     def apply(self, kind, value, **kwargs):
-        module = feedback if kind.startswith('feedback.') else ew
+        module = feedback if kind.startswith('feedback.') else checks if kind.startswith('check.') else ew
         approval = owner.confirm(kind, value, Console()) if kwargs.get('owner') else kwargs.get('approval')
         return module.apply(self.root, kind, value, kwargs.get('expected', self.revision()),
                             kwargs.get('request', str(uuid.uuid4())), self.base, approval=approval)

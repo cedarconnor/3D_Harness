@@ -14,6 +14,7 @@ Scripts marked *launcher* run under system Python and start Blender themselves, 
 
 | Version | Scripts | Mode | Runs from a clone |
 |---|---|---|---|
+| 0.13.0 | `qualify_checks.py`: on the relations probe's bench scenes, two checks proposed and proven natively, a wrong and a taste proposal refused, approval refused from the agent session and given by a scripted owner console, then a second project that pins the library: blocked by both checks, a counted repeat, and completion after the fix. The 0.7.0–0.12.0 qualifications rerun | launcher | Yes: builds its scenes |
 | 0.12.0 | `qualify_owner.py`: from an agent session, approvals through `review-import` and `stage-complete` are refused, and again with the agent variables removed but input piped; a scripted owner console commits with provenance; replay and notes-only import still work. `qualify_review_page.py` takes its approval through the same console; the 0.7.0–0.10.0 qualifications rerun | launcher | No: copies a local project from `runs/` |
 | 0.11.0 | `qualify_review_page.py`: a rendered and reopened page on the comparison project, a pinned note and a stage approval imported and replayed; the 0.7.0–0.10.0 qualifications rerun | launcher | No: copies a local project from `runs/` |
 | 0.10.0 | `qualify_instances.py` with `instances_native_probe.py`: observation, compatibility with the previous release (`--baseline-runtime`), scoped instance edits, an in-place library edit, issues and adoption; the 0.7.0–0.9.0 qualifications rerun | launcher | Needs a previous release for the compatibility check |

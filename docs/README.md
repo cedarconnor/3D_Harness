@@ -1,6 +1,6 @@
 # Documentation index
 
-Updated October 10, 2026, for version 0.12.0. Start with the repository [README](../README.md), then the [everyday workflow](guides/EVERYDAY_WORKFLOW.md). Agents continuing a project start with `brief` and the [agent quick reference](guides/AGENT_QUICK_REFERENCE.md). The [build plan](BUILD_PLAN.md) tracks current status and next work; the [changelog](../CHANGELOG.md) lists what each version delivered.
+Updated October 10, 2026, for version 0.13.0. Start with the repository [README](../README.md), then the [everyday workflow](guides/EVERYDAY_WORKFLOW.md). Agents continuing a project start with `brief` and the [agent quick reference](guides/AGENT_QUICK_REFERENCE.md). The [build plan](BUILD_PLAN.md) tracks current status and next work; the [changelog](../CHANGELOG.md) lists what each version delivered.
 
 Documents are split by whether they are still in use:
 
@@ -21,6 +21,7 @@ Archived documents stay as written. They remain the evidence for the claims in t
 | Document | Covers | Since |
 |---|---|---|
 | [Agent quick reference](guides/AGENT_QUICK_REFERENCE.md) | `brief`, `next`, `requirements`, `render`, `relations` and the exact sequences for an edit, review renders, relation measurements, a feedback response and a stage submission | 0.7.0 |
+| [Learned checks](guides/LEARNED_CHECKS.md) | Proposing a check from an artist note, owner approval into a versioned library, pinning it in a project and counting repeats | 0.13.0 |
 | [Owner approval](guides/OWNER_APPROVAL.md) | How the artist approves in their own terminal, what needs it, and why it is a guard, not a wall | 0.12.0 |
 | [Review page](guides/REVIEW_PAGE.md) | `review-page` and `review-import`: the artist's before/after page and bringing its export back | 0.11.0 |
 | [Everyday workflow](guides/EVERYDAY_WORKFLOW.md) | `start`, `resume`, `review`, `begin-edit`, `finish-edit`, reconciliation and locks | 0.4.0 |
@@ -77,6 +78,7 @@ One report per version. The [changelog](../CHANGELOG.md) summarizes counts and n
 | 0.4.10 | [External revisions](archive/releases/REVISIONS_0_4_10_RESULTS.md) |
 | 0.5.0 | [Structured feedback](archive/releases/FEEDBACK_0_5_0_RESULTS.md) |
 | 0.5.1 | [Correctness maintenance](archive/releases/MAINTENANCE_0_5_1_RESULTS.md) |
+| 0.13.0 | [Learned checks](archive/releases/CHECKS_0_13_0_RESULTS.md) |
 | 0.12.0 | [Owner approval](archive/releases/OWNER_APPROVAL_0_12_0_RESULTS.md) |
 | 0.11.0 | [Review page](archive/releases/REVIEW_PAGE_0_11_0_RESULTS.md) |
 | 0.10.0 | [Collection instances](archive/releases/INSTANCES_0_10_0_RESULTS.md) |
@@ -99,6 +101,7 @@ Artist scoring for the first two studies is still open; it is item E1.
 
 These are not implementation authority. Their example APIs and status claims may be unimplemented or superseded.
 
+- [P11 plan](archive/plans/P11_LEARNED_CHECKS.md), implemented in 0.13.0.
 - [P12 plan](archive/plans/P12_OWNER_APPROVAL.md), implemented in 0.12.0.
 - [P4 plan](archive/plans/P4_REVIEW_PAGE.md), implemented in 0.11.0.
 - [P3 plan](archive/plans/P3_COLLECTION_INSTANCES.md), implemented in 0.10.0.

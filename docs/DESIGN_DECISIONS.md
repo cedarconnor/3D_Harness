@@ -22,6 +22,7 @@ Reviewed October 6, 2026. The table records how each decision held up; the entri
 | D14–D16 | Implemented in 0.4.9, 0.4.10 and 0.5.0. |
 | D17 Bounded increments | Records the October 5 authorization. |
 | D18 Owner approval | Decided October 10 for 0.12.0: artist authority comes only through the owner's terminal. A guard, not a wall. |
+| D19 Learned checks | Decided October 10 for 0.13.0: computed rules only, proven on the error's own checkpoints, owner-approved into a versioned library that projects pin at binding. |
 
 ## D1 Creative value comes before infrastructure breadth
 
@@ -168,6 +169,18 @@ The receipt records the channel, time, operating-system user and code, and artis
 Notes and evidence producers remain attributions. A note adds work and cannot accept anything, so an agent may import a review page's notes. Only the owner imports an export that approves a stage.
 
 This is a guard, not a wall. It stops an agent from approving its own work through the documented commands, payload files or a page export, whether by accident or casually. An agent with an unrestricted shell can still remove the variables and fake a terminal, construct an approval in Python, or rewrite the record and its hashes. A wall needs the owner's records to be written by a process the agent's account cannot reach, and the Windows sessions used here have no such separation. Learned-check approval (P11) will use the same channel.
+
+## D19 Learned checks are computed rules in an owner-approved library
+
+Decided October 10, 2026, for version 0.13.0 (build-plan item P11). An error the artist finds should not have to be found again in the next project. Mortiflix keeps such lessons as plain-language rules that a session marks as passed; here a lesson becomes a check only if the runtime can compute it.
+
+- **Computed only.** A check is a rule over measured data: an object field from the observation, or a `supported_by` relation measured natively. A lesson that cannot be measured stays a skill note.
+- **Proven on its error.** A proposal names the note and must fail on the note's own checkpoint and pass on the fixed one. The runtime evaluates both; the proposer's claim is not enough. Taste is refused: it stays project direction.
+- **Approved by the owner.** Approval goes through the D18 owner channel, so the proposing agent cannot approve its own check. Approval re-proves the check on its retained fixtures.
+- **Versioned outside projects.** Each approval writes a new library version, chained to the previous one, with the fixtures kept beside it. Reading a library re-proves every check.
+- **Pinned at binding.** A project uses checks only through the library version its workflow binding retains, so a later library change never alters a project already under way. Checks run at their stages and at delivery; a failed or unmeasured check blocks completion.
+
+Repeats are counted by verified occurrences in other projects, to rank which checks matter. The library carries the same guard-not-wall limit as D18, and a pinned library file is checked for structure, not for having come from a particular library.
 
 ## Disposition of Claude feedback (retained review)
 

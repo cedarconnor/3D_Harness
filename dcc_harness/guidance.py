@@ -9,6 +9,7 @@ import uuid
 
 from . import coordination as c, feedback, relations
 from .continuity import Continuity
+from .evidence import read_json
 from .project import now
 from .workflow import _packet
 
@@ -210,6 +211,7 @@ def requirements(root, stage_id):
                 'deliverables': {d: f'<describe the {d}>' for d in spec['deliverables']},
                 'evidence': [{'kind': kind, **EVIDENCE[kind][1](before)} for kind in spec['evidence']],
                 'feedback_ids': applicable, 'note': '<what this submission is and what to look at>'}
+    pinned = _pinned_checks(events, state, stage_id, skeleton)
     return {'schema': 'dcc.requirements.v1', 'project': packet['project'], 'stage_id': stage_id,
             'state': states[stage_id]['state'],
             'blocked_by': [p for p in spec['after'] if states[p]['state'] not in ('complete', 'inherited')],
@@ -217,13 +219,34 @@ def requirements(root, stage_id):
             'evidence': [{'kind': kind, 'what': EVIDENCE[kind][0]} for kind in spec['evidence']],
             'feedback_ids': applicable,
             'unresolved_blockers': feedback.unresolved(events, state, None if stage_id == 'delivery' else stage_id),
-            'expected_revision': events[-1]['id'], 'skeleton': skeleton,
+            'checks': pinned, 'expected_revision': events[-1]['id'], 'skeleton': skeleton,
             'then': [f'{RUN} fill-hashes "<stage.draft.json>" "<stage.json>"',
                      f'{RUN} stage-submit {project} --submission "<stage.json>" --expected-revision {events[-1]["id"]} '
                      f'--request-id {uuid.uuid4()}'],
             'notes': ['native_contract.before defaults to the previous checkpoint; replace it if the contract was measured from another.',
                       'Paths are relative to the evidence root, which defaults to the submission file\'s folder.'],
             'limits': LIMITS}
+
+
+def _pinned_checks(events, state, stage_id, skeleton):
+    """The workflow's pinned library checks for a stage, as they stand on the active checkpoint."""
+    from . import checks
+    document = checks.pinned(events)
+    if document is None:
+        return []
+    observation = read_json(state['active']['observation'])
+    rows = []
+    for check in checks.applicable(document, stage_id):
+        row = {'id': check['id'], 'kind': check['rule']['kind'], 'rationale': check['rationale'],
+               'now': checks.evaluate(check['id'], check['rule'], observation)['status']}
+        spec = checks.resolve(check['id'], check['rule'], observation) if check['rule']['kind'] == 'supported_by' else None
+        if spec is not None:
+            row['spec'] = spec
+            row['command'] = (f'{RUN} relations {_q(state["active"]["checkpoint"])} --blender "<BLENDER>" '
+                              f'--output-dir "<new folder>" --spec "<this spec saved as .json>"')
+            skeleton.setdefault('check_measurements', {})[check['id']] = {'path': '<relations output folder>/measurement.json'}
+        rows.append(row)
+    return rows
 
 
 def _fenced(text, language='text'):

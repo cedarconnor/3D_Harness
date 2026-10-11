@@ -10,7 +10,8 @@ COORDINATION_COMMANDS = {
     'feedback-add': ('feedback.add', 'note'), 'feedback-respond': ('feedback.respond', 'response'),
     'feedback-verify': ('feedback.verify', 'verification'), 'feedback-decide': ('feedback.decide', 'decision'),
     'workflow-bind': ('workflow.bind', 'binding'), 'stage-submit': ('stage.submit', 'submission'),
-    'stage-complete': ('stage.complete', 'review'), 'stage-reopen': ('stage.reopen', 'decision')}
+    'stage-complete': ('stage.complete', 'review'), 'stage-reopen': ('stage.reopen', 'decision'),
+    'check-propose': ('check.propose', 'proposal')}
 
 
 def build_parser():
@@ -73,6 +74,14 @@ def build_parser():
     p.add_argument("--views", help="A dcc.review.views.v1 file for --blender"); p.add_argument("--reopen", action="store_true", help="Re-observe the after checkpoint")
     p = sub.add_parser("review-import", help="Commit a review page export: the stage review, then each note")
     p.add_argument("project"); p.add_argument("export"); p.add_argument("--page", required=True, help="The page folder the export came from")
+    p = sub.add_parser("check-approve", help="Owner only: approve a proven check proposal into a learned check library")
+    p.add_argument("library"); p.add_argument("--project", required=True); p.add_argument("--proposal", required=True, help="The proposal's revision")
+    p.add_argument("--expected-version", type=int, required=True, help="The library version you listed; 0 for a new library")
+    p = sub.add_parser("check-occurrence", help="Count a note whose checkpoint an existing library check fails on")
+    p.add_argument("library"); p.add_argument("--project", required=True); p.add_argument("--note", required=True)
+    p.add_argument("--check", required=True); p.add_argument("--measurement", help="relations measurement.json for a supported_by check")
+    p = sub.add_parser("checks", help="List a learned check library, ranked by occurrences; verifies every check on its fixtures")
+    p.add_argument("library"); p.add_argument("--version", type=int); p.add_argument("--export", help="Write that version's library.json for a binding to pin")
     p = sub.add_parser("fill-hashes", help="Fill and verify {path, sha256} references; writes a new payload")
     p.add_argument("payload"); p.add_argument("destination")
     p.add_argument("--evidence-root", help="Base for relative paths; defaults to the payload's folder")
@@ -130,7 +139,7 @@ def main():
                 _write_failed(parser, exc)
         return
     if args.command in COORDINATION_COMMANDS:
-        from . import feedback, environment_workflow, owner
+        from . import checks, feedback, environment_workflow, owner
         kind, argument = COORDINATION_COMMANDS[args.command]
         source = Path(getattr(args, argument))
         payload = read_json(source)
@@ -138,7 +147,7 @@ def main():
             payload = {'manifest': read_json(args.manifest) if args.manifest else environment_workflow.default_manifest(), 'binding': payload}
         elif kind == 'stage.complete':
             payload = {'submission_id': args.submission_id, 'review': payload}
-        module = feedback if kind.startswith('feedback.') else environment_workflow
+        module = feedback if kind.startswith('feedback.') else checks if kind.startswith('check.') else environment_workflow
         approval = owner.authorize(args.project, kind, payload, args.request_id)
         result = module.apply(args.project, kind, payload, args.expected_revision, args.request_id, args.evidence_root or source.absolute().parent,
                               approval=approval)
@@ -184,6 +193,16 @@ def main():
                                        after_views=args.after_views, blender=args.blender, views=args.views, reopen=args.reopen)
         else:
             result = review_page.import_review(args.project, args.export, args.page)
+    elif args.command in ('check-approve', 'check-occurrence', 'checks'):
+        from . import checks
+        if args.command == 'check-approve':
+            result = checks.approve(args.library, args.project, args.proposal, args.expected_version)
+        elif args.command == 'check-occurrence':
+            result = checks.occurrence(args.library, args.project, args.note, args.check, args.measurement)
+        else:
+            result = checks.listing(args.library, args.version)
+            if args.export:
+                result['export'] = checks.export(args.library, args.export, args.version)
     elif args.command == 'fill-hashes':
         from .payloads import fill_hashes
         result = fill_hashes(args.payload, args.destination, args.evidence_root)

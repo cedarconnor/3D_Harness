@@ -2,6 +2,17 @@
 
 Each version is a bounded increment with its own qualification report. Test counts are portable-suite results on Windows; the two skips in each count are host symlink-permission cases. Native qualification uses Blender 5.1.1 on Windows. Studies are listed with the versions they exercised. The [build plan](docs/BUILD_PLAN.md) explains what remains open, and reports that link into `runs/` refer to local evidence excluded from Git.
 
+## 0.13.0 — October 10, 2026
+
+Learned check library, build-plan item P11 ([plan](docs/archive/plans/P11_LEARNED_CHECKS.md), decision [D19](docs/DESIGN_DECISIONS.md#d19-learned-checks-are-computed-rules-in-an-owner-approved-library)).
+
+- **Added:** `dcc.check.rule.v1` rules the runtime computes. `object_field` bounds a measured field (bounds, dimensions, scale, determinant, counts, render visibility) of the objects a type/ID-glob selector matches. `supported_by` resolves selectors to a relations definition and is evaluated from a native `relations --spec` measurement of the exact checkpoint.
+- **Added:** `check-propose`, a coordination command. It records a check proposed from a feedback note only if the rule fails on the note's checkpoint and passes on a later fixed one. Taste and unmeasurable lessons are refused.
+- **Added:** `check-approve`, owner only through the 0.12.0 channel. It proves the proposal again and writes the next version of a library outside any project, with its fixtures and a chain to the previous version. `checks` re-proves and lists the library ranked by repeats, and exports a version; `check-occurrence` counts a verified repeat from another project.
+- **Added:** a workflow binding may pin one exported library version (`checks`). Pinned checks run at stage submission, at their stages and at delivery; failed or unmeasured checks block completion. Submissions may carry `check_measurements`. `requirements` lists the stage's checks with the resolved relation definition and command.
+- **Added:** the [learned checks guide](docs/guides/LEARNED_CHECKS.md).
+- **Qualification:** 381 tests from source and from the installed wheel. Native proposals, refusals, owner approval, pinning, a blocked and then completed stage, and a counted repeat on the relations probe's bench scenes, from both runtimes. [Report](docs/archive/releases/CHECKS_0_13_0_RESULTS.md)
+
 ## 0.12.0 — October 10, 2026
 
 Owner approval channel, build-plan item P12 ([plan](docs/archive/plans/P12_OWNER_APPROVAL.md), decision [D18](docs/DESIGN_DECISIONS.md#d18-artist-authority-comes-only-through-the-owners-terminal)).

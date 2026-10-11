@@ -100,6 +100,7 @@ Binding schema `dcc.environment.binding.v1` has:
 
 - `checkpoint`: current checkpoint identity pair.
 - `authority`: attributed source of the project direction/permissions.
+- `checks` (optional, since 0.13.0): a `{path, sha256}` reference to one exported version of a [learned check library](LEARNED_CHECKS.md). It is pinned for the life of the project.
 - `review_policies`: stage-ID mapping to `agent_within_brief` or `artist_required`; `{}` uses stage defaults.
 - `inherited`: `{}` for a new sequence, or stage-ID mapping to `{reason, gaps: [...], evidence: [...]}` for existing work. Inherited predecessors must also be declared. Missing required evidence becomes an automatic gap. Delivery cannot be inherited.
 - `skill_files`: every skill named by the manifest mapped to a list of `{path, sha256}` files, including its matching `SKILL.md`.
@@ -119,6 +120,8 @@ python -m dcc_harness stage-complete PROJECT --submission-id SUBMISSION_REVISION
 ```
 
 Submission schema `dcc.environment.submission.v1` contains `stage_id`, current `checkpoint`, `deliverables` (each manifest deliverable mapped to a concrete description), typed `evidence`, `feedback_ids`, and `note`. Since 0.11.0 it may also carry `questions` for the reviewer: up to 12, each with a unique lowercase `id`, `text`, and optional `choices` (2 to 8) and `default` (one of the choices when choices are given). A completion review may carry `answers` keyed by question ID; unanswered questions take their default, a question without a default must be answered, free answers beside the choices are allowed, and the completion receipt records each answer and whether it was the default. The [review page](REVIEW_PAGE.md) presents the questions and exports the answers. Include every applicable note, including advisory and already-resolved notes; delivery includes all notes. Incomplete submissions are retained with missing-evidence and unresolved-note lists, but cannot complete.
+
+A submission may carry `check_measurements`, which maps each pinned relation check to a `relations --spec` measurement. Pinned checks are evaluated at submission, and completion is refused while any fails or is unmeasured.
 
 Completion review has `reviewer: {role, author, reference}`, `verdict: pass`, and `finding`. Completion recomputes validators, checks current feedback and enforces the retained review policy. Any intervening coordination event or native publication makes a pending submission stale. Refresh it instead of overwriting the old submission. Pending native operations prevent completion.
 

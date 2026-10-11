@@ -4,7 +4,7 @@ from importlib.resources import files
 from pathlib import Path
 import re
 
-from . import coordination as c, coordination_evidence as evidence, feedback
+from . import checks, coordination as c, coordination_evidence as evidence, feedback
 from .evidence import digest, read_json
 
 
@@ -129,7 +129,7 @@ def _bind(ctx, value):
     ctx.quiet()
     manifest = validate_manifest(value['manifest'])
     binding = value['binding']
-    c.fields(binding, {'schema', 'checkpoint', 'authority', 'review_policies', 'inherited', 'skill_files', 'references'})
+    c.fields(binding, {'schema', 'checkpoint', 'authority', 'review_policies', 'inherited', 'skill_files', 'references'}, {'checks'})
     if binding['schema'] != 'dcc.environment.binding.v1':
         raise ValueError('Unsupported workflow binding')
     entry = ctx.checkpoint(binding['checkpoint'], current=True)
@@ -175,8 +175,13 @@ def _bind(ctx, value):
         raise ValueError('References must be explicit artifact references')
     for ref in binding['references']:
         ctx.artifact(ref)
-    return {'manifest': manifest, 'manifest_digest': digest(manifest), 'binding': binding,
-            'runtime': runtime_stamp(), 'inherited_reports': inherited_reports, 'artistic_acceptance': 'not_evaluated'}
+    result = {'manifest': manifest, 'manifest_digest': digest(manifest), 'binding': binding,
+              'runtime': runtime_stamp(), 'inherited_reports': inherited_reports, 'artistic_acceptance': 'not_evaluated'}
+    if 'checks' in binding:
+        # Pin one library version; later approvals never reach this project.
+        library = checks.validate_document(read_json(ctx.artifact(binding['checks'])))
+        result['checks'] = {'version': library['version'], 'sha256': binding['checks']['sha256'], 'ids': [x['id'] for x in library['checks']]}
+    return result
 
 
 def _stage(ctx, sid):
@@ -232,7 +237,7 @@ def _answers(questions, answers):
 
 
 def _submit(ctx, value):
-    c.fields(value, {'schema', 'stage_id', 'checkpoint', 'deliverables', 'evidence', 'feedback_ids', 'note'}, {'questions'})
+    c.fields(value, {'schema', 'stage_id', 'checkpoint', 'deliverables', 'evidence', 'feedback_ids', 'note'}, {'questions', 'check_measurements'})
     if 'questions' in value:
         _questions(value['questions'])
     if value['schema'] != 'dcc.environment.submission.v1':
@@ -252,9 +257,13 @@ def _submit(ctx, value):
     blockers = lambda: feedback.unresolved(ctx.events, ctx.native, None if value['stage_id'] == 'delivery' else value['stage_id'])
     reports = evidence.validate(ctx, value['evidence'], value['checkpoint'], feedback_check=blockers)
     missing = sorted(set(spec['evidence']) - {r['kind'] for r in reports})
-    return {'stage_id': value['stage_id'], 'submission': value, 'reports': reports, 'missing_evidence': missing,
-            'unresolved_notes': blockers(), 'predecessors': {p: states[p]['receipt_id'] for p in spec['after']},
-            'review_policy': feedback.policy(ctx.events, value['stage_id'])}
+    result = {'stage_id': value['stage_id'], 'submission': value, 'reports': reports, 'missing_evidence': missing,
+              'unresolved_notes': blockers(), 'predecessors': {p: states[p]['receipt_id'] for p in spec['after']},
+              'review_policy': feedback.policy(ctx.events, value['stage_id'])}
+    ran = checks.run(ctx, value['stage_id'], value['checkpoint'], value.get('check_measurements', {}))
+    if ran is not None:
+        result.update(checks=ran, failed_checks=[r['id'] for r in ran if not r['passed']])
+    return result
 
 
 def _complete(ctx, value):
@@ -275,6 +284,8 @@ def _complete(ctx, value):
     refreshed = _submit(frozen, submitted['submission'])
     if refreshed['missing_evidence'] or refreshed['unresolved_notes'] or not all(r['passed'] for r in refreshed['reports']):
         raise ValueError('Stage has missing evidence, failed checks or unresolved feedback')
+    if refreshed.get('failed_checks'):
+        raise ValueError('Pinned library checks failed or were not measured: ' + ', '.join(refreshed['failed_checks']))
     if sid == 'delivery' and any(s['inherited_gaps'] for s in states.values()):
         raise ValueError('Inherited stage evidence gaps remain')
     review = value['review']
