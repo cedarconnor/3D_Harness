@@ -2,6 +2,15 @@
 
 Each version is a bounded increment with its own qualification report. Test counts are portable-suite results on Windows; the two skips in each count are host symlink-permission cases. Native qualification uses Blender 5.1.1 on Windows. Studies are listed with the versions they exercised. The [build plan](docs/BUILD_PLAN.md) explains what remains open, and reports that link into `runs/` refer to local evidence excluded from Git.
 
+## 0.14.0 — October 11, 2026
+
+GLB delivery receipt, build-plan item P8 ([plan](docs/archive/plans/P8_GLB_DELIVERY.md)).
+
+- **Added:** `deliver-glb SOURCE --blender PATH --output-dir NEW [--project P]`. It exports a saved file to GLB in a fresh background Blender, never saving. It imports the GLB into an empty scene in a second process and compares objects by stable ID, reporting `MISSING`, `EXTRA`, `DUPLICATE`, `TRIANGLES`, `BOUNDS` (float32-tolerant) and `MATERIALS`. Cameras, lights and collection instances are listed as not delivered.
+- **Added:** a `dcc.delivery.glb.v1` receipt binding the source, the GLB and its exporter, and with `--project` the checkpoint the file equals; any other file is refused. The command exits 1 on any finding.
+- **Added:** the [GLB delivery guide](docs/guides/GLB_DELIVERY.md).
+- **Qualification:** 397 tests from source and from the installed wheel. Native delivery of the probe bench and the comparison project, a moved copy caught by `BOUNDS`, a truncated GLB refused at import, and the 1,285-mesh production garden matched in 53 s. [Report](docs/archive/releases/DELIVERY_0_14_0_RESULTS.md)
+
 ## 0.13.1 — October 11, 2026
 
 Maintenance, build-plan items M2–M5. No runtime behavior change.

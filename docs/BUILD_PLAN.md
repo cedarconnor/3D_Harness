@@ -16,7 +16,7 @@ Earlier plans are archived verbatim in [archive/plans](archive/plans/). The Octo
 
 | | |
 |---|---|
-| Version | 0.13.1 on `main` |
+| Version | 0.14.0 on `main` |
 | Active | None; P11 finished |
 | Next | E5 can run at any time; P5–P8 remain |
 | Waiting on the user | E1–E3 artist review session; E4 decision on the realistic comparison; E5 artist repair time |
@@ -63,7 +63,7 @@ Ranked by expected effect on the gate. Each ships as its own version.
 | P5 | Skill behavior regressions | Agent | todo | Sealed packets for six known failure situations, graded on actions and artifacts |
 | P6 | Evidence and coverage depth | Agent | todo | Dependency-aware invalidation; contracts cover new lights, world edits, modifier and node fields, UV overlap and texel density |
 | P7 | Revision dependency relocation | Agent | todo | External revisions with relative texture or library paths accepted into an owned copy |
-| P8 | GLB delivery receipt | Agent | todo, when export is required | Export, reimport into an empty scene, verify, and bind the receipt to the accepted checkpoint |
+| P8 | GLB delivery receipt ([plan](archive/plans/P8_GLB_DELIVERY.md)) | Agent | done | Shipped in 0.14.0: `deliver-glb` exports, reimports into an empty scene in a second process and compares by stable ID, with a receipt bound to the checkpoint. Natively, a moved copy failed with `BOUNDS`, a truncated GLB failed to import, and the production garden's 1,285 meshes matched ([report](archive/releases/DELIVERY_0_14_0_RESULTS.md)) |
 
 ### R: Repository
 
@@ -216,6 +216,7 @@ Capture fixed views at blockout, surface and lighting completion, pre-revision a
 
 Newest first. One line per status change.
 
+- **2026-10-11:** P8 done. Version 0.14.0 ships `deliver-glb`, built ahead of a required export at the user's request to push through the plan.
 - **2026-10-11:** E5 agent part done: the fresh agent found and answered all three notes in 32 minutes; it is blocked on the artist's repair time.
 - **2026-10-11:** M2–M5 done in maintenance version 0.13.1: shared file helpers, experiment tooling outside the runtime digest, a shared qualification launcher and session cost receipts.
 - **2026-10-11:** E5 started: a sealed fresh-agent continuation of the production garden with three controlled notes.

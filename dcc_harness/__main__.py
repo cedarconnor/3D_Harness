@@ -74,6 +74,10 @@ def build_parser():
     p.add_argument("--views", help="A dcc.review.views.v1 file for --blender"); p.add_argument("--reopen", action="store_true", help="Re-observe the after checkpoint")
     p = sub.add_parser("review-import", help="Commit a review page export: the stage review, then each note")
     p.add_argument("project"); p.add_argument("export"); p.add_argument("--page", required=True, help="The page folder the export came from")
+    p = sub.add_parser("deliver-glb", help="Export a saved .blend to GLB, reimport it in a fresh scene and compare; never saves")
+    p.add_argument("source"); p.add_argument("--blender", required=True, help="Path to Blender executable")
+    p.add_argument("--output-dir", required=True, help="New folder for the GLB, records, logs and receipt")
+    p.add_argument("--project", help="Bind the receipt to the project checkpoint this file equals")
     p = sub.add_parser("check-approve", help="Owner only: approve a proven check proposal into a learned check library")
     p.add_argument("library"); p.add_argument("--project", required=True); p.add_argument("--proposal", required=True, help="The proposal's revision")
     p.add_argument("--expected-version", type=int, required=True, help="The library version you listed; 0 for a new library")
@@ -193,6 +197,9 @@ def main():
                                        after_views=args.after_views, blender=args.blender, views=args.views, reopen=args.reopen)
         else:
             result = review_page.import_review(args.project, args.export, args.page)
+    elif args.command == 'deliver-glb':
+        from .delivery import deliver
+        result = deliver(args.source, args.output_dir, args.blender, project=args.project)
     elif args.command in ('check-approve', 'check-occurrence', 'checks'):
         from . import checks
         if args.command == 'check-approve':
