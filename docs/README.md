@@ -11,7 +11,7 @@ Documents are split by whether they are still in use:
 | [`recipes/`](recipes/) | Bounded construction helpers used by the craft skills |
 | [`studies/`](studies/) | Open evaluation work: the interrupted realistic comparison and the artist review session |
 | [`reference/`](reference/) | Research and designs behind upcoming stages |
-| `plans/` | Implementation plans for active tracked items, created when work starts and archived when it finishes; currently [P2](plans/P2_RELATIONSHIP_CHECKS.md) |
+| `plans/` | Implementation plans for active tracked items, created when work starts and archived when it finishes; currently empty |
 | [`archive/`](archive/) | Work already addressed: release reports, completed studies, implemented plans and superseded inputs |
 
 Archived documents stay as written. They remain the evidence for the claims in the plan, README and changelog; only their links were updated when files moved.
@@ -75,6 +75,7 @@ One report per version. The [changelog](../CHANGELOG.md) summarizes counts and n
 | 0.4.10 | [External revisions](archive/releases/REVISIONS_0_4_10_RESULTS.md) |
 | 0.5.0 | [Structured feedback](archive/releases/FEEDBACK_0_5_0_RESULTS.md) |
 | 0.5.1 | [Correctness maintenance](archive/releases/MAINTENANCE_0_5_1_RESULTS.md) |
+| 0.9.0 | [Relationship checks](archive/releases/RELATIONS_0_9_0_RESULTS.md) |
 | 0.8.0 | [Fixed-view render command](archive/releases/RENDER_0_8_0_RESULTS.md) |
 | 0.7.0 | [Agent guidance](archive/releases/GUIDANCE_0_7_0_RESULTS.md) |
 | 0.6.0 | [Lower step cost](archive/releases/STEP_COST_0_6_0_RESULTS.md) |
@@ -93,6 +94,7 @@ Artist scoring for the first two studies is still open; it is item E1.
 
 These are not implementation authority. Their example APIs and status claims may be unimplemented or superseded.
 
+- [P2 plan](archive/plans/P2_RELATIONSHIP_CHECKS.md), implemented in 0.9.0.
 - [P10 plan](archive/plans/P10_RENDER_COMMAND.md), implemented in 0.8.0.
 - [P9 plan](archive/plans/P9_AGENT_GUIDANCE.md), implemented in 0.7.0.
 - [P1 plan](archive/plans/P1_LOWER_STEP_COST.md), implemented in 0.6.0.

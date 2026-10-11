@@ -1,12 +1,12 @@
 # P2: Relationship checks
 
-Plan for [build-plan](../BUILD_PLAN.md) item P2, written October 10, 2026, at version 0.8.0. Target version: 0.9.0, because it adds commands and a project record.
+Plan for [build-plan](../../BUILD_PLAN.md) item P2, written October 10, 2026, at version 0.8.0. Target version: 0.9.0, because it adds commands and a project record.
 
 ## Problem
 
-Contracts compare measured fields such as bounds, dimensions and transforms. They cannot say whether a bench's four feet stand on the ground, because that depends on where the feet meet a surface, not on any object's own fields. The quality loop showed that measurement at the place that matters catches what images miss: the birdbath visibility gate failed two candidates that looked acceptable ([overnight study](../archive/studies/OVERNIGHT_EVALUATION.md)).
+Contracts compare measured fields such as bounds, dimensions and transforms. They cannot say whether a bench's four feet stand on the ground, because that depends on where the feet meet a surface, not on any object's own fields. The quality loop showed that measurement at the place that matters catches what images miss: the birdbath visibility gate failed two candidates that looked acceptable ([overnight study](../studies/OVERNIGHT_EVALUATION.md)).
 
-Two further gaps come from the [repository ideas](../reference/REPOSITORY_IDEAS_2026-10-06.md), items 1 to 3:
+Two further gaps come from the [repository ideas](../../reference/REPOSITORY_IDEAS_2026-10-06.md), items 1 to 3:
 
 - **Evidence strength.** A bounding-box estimate can suggest a problem but cannot establish it. On sloped ground a bench's bounds overlap the terrain's bounds even when every foot rests correctly. A finding must say how it was established and what it permits.
 - **Repair memory.** A later agent cannot see that lowering the whole bench produced penetration and raising it produced a gap. It may repeat the same ineffective repair. When some feet float while others sink, no rigid move can fix the bench, and the record should say so.

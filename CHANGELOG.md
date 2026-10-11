@@ -2,6 +2,16 @@
 
 Each version is a bounded increment with its own qualification report. Test counts are portable-suite results on Windows; the two skips in each count are host symlink-permission cases. Native qualification uses Blender 5.1.1 on Windows. Studies are listed with the versions they exercised. The [build plan](docs/BUILD_PLAN.md) explains what remains open, and reports that link into `runs/` refer to local evidence excluded from Git.
 
+## 0.9.0 — October 10, 2026
+
+Relationship checks, build-plan item P2 ([plan](docs/archive/plans/P2_RELATIONSHIP_CHECKS.md)).
+
+- **Added:** `relations SAVED.blend --blender PATH --output-dir NEW (--project PROJECT | --spec FILE) [--strategy TEXT]` measures `supported_by` relations in a fresh background Blender and never saves. Vertical rays through each subject's footprint meet the declared support. Findings are `OK`, `GAP`, `PENETRATION`, `OFF_SUPPORT` or `MISSING_TARGET`, with signed errors, spread and coverage; mixed gap and penetration is a `CONFLICT`.
+- **Added:** evidence strength. The native ray measurement decides a finding; a bounding-box estimate is reported as `bounds_only` and permits inspection only.
+- **Added:** a retained repair history. With `--project`, each measurement and its strategy text is appended to the project's `relations/` record, and `brief` and `next` warn on `OPPOSING` and `NO_PROGRESS` repairs and on `CONFLICT`.
+- **Added:** the `dcc.relations.v1` definition, held as the decision `relations`. The quick reference, everyday-workflow guide, skill and README describe the command.
+- **Qualification:** 324 tests, 322 passed, from source; the installed wheel passed the same runtime tests. Eight exact native scenes from both runtimes matched hand-computed values within 0.2 mm, including a sloped bench whose bounds estimate falsely reported penetration. Two fresh agents, with and without a history of failed whole-bench moves, each fixed the bench per leg on the first attempt; the history's own effect was not isolated. [Report](docs/archive/releases/RELATIONS_0_9_0_RESULTS.md)
+
 ## 0.8.0 — October 10, 2026
 
 Fixed-view render command, build-plan item P10 ([plan](docs/archive/plans/P10_RENDER_COMMAND.md)).
