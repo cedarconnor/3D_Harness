@@ -19,7 +19,7 @@ Earlier plans are archived verbatim in [archive/plans](archive/plans/). The Octo
 | Version | 0.13.1 on `main` |
 | Active | None; P11 finished |
 | Next | E5 can run at any time; P5–P8 remain |
-| Waiting on the user | E1–E3 artist review session; E4 decision on the realistic comparison |
+| Waiting on the user | E1–E3 artist review session; E4 decision on the realistic comparison; E5 artist repair time |
 | Investment gate | Open |
 
 ## Tracker
@@ -34,7 +34,7 @@ These need artist time or a user decision rather than new code. Every stage afte
 | E2 | Timed repair of one plain-MCP and one continuity final scene | Artist | todo | Minutes, fixed and remaining defects recorded per scene, with methods hidden |
 | E3 | Critic calibration set | Artist | todo | About twenty ranked image pairs retained as a held-out set |
 | E4 | Resume or retire the [realistic comparison](studies/REALISM_COMPARISON.md) | User | blocked: decision | Decision recorded in the decision log. A resumed run logs the interruption as a protocol deviation and keeps the frozen settings. |
-| E5 | Fresh-agent continuation on the production garden | Agent | todo | Sealed continuation on an owned copy: elapsed and inspection time, forgotten notes and remaining artist repair recorded |
+| E5 | Fresh-agent continuation on the production garden | Agent, then artist | blocked: artist repair time | Sealed continuation on an owned copy: elapsed and inspection time, forgotten notes and remaining artist repair recorded. Agent part done October 11 ([results](studies/E5_CONTINUATION_RESULTS.md)): 32 min, edit reserved after 7 min, 3 of 3 notes found and answered, two visual rejections retained, all three responses verified by a separate agent review. Artist repair time not yet measured |
 
 ### M: Maintenance
 
@@ -216,6 +216,7 @@ Capture fixed views at blockout, surface and lighting completion, pre-revision a
 
 Newest first. One line per status change.
 
+- **2026-10-11:** E5 agent part done: the fresh agent found and answered all three notes in 32 minutes; it is blocked on the artist's repair time.
 - **2026-10-11:** M2–M5 done in maintenance version 0.13.1: shared file helpers, experiment tooling outside the runtime digest, a shared qualification launcher and session cost receipts.
 - **2026-10-11:** E5 started: a sealed fresh-agent continuation of the production garden with three controlled notes.
 - **2026-10-10:** P11 done. Version 0.13.0 ships the learned check library: computed rules proven on their error, owner approval, pinning and repeat counts.

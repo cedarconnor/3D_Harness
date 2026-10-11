@@ -44,6 +44,7 @@ Each was qualified on one production scene: [ground](recipes/GROUND_RECIPE.md), 
 |---|---|
 | [Artist review session](studies/ARTIST_REVIEW_SESSION.md) | Protocol for build-plan items E1–E3: scores, timed repair and ranked pairs from finished work |
 | [Realistic comparison](studies/REALISM_COMPARISON.md) and [progress](studies/REALISM_PROGRESS.md) | Interrupted after one partial build. Resuming or retiring it is item E4. |
+| [E5 continuation results](studies/E5_CONTINUATION_RESULTS.md) | One sealed fresh-agent continuation of the production garden: all three notes found and answered in 32 minutes; artist repair time pending |
 
 ## Reference
 
