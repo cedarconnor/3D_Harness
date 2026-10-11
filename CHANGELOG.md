@@ -2,6 +2,15 @@
 
 Each version is a bounded increment with its own qualification report. Test counts are portable-suite results on Windows; the two skips in each count are host symlink-permission cases. Native qualification uses Blender 5.1.1 on Windows. Studies are listed with the versions they exercised. The [build plan](docs/BUILD_PLAN.md) explains what remains open, and reports that link into `runs/` refer to local evidence excluded from Git.
 
+## 0.18.0 — October 11, 2026
+
+UV report, completing build-plan item P13.
+
+- **Added:** `uv-report SOURCE --blender PATH --output-dir NEW (--targets FILE | --project P)`. It measures every stable-ID mesh's world and UV areas, a grid estimate of UV self-overlap, the share of UV area outside the unit square and its largest texture, in a fresh background Blender that never saves. It classifies them against `dcc.uv.targets.v1` rules for texel density in pixels per metre, overlap and outside share. Codes: `OK`, `DENSITY_LOW`, `DENSITY_HIGH`, `OVERLAP`, `OUTSIDE`, `NO_UV`, `UNMEASURED`, `MISSING_TARGET`.
+- **Design:** a separate measurement like `relations`, not new observer fields, so checkpoints made earlier still compare unchanged.
+- **Added:** the [UV report guide](docs/guides/UV_REPORT.md).
+- **Qualification:** 416 tests from source and from the installed wheel. Seven native planes with exactly known UVs classified as expected (512 and 51.2 px/m, overlap 0 and 1.0, outside 1.0, no UV), and the 1,285-mesh production garden measured in 197 s. [Report](docs/archive/releases/UV_0_18_0_RESULTS.md)
+
 ## 0.17.0 — October 11, 2026
 
 Fine-grained modifier and node permissions, the first part of build-plan item P13.

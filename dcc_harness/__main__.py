@@ -74,6 +74,12 @@ def build_parser():
     p.add_argument("--views", help="A dcc.review.views.v1 file for --blender"); p.add_argument("--reopen", action="store_true", help="Re-observe the after checkpoint")
     p = sub.add_parser("review-import", help="Commit a review page export: the stage review, then each note")
     p.add_argument("project"); p.add_argument("export"); p.add_argument("--page", required=True, help="The page folder the export came from")
+    p = sub.add_parser("uv-report", help="Measure texel density and UV overlap of a saved .blend in fresh background Blender; never saves")
+    p.add_argument("source"); p.add_argument("--blender", required=True, help="Path to Blender executable")
+    p.add_argument("--output-dir", required=True, help="New folder for the measurement, report and log")
+    targets = p.add_mutually_exclusive_group(required=True)
+    targets.add_argument("--project", help="Use the project's uv_targets decision")
+    targets.add_argument("--targets", help="A dcc.uv.targets.v1 file")
     p = sub.add_parser("deliver-glb", help="Export a saved .blend to GLB, reimport it in a fresh scene and compare; never saves")
     p.add_argument("source"); p.add_argument("--blender", required=True, help="Path to Blender executable")
     p.add_argument("--output-dir", required=True, help="New folder for the GLB, records, logs and receipt")
@@ -198,6 +204,9 @@ def main():
                                        after_views=args.after_views, blender=args.blender, views=args.views, reopen=args.reopen)
         else:
             result = review_page.import_review(args.project, args.export, args.page)
+    elif args.command == 'uv-report':
+        from .uv_report import measure_file
+        result = measure_file(args.source, args.output_dir, args.blender, targets=args.targets, project=args.project)
     elif args.command == 'deliver-glb':
         from .delivery import deliver
         result = deliver(args.source, args.output_dir, args.blender, project=args.project)

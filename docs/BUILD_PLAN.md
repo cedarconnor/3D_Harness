@@ -16,9 +16,9 @@ Earlier plans are archived verbatim in [archive/plans](archive/plans/). The Octo
 
 | | |
 |---|---|
-| Version | 0.17.0 on `main` |
-| Active | P13, native UV overlap and texel density |
-| Next | P13's observer fields; then the X items wait on the gate |
+| Version | 0.18.0 on `main` |
+| Active | None; every agent-owned P and M item is done |
+| Next | The gate's E items need the artist; the X items wait on the gate |
 | Waiting on the user | E1–E3 artist review session; E4 decision on the realistic comparison; E5 artist repair time |
 | Investment gate | Open |
 
@@ -64,7 +64,7 @@ Ranked by expected effect on the gate. Each ships as its own version.
 | P6 | Evidence and coverage depth ([plan](archive/plans/P6_COVERAGE.md)) | Agent | done | First part shipped in 0.15.0: `allowed_new_lights`, `allowed_scene_fields`, dependency-aware rechecks with a `validity_reason`, and deliberate `removed_targets`. Natively, a lamp and world edit was refused, then published with permissions, while a verified leg note stayed current until the leg moved ([report](archive/releases/COVERAGE_0_15_0_RESULTS.md)). UV overlap, texel density and modifier/node fields moved to P13 |
 | P7 | Revision dependency relocation ([plan](archive/plans/P7_RELOCATION.md)) | Agent | done | Textures done in 0.16.0: `preview-revision --blender` packs unpacked textures into an owned copy, proven equivalent to the candidate, judged with packing as storage, and published self-contained ([report](archive/releases/RELOCATION_0_16_0_RESULTS.md)). Linked libraries stay refused, since packing changes their collections' asset identity |
 | P8 | GLB delivery receipt ([plan](archive/plans/P8_GLB_DELIVERY.md)) | Agent | done | Shipped in 0.14.0: `deliver-glb` exports, reimports into an empty scene in a second process and compares by stable ID, with a receipt bound to the checkpoint. Natively, a moved copy failed with `BOUNDS`, a truncated GLB failed to import, and the production garden's 1,285 meshes matched ([report](archive/releases/DELIVERY_0_14_0_RESULTS.md)) |
-| P13 | Native UV overlap, texel density and fine-grained modifier and node permissions (moved from P6) | Agent | active | Permissions done in 0.17.0: `allowed_modifier_settings` and `allowed_material_node_fields`, qualified natively ([report](archive/releases/MODIFIERS_0_17_0_RESULTS.md)). UV overlap and texel density remain: they need new observer fields and an observation version so earlier checkpoints are not read as changed |
+| P13 | Native UV overlap, texel density and fine-grained modifier and node permissions (moved from P6) | Agent | done | Permissions in 0.17.0 ([report](archive/releases/MODIFIERS_0_17_0_RESULTS.md)); UV overlap and texel density in 0.18.0 as the separate `uv-report` measurement rather than observer fields, so earlier checkpoints are unaffected ([report](archive/releases/UV_0_18_0_RESULTS.md)) |
 
 ### R: Repository
 
@@ -217,6 +217,7 @@ Capture fixed views at blockout, surface and lighting completion, pre-revision a
 
 Newest first. One line per status change.
 
+- **2026-10-11:** P13 done. Version 0.18.0 ships `uv-report` for texel density, UV overlap and UVs outside the unit square.
 - **2026-10-11:** P13 started; its contract permissions shipped in 0.17.0.
 - **2026-10-11:** P5 done: six sealed regression packets passed on actions and artifacts; the builder and grader are in `scripts/`.
 - **2026-10-11:** P7 done for textures in 0.16.0; linked libraries remain refused with the reason.

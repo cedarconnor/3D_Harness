@@ -1,6 +1,6 @@
 # Agent quick reference
 
-Version 0.17.0. The exact command sequences for the most common work, for an agent continuing a 3D Harness project. Every command below is checked against the real parser by `tests/test_quick_reference.py`. Values in `<angle brackets>` and capitalized placeholders such as `PARENT_ID` are yours to fill; quote every path.
+Version 0.18.0. The exact command sequences for the most common work, for an agent continuing a 3D Harness project. Every command below is checked against the real parser by `tests/test_quick_reference.py`. Values in `<angle brackets>` and capitalized placeholders such as `PARENT_ID` are yours to fill; quote every path.
 
 ## 1. Orient
 
@@ -170,6 +170,15 @@ python -m dcc_harness check-occurrence "<library>" --project "<project>" --note 
 ```
 
 Only the owner approves a check, with `check-approve` in their own terminal; give them the proposal revision. If an existing library check covers the error, count it with `check-occurrence` instead of proposing it again.
+
+## 9. Check UVs and deliver
+
+```powershell
+python -m dcc_harness uv-report "<saved .blend>" --blender "<BLENDER>" --output-dir "<work>/uv-1" --project "<project>"
+python -m dcc_harness deliver-glb "<project>/checkpoints/<NNNNNN>/checkpoint.blend" --blender "<BLENDER>" --output-dir "<work>/delivery-1" --project "<project>"
+```
+
+`uv-report` checks texel density, UV overlap and UVs outside the unit square against the project's `uv_targets` decision ([UV report](UV_REPORT.md)). `deliver-glb` exports an accepted checkpoint to GLB, imports it into an empty scene and compares by stable ID ([GLB delivery](GLB_DELIVERY.md)). Both exit 1 on findings and never save the scene.
 
 ## Stops
 
