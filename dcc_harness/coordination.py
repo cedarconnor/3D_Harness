@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+import os
 from pathlib import Path, PurePosixPath
 import uuid
 
@@ -111,11 +112,16 @@ class Context:
     def artifact(self, ref):
         fields(ref, {'path', 'sha256'})
         path = relative(self.base, ref['path'])
+        # Names that differ only in case, or otherwise reach one file, would collide when retained on Windows.
+        if any(name != ref['path'] and name.casefold() == ref['path'].casefold() for name in self.files):
+            raise ValueError('Artifact references name the same file differently: ' + ref['path'])
         if not _sha(ref['sha256']) or not path.is_file() or file_hash(path) != ref['sha256']:
             raise ValueError('Missing or changed artifact: ' + ref['path'])
         old = self.files.get(ref['path'])
         if old is not None and old[1] != ref['sha256']:
             raise ValueError('Conflicting artifact references')
+        if any(name != ref['path'] and os.path.samefile(other, path) for name, (other, _) in self.files.items()):
+            raise ValueError('Artifact references name the same file differently: ' + ref['path'])
         self.files[ref['path']] = (path, ref['sha256'])
         return path
 

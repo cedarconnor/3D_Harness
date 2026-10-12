@@ -84,10 +84,16 @@ def mesh_record(obj, deps):
             hi = [max(p[i] for p in points) for i in range(3)]
         else:
             lo = hi = [0.0,0.0,0.0]
-        return {"vertices":len(mesh.vertices),"triangles":len(mesh.loop_triangles),
-                "geometry_hash":h.hexdigest(),"uv_hash":uv_hash.hexdigest(),
-                "uv_layers":[u.name for u in mesh.uv_layers],"bounds":[value(lo),value(hi)],
-                "dimensions":value([hi[i]-lo[i] for i in range(3)])}
+        record = {"vertices":len(mesh.vertices),"triangles":len(mesh.loop_triangles),
+                  "geometry_hash":h.hexdigest(),"uv_hash":uv_hash.hexdigest(),
+                  "uv_layers":[u.name for u in mesh.uv_layers],"bounds":[value(lo),value(hi)],
+                  "dimensions":value([hi[i]-lo[i] for i in range(3)])}
+        # Image textures without a UV Map node render with this layer. Present only when it is not
+        # the first layer, Blender's default, so meshes that never changed it observe as before.
+        render = next((i for i, u in enumerate(mesh.uv_layers) if u.active_render), 0)
+        if render:
+            record["uv_render_layer"] = mesh.uv_layers[render].name
+        return record
     finally:
         evaluated.to_mesh_clear()
 
@@ -192,11 +198,25 @@ def instance_record(obj, evaluated, issues):
             "dimensions":value([ohi[i]-olo[i] for i in range(3)]),
             "instance":{"collection":collection.name_full,"asset_id":asset,"asset_id_source":source,"library":provenance,
                         "definition_hash":digest(entries),"members":len(entries),"triangles":totals["triangles"]}}
+def collection_rendered(view_layer):
+    """Objects in at least one collection branch neither excluded from the view layer nor disabled for rendering."""
+    included = set()
+    def visit(layer, hidden=False):
+        hidden = hidden or layer.exclude or layer.collection.hide_render
+        if not hidden:
+            included.update(o.as_pointer() for o in layer.collection.objects)
+        for child in layer.children:
+            visit(child, hidden)
+    visit(view_layer.layer_collection)
+    return included
+
+
 def observe(scene=None):
     scene = scene or bpy.context.scene
     if scene != bpy.context.scene:
         raise ValueError("Observe the active scene so depsgraph and scene agree")
     bpy.context.view_layer.update()
+    rendered = collection_rendered(bpy.context.view_layer)
     deps = bpy.context.evaluated_depsgraph_get()
     objects, materials, issues = {}, {}, []
     # Cache by real datablock, never caller-owned IDs. Keep this local so the
@@ -226,6 +246,9 @@ def observe(scene=None):
                "collections":sorted(c.name for c in obj.users_collection),
                "visibility":{"render":not obj.hide_render,"viewport":not obj.hide_viewport,"hidden":obj.hide_get()},
                "material_ids":[]}
+        if obj.as_pointer() not in rendered:
+            # Present only when its collections keep it from rendering, so other objects observe as before.
+            rec["visibility"]["collections_render"] = False
         if obj.instance_type == "COLLECTION" and obj.instance_collection is not None:
             rec.update(instance_record(obj, evaluated, issues))
         elif obj.instance_type != "NONE": issues.append(f"Unsupported instancer: {obj.name}")

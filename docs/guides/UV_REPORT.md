@@ -20,7 +20,7 @@ python -m dcc_harness uv-report "<saved .blend>" --blender "<BLENDER>" --output-
 Each rule has these fields:
 
 - **`select`** is an ID glob over meshes with stable IDs.
-- **`min_density` / `max_density`** are in pixels per metre: √(UV area ÷ world area) × the texture size.
+- **`min_density` / `max_density`** are in pixels per metre: √(UV area ÷ world area) × the texture size. World area is converted to square metres with the scene's unit scale, so a centimetre scene measures in metres too.
 - **`texture_px`** is used when the object's materials have no image.
 - **`max_overlap`** is the share of covered UV cells that more than one triangle covers.
 - **`max_outside`** is the share of UV area whose triangles' centres lie outside 0..1. Allow it for deliberately tiling textures.

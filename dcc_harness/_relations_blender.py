@@ -70,7 +70,13 @@ def main():
     if file_hash(source['path']) != source['sha256']:
         raise ValueError('Source changed during native open')
     depsgraph = bpy.context.evaluated_depsgraph_get()
-    objects = {o.get('dcc_instance_id'): o for o in bpy.context.scene.objects if o.get('dcc_instance_id')}
+    objects = {}
+    for obj in bpy.context.scene.objects:
+        iid = obj.get('dcc_instance_id')
+        if iid in objects:
+            raise ValueError(f'Duplicate dcc_instance_id, so a measurement could hide another object: {iid}')
+        if iid:
+            objects[iid] = obj
     measured = {rule['id']: measure(rule, objects, depsgraph) for rule in definition['relations']}
     write_json(Path(request['out']) / 'measurement.json', {
         'schema': 'dcc.relations.measurement.v1', 'checkpoint_sha256': source['sha256'], 'spec_digest': digest(definition),

@@ -49,7 +49,7 @@ Records made before 0.12.0 say `artist_declared`. The artist role in those was n
 
 | Message | Cause |
 |---|---|
-| `Owner approval is refused inside an agent session (CLAUDECODE is set)` | The command ran inside an agent's shell. The variables checked are `CLAUDECODE`, `AI_AGENT`, `CODEX_SANDBOX`, `GEMINI_CLI` and `DCC_HARNESS_AGENT`. |
+| `Owner approval is refused inside an agent session (CLAUDECODE is set)` | The command ran inside an agent's shell. The variables checked are `CLAUDECODE`, `AI_AGENT`, `CODEX_SANDBOX`, `CODEX_THREAD_ID`, `CODEX_SESSION_ID`, `GEMINI_CLI` and `DCC_HARNESS_AGENT`. |
 | `Owner approval needs an interactive terminal` | Input was piped or redirected. |
 | `Owner approval not confirmed` | The typed code was wrong or empty. |
 | `Owner approval required` | A caller used the Python API without an approval for this exact request. |

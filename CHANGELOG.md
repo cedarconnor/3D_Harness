@@ -2,6 +2,23 @@
 
 Each version is a bounded increment with its own qualification report. Test counts are portable-suite results on Windows; the two skips in each count are host symlink-permission cases. Native qualification uses Blender 5.1.1 on Windows. Studies are listed with the versions they exercised. The [build plan](docs/BUILD_PLAN.md) explains what remains open, and reports that link into `runs/` refer to local evidence excluded from Git.
 
+## Unreleased — review fixes
+
+Fixes for the eleven findings of the October 11 full review of `340dc9d`.
+
+- **Fixed:** `review-page` refuses render receipts whose image paths are absolute, contain `..` or collide with the receipt files. It checks both folders before creating the page and copies each file to a new, verified file. Previously such a path could overwrite a file outside the page.
+- **Fixed:** a page built with `--to` an earlier checkpoint no longer offers approval of a submission for a later one. The build result lists it under `submissions_not_shown`, and `review-import` checks that the submission is for the page's after checkpoint.
+- **Fixed:** the page's change summary lists every changed scene field, not only the first.
+- **Fixed:** an object kept from rendering by its collections, through a collection disabled for rendering or excluded from the view layer, is observed with `visibility.collections_render: false`. A mesh whose render UV map is not its first layer records it as `uv_render_layer`. Both fields appear only then, so other scenes observe exactly as before. A preservation contract now catches both changes.
+- **Fixed:** owner approval also refuses Codex sessions marked by `CODEX_THREAD_ID` or `CODEX_SESSION_ID`.
+- **Fixed:** `uv-report` and `relations` refuse a file in which two objects share a `dcc_instance_id`, rather than measuring only one of them.
+- **Fixed:** coordination refuses artifact references that name the same file differently, such as `CONTINUE.md` and `continue.md`, before writing an event. Previously this left a partial event on Windows.
+- **Fixed:** reopening a resolved global note sends delivery back to review, as adding one does.
+- **Fixed:** `uv-report` converts world area with the scene's unit scale, so density is in pixels per metre in any unit system. The measurement records `unit_scale`.
+- **Fixed:** `deliver-glb` sets aside what the exporter writes for a collection instance (its root and members) instead of reporting them as `EXTRA`. They are listed under `instance_content`.
+- **Qualification:** 429 tests from source (the installed wheel was not rerun). Native Blender 5.1.1 probes: collection hide-render and view-layer exclusion fail a zero-permission contract, as does a render UV switch, while selecting another UV map for editing does not; scenes without either observe with the same revision as `340dc9d`. Duplicate IDs refused by both workers; the centimetre plane measured 51,200 px/m; the collection-instance file delivered with no findings.
+- **Observed, not fixed:** Blender 5.1.1's glTF exporter applies a collection-instance empty's transform twice to a child parented beneath it, so the child arrives displaced by the instance's offset. `deliver-glb` reports this as `BOUNDS`.
+
 ## Skill library — October 11, 2026
 
 Not a runtime release: skills ship with the repository, not the wheel.

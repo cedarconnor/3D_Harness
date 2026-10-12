@@ -65,7 +65,7 @@ def overlap(uv):
     return round(float((counts >= 2).sum()) / covered, 6) if covered else 0.0
 
 
-def measure(obj, depsgraph):
+def measure(obj, depsgraph, unit_scale):
     evaluated = obj.evaluated_get(depsgraph)
     mesh = evaluated.to_mesh()
     try:
@@ -89,7 +89,8 @@ def measure(obj, depsgraph):
         world_areas = 0.5 * np.linalg.norm(np.cross(tri_world[:, 1] - tri_world[:, 0], tri_world[:, 2] - tri_world[:, 0]), axis=1)
         e1, e2 = tri_uv[:, 1] - tri_uv[:, 0], tri_uv[:, 2] - tri_uv[:, 0]
         uv_areas = 0.5 * np.abs(e1[:, 0] * e2[:, 1] - e1[:, 1] * e2[:, 0])
-        world_area, uv_area = float(world_areas.sum()), float(uv_areas.sum())
+        # Scene units to square metres: one unit is unit_scale metres.
+        world_area, uv_area = float(world_areas.sum()) * unit_scale ** 2, float(uv_areas.sum())
         centres = tri_uv.mean(axis=1)
         outside_mask = (centres < 0).any(axis=1) | (centres > 1).any(axis=1)
         record.update(world_area=round(world_area, 6), uv_area=round(uv_area, 9),
@@ -115,14 +116,23 @@ def main():
     if file_hash(source['path']) != source['sha256']:
         raise ValueError('Source changed before native open')
     bpy.ops.wm.open_mainfile(filepath=source['path'], load_ui=False)
+    scene = bpy.context.scene
+    ids = [obj.get('dcc_instance_id') for obj in scene.objects if isinstance(obj.get('dcc_instance_id'), str) and obj.get('dcc_instance_id')]
+    duplicates = sorted({iid for iid in ids if ids.count(iid) > 1})
+    if duplicates:
+        raise ValueError('Duplicate dcc_instance_id, so a measurement could hide another object: ' + ', '.join(duplicates))
+    unit_scale = scene.unit_settings.scale_length
+    if not unit_scale > 0:
+        raise ValueError(f'Unsupported scene unit scale: {unit_scale}')
     depsgraph = bpy.context.evaluated_depsgraph_get()
     objects = {}
-    for obj in bpy.context.scene.objects:
+    for obj in scene.objects:
         iid = obj.get('dcc_instance_id')
         if obj.type == 'MESH' and isinstance(iid, str) and iid:
-            objects[iid] = measure(obj, depsgraph)
+            objects[iid] = measure(obj, depsgraph, unit_scale)
     write_json(Path(request['out']) / 'measurement.json', {'schema': 'dcc.uv.measurement.v1', 'checkpoint_sha256': source['sha256'],
-                                                           'grid': GRID, 'overlap_budget': OVERLAP_BUDGET, 'objects': objects})
+                                                           'grid': GRID, 'overlap_budget': OVERLAP_BUDGET, 'unit_scale': unit_scale,
+                                                           'objects': objects})
 
 
 main()

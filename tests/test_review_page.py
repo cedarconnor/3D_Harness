@@ -50,6 +50,14 @@ class ChangeTests(Fixture):
         self.assertEqual([(o['id'], o['fields']) for o in result['changed']], [('ext.table.top', ['dimensions'])])
         self.assertEqual([(m['id'], m['change']) for m in result['materials']], [('stone', 'changed')])
 
+    def test_every_changed_scene_field_is_listed(self):
+        before = observation()
+        after = copy.deepcopy(before)
+        after['scene']['camera'] = 'ext.camera.new'
+        after['scene']['render']['samples'] = 128
+        after['scene']['world'] = {'nodes': [], 'links': []}
+        self.assertEqual(review_page.changes(resign(before), resign(after))['scene'], ['camera', 'render', 'world'])
+
 
 class PageFixture(Fixture):
     def publish(self):
@@ -58,6 +66,17 @@ class PageFixture(Fixture):
         workflow.finish_edit(self.root, edit, native, obs, self.handoff, {})
         history = Continuity(self.root).status()['task_history']
         return history[0], history[1]
+
+    def publish_again(self, parent):
+        """A third checkpoint after `parent`, with the same observed content."""
+        edit = self.begin(expected_parent=parent['id'], current=parent['checkpoint'], observation=parent['observation'], label='third')['edit']
+        native = self.base / 'third.blend'
+        native.write_bytes(b'third synthetic native')
+        obs = read_json(parent['observation'])
+        obs['checkpoint_sha256'] = file_hash(native)
+        path = self.base / 'third.json'
+        write_json(path, obs)
+        return workflow.finish_edit(self.root, edit, native, path, self.handoff, {})['active']
 
 
 class PageTests(PageFixture):
@@ -91,6 +110,23 @@ class PageTests(PageFixture):
         with self.assertRaisesRegex(ValueError, 'changed'):
             review_page.build(self.root, self.base / 'page', before_views=views(self.base / 'b', before['checkpoint_sha256']),
                               after_views=views(self.base / 'a', after['checkpoint_sha256'], missing_image=True))
+
+    def test_image_paths_outside_the_render_folder_are_refused_before_writing(self):
+        before, after = self.publish()
+        outside = self.base / 'victim.txt'
+        outside.write_text('original', encoding='utf-8')
+        source = views(self.base / 'nested/a/views', after['checkpoint_sha256'])
+        (self.base / 'nested/victim.txt').write_text('replacement', encoding='utf-8')
+        receipt = read_json(source / 'receipt.json')
+        for path in ('../../victim.txt', 'C:/victim.txt', '/victim.txt', 'sub\\..\\..\\victim.txt', 'receipt.json'):
+            receipt['images']['WHOLE'] = {'path': path, 'sha256': file_hash(self.base / 'nested/victim.txt')}
+            (source / 'receipt.json').unlink()
+            write_json(source / 'receipt.json', receipt)
+            with self.subTest(path=path), self.assertRaisesRegex(ValueError, 'contained relative path|collides'):
+                review_page.build(self.root, self.base / 'page', before_views=views(self.base / f'b-{len(path)}', before['checkpoint_sha256']),
+                                  after_views=source)
+            self.assertFalse((self.base / 'page').exists())
+        self.assertEqual(outside.read_text(encoding='utf-8'), 'original')
 
     def test_different_view_settings_are_flagged(self):
         before, after = self.publish()
@@ -199,6 +235,29 @@ class ImportTests(PageFixture):
         self.assertEqual(len(c.read(self.root)), before)
         notes_only = self.bundle(result, after, None, [self.note(after)])
         self.assertEqual([r['status'] for r in review_page.import_review(self.root, notes_only, self.base / 'page')['results']], ['COMMITTED'])
+
+    def test_a_page_for_an_earlier_checkpoint_offers_no_approval(self):
+        self.bind()
+        first, second = self.publish()
+        third = self.publish_again(second)
+        submitted = self.submit()
+        result = review_page.build(self.root, self.base / 'page', from_id=first['id'], to_id=second['id'],
+                                   before_views=views(self.base / 'b', first['checkpoint_sha256']),
+                                   after_views=views(self.base / 'a', second['checkpoint_sha256']))
+        self.assertIsNone(read_json(self.base / 'page/page.json')['submission'])
+        self.assertEqual(result['submissions_not_shown'], [{'stage_id': 'direction', 'checkpoint_id': third['id']}])
+        review = {'reviewer': {'role': 'artist', 'author': 'Reviewer', 'reference': 'Review page'}, 'verdict': 'pass', 'finding': 'Looks right'}
+        with self.assertRaisesRegex(ValueError, 'no stage submission'):
+            review_page.import_review(self.root, self.bundle(result, second, review), self.base / 'page', Console())
+        # A page edited to carry the newer submission is still refused at import.
+        data = read_json(self.base / 'page/page.json')
+        data['submission'] = {'id': submitted['revision'], 'stage_id': 'direction', 'checkpoint': c.checkpoint_ref(third)}
+        (self.base / 'page/page.json').unlink()
+        write_json(self.base / 'page/page.json', data)
+        before = len(c.read(self.root))
+        with self.assertRaisesRegex(ValueError, 'not for the checkpoint this page shows'):
+            review_page.import_review(self.root, self.bundle({'page_digest': digest(data)}, second, review), self.base / 'page', Console())
+        self.assertEqual(len(c.read(self.root)), before)
 
     def test_export_from_another_page_is_refused(self):
         result, after, submitted = self.page_with_submission()

@@ -50,6 +50,24 @@ class CompareTests(unittest.TestCase):
         result = delivery.compare(EXPORTED, imported(doubled))
         self.assertEqual([(f['id'], f['code']) for f in result['findings']], [('ground', 'DUPLICATE')])
 
+    def test_collection_instance_contents_are_set_aside_on_both_sides(self):
+        """The exporter writes an instance as its root with the members beneath; neither is compared."""
+        def under(item, *ancestors):
+            return {**item, 'parent': ancestors[0] if ancestors else None, 'ancestors': list(ancestors)}
+        exported = {'objects': [under(record('bench.top')), under(record('ground', 2, (-5, -5, 0), (5, 5, 0), ('stone',))),
+                                under(record('ext.instance.label'), 'ext.instance')],
+                    'not_exported': [{'id': 'ext.instance', 'type': 'EMPTY', 'reason': 'collection instance', 'instance': True}]}
+        arrived = copy.deepcopy(exported['objects']) + [
+            under(record('ext.instance', 0, kind='EMPTY')), under(record('bench.top'), 'ext.instance'),
+            under(record('name:leg', 4), 'bench.top', 'ext.instance')]
+        result = delivery.compare(exported, imported(arrived))
+        self.assertTrue(result['passed'], result['findings'])
+        self.assertEqual((result['matched'], result['instance_content']), (3, ['bench.top', 'ext.instance', 'name:leg']))
+        # The source's own child of the instance is still compared.
+        lost = [item for item in arrived if item['id'] != 'ext.instance.label']
+        self.assertEqual([(f['id'], f['code']) for f in delivery.compare(exported, imported(lost))['findings']],
+                         [('ext.instance.label', 'MISSING')])
+
 
 class BindingTests(Fixture):
     def test_only_a_checkpoint_of_the_project_is_delivered_for_it(self):

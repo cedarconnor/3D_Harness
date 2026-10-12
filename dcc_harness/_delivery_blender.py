@@ -38,8 +38,11 @@ def record(obj, depsgraph):
     low = [round(min(c[i] for c in corners), 6) for i in range(3)]
     high = [round(max(c[i] for c in corners), 6) for i in range(3)]
     materials = [slot.material.name for slot in obj.material_slots if slot.material] if obj.type == 'MESH' else []
+    ancestors, parent = [], obj.parent
+    while parent is not None:
+        ancestors.append(stable_id(parent)); parent = parent.parent
     return {'id': stable_id(obj), 'type': obj.type, 'triangles': triangles, 'bounds': [low, high], 'materials': materials,
-            'parent': stable_id(obj.parent) if obj.parent else None}
+            'parent': ancestors[0] if ancestors else None, 'ancestors': ancestors}
 
 
 def addon_version():
@@ -59,9 +62,10 @@ def export(request):
         if obj.type in DELIVERED and obj.instance_type != 'COLLECTION':
             objects.append(record(obj, depsgraph))
         else:
+            instance = obj.instance_type == 'COLLECTION'
             reason = SKIPPED.get(obj.type, 'collection instances are written as the exporter chooses; identity is not checked'
-                                 if obj.instance_type == 'COLLECTION' else f'{obj.type} objects are not delivered')
-            skipped.append({'id': stable_id(obj), 'type': obj.type, 'reason': reason})
+                                 if instance else f'{obj.type} objects are not delivered')
+            skipped.append({'id': stable_id(obj), 'type': obj.type, 'reason': reason, **({'instance': True} if instance else {})})
     bpy.ops.export_scene.gltf(filepath=str(out / 'delivery.glb'), **SETTINGS)
     if file_hash(source['path']) != source['sha256']:
         raise ValueError('Source changed during export')

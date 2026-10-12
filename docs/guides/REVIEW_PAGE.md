@@ -14,13 +14,13 @@ By default the page compares the active checkpoint with its parent; `--from` and
 - **`--blender`** renders both stored checkpoints with the project's `review_views` decision, or with `--views FILE`.
 - **Render folders** made by `render` beforehand. Use this for a project that links libraries, rendering the working copy that sits beside them.
 
-Each receipt must be bound to its checkpoint's hash, and every image hash is checked. With `--reopen`, the after checkpoint is observed again in a fresh Blender and compared with the stored observation by the qualified comparator. The page reports an exact match, a match within float noise in evaluated UVs, or the differences.
+Each receipt must be bound to its checkpoint's hash, and every image hash is checked. Image paths must be relative and inside the render folder; both folders are checked before the page folder is created, and each file is copied to a new file and verified. With `--reopen`, the after checkpoint is observed again in a fresh Blender and compared with the stored observation by the qualified comparator. The page reports an exact match, a match within float noise in evaluated UVs, or the differences.
 
 The folder holds `index.html`, `page.json` and the renders. Open `index.html` in a browser; it works offline from the folder.
 
 ## What the reviewer sees
 
-1. **Stage waiting for review.** Shown when the newest submission is waiting. It gives the stage's note and deliverables and the agent's questions, each with its default selected. **Accept every default and approve** does both in one click; a different choice or a free answer replaces the default.
+1. **Stage waiting for review.** Shown when the newest submission is waiting and is for the after checkpoint on this page. A page built with `--to` an earlier checkpoint offers no approval; its build result lists the submission under `submissions_not_shown`, and `review-import` refuses an approval whose submission is for another checkpoint. It gives the stage's note and deliverables and the agent's questions, each with its default selected. **Accept every default and approve** does both in one click; a different choice or a free answer replaces the default.
 2. **All review views.** One sheet of the after checkpoint from every camera.
 3. **Before and after.** One panel per view. **Show before** swaps in the earlier image while held, and **Pin a note** places a note on the after image. Notes anchored to the view are listed under it.
 4. **What changed.** Objects moved (with the distance), changed (with the fields), added and removed, and changed materials and scene settings, each with its linked notes.

@@ -15,7 +15,7 @@ CONTRACT_FIELDS = {"schema", "spec", "allowed_object_prefixes", "allowed_materia
 OBJECT_FIELDS = {"name", "type", "asset_id", "matrix_world", "parent", "collections", "visibility",
                  "material_ids", "vertices", "triangles", "geometry_hash", "uv_hash", "uv_layers",
                  "bounds", "dimensions", "light", "camera", "source_mesh_hash", "source_uv_hash",
-                 "modifier_settings", "evaluated_uv_values", "mesh_datablock", "instance"}
+                 "modifier_settings", "evaluated_uv_values", "mesh_datablock", "instance", "uv_render_layer"}
 
 
 def _prefixes(items, label):

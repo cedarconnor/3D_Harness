@@ -24,7 +24,7 @@ python -m dcc_harness deliver-glb "<project>/checkpoints/000009/checkpoint.blend
    - `BOUNDS`: the world bounds moved by more than 1 mm plus 0.1% of the object's size, which allows for glTF's float32 storage;
    - `MATERIALS`: the material names changed.
 
-   Cameras, lights and collection instances are listed under `not_exported`, each with the reason.
+   Cameras, lights and collection instances are listed under `not_exported`, each with the reason. What the exporter writes for an instance, its root and the members beneath it, is set aside after import and listed under `instance_content`. An object the source itself parents beneath the instance is still compared.
 
 The folder holds `delivery.glb`, `export.json`, `reimport/import.json`, both Blender logs and `receipt.json`. The receipt (`dcc.delivery.glb.v1`) records:
 

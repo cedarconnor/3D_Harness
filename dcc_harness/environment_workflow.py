@@ -115,7 +115,10 @@ def stages(events):
                     invalidate(sid)
         elif event['kind'] == 'feedback.decide' and data['decision']['action'] in ('reopen', 'reassign'):
             sid = note_stages[data['note_id']]
-            if sid in result:
+            # A global note is delivery's to account for, as when it was added.
+            if sid is None:
+                invalidate('delivery')
+            elif sid in result:
                 invalidate(sid)
             if data['decision']['action'] == 'reassign':
                 sid = data['decision']['stage_id']

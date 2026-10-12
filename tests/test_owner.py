@@ -87,6 +87,10 @@ class OwnerTests(Fixture):
         value = {'submission_id': 'x', 'review': {'reviewer': self.actor('artist'), 'verdict': 'pass', 'finding': 'Looks right', 'answers': {'finish': 'Raw'}}}
         with self.assertRaisesRegex(RuntimeError, 'agent session.*CLAUDECODE.*own terminal'):
             owner.confirm('stage.complete', value, Console(environ={'CLAUDECODE': '1'}))
+        # A current Codex shell sets its thread and session IDs, not CODEX_SANDBOX.
+        for marker in ('CODEX_THREAD_ID', 'CODEX_SESSION_ID'):
+            with self.subTest(marker=marker), self.assertRaisesRegex(RuntimeError, 'agent session.*' + marker):
+                owner.confirm('stage.complete', value, Console(environ={marker: '0199a3c0-thread'}))
         with self.assertRaisesRegex(RuntimeError, 'interactive terminal'):
             owner.confirm('stage.complete', value, Console(tty=False))
         for answer in ('', 'ZZZZ', None):

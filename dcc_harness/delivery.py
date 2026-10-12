@@ -25,10 +25,26 @@ def _tolerance(bounds):
     return 0.001 + 0.001 * size
 
 
+def _instance_content(exported, imported):
+    """Imported objects that stand for a collection instance: its root and what the exporter wrote beneath it.
+
+    Instances are not compared, so their contents are set aside on this side too. An object the source
+    itself parented beneath the instance is still compared.
+    """
+    roots = {item['id'] for item in exported.get('not_exported', []) if item.get('instance')}
+    placed = {(item['id'], tuple(a for a in item.get('ancestors', []) if a in roots)) for item in exported['objects']}
+    return [item for item in imported['objects'] if item['id'] in roots or (
+        set(item.get('ancestors', [])) & roots and (item['id'], tuple(a for a in item['ancestors'] if a in roots)) not in placed)]
+
+
 def compare(exported, imported):
     """Match exported and imported objects by stable ID and list every difference."""
     findings, after = [], {}
+    skipped = _instance_content(exported, imported)
+    excluded = {id(item) for item in skipped}
     for item in imported['objects']:
+        if id(item) in excluded:
+            continue
         if item['id'] in after:
             findings.append({'id': item['id'], 'code': 'DUPLICATE', 'detail': 'More than one imported object has this ID'})
         after[item['id']] = item
@@ -47,7 +63,8 @@ def compare(exported, imported):
         if sorted(other['materials']) != sorted(item['materials']):
             findings.append({'id': item['id'], 'code': 'MATERIALS', 'detail': f"{item['materials']} exported, {other['materials']} imported"})
     findings += [{'id': iid, 'code': 'EXTRA', 'detail': 'Imported with no exported counterpart'} for iid in sorted(after)]
-    return {'passed': not findings, 'matched': matched, 'findings': findings, 'not_exported': exported.get('not_exported', [])}
+    return {'passed': not findings, 'matched': matched, 'findings': findings, 'not_exported': exported.get('not_exported', []),
+            'instance_content': sorted(item['id'] for item in skipped)}
 
 
 def checkpoint_for(project, source):

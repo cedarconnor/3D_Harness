@@ -10,12 +10,12 @@ from __future__ import annotations
 import json
 import math
 from pathlib import Path
-import shutil
 import uuid
 
 from . import coordination as c, feedback
 from .continuity import Continuity, _plain
 from .evidence import compare, digest, file_hash, read_json, write_json
+from .files import copy_verified
 from .project import now
 
 PLACEMENT = {'matrix_world', 'bounds'}
@@ -38,7 +38,7 @@ def changes(before, after):
     result = {'added': [], 'removed': [], 'moved': [], 'changed': [], 'materials': [], 'scene': []}
     for (category, key), names in sorted(fields.items()):
         if category == 'scene':
-            result['scene'].append(key if key != 'scene' else names[0])
+            result['scene'].extend(names)
             continue
         if category == 'materials':
             change = 'added' if 'created' in names else 'removed' if 'deleted' in names else 'changed'
@@ -61,8 +61,8 @@ def changes(before, after):
     return result
 
 
-def _bind_views(source, entry, side, folder):
-    """Check a render folder against its checkpoint and copy it into the page."""
+def _check_views(source, entry, side):
+    """A render folder bound to its checkpoint, whose images are contained files matching the receipt."""
     source = _plain(source)
     receipt = read_json(source / 'receipt.json')
     if receipt.get('schema') != 'dcc.quality.renders.v1' or receipt.get('checkpoint_sha256') != entry['checkpoint_sha256']:
@@ -70,21 +70,37 @@ def _bind_views(source, entry, side, folder):
     settings = read_json(source / 'views.json')
     if digest(settings) != receipt['views_digest']:
         raise ValueError(f'The {side} view settings changed after their receipt')
-    for view, image in receipt['images'].items():
-        if file_hash(_plain(source / image['path'])) != image['sha256']:
+    images = receipt.get('images')
+    if not isinstance(images, dict) or any(not isinstance(i, dict) or not isinstance(i.get('sha256'), str) for i in images.values()):
+        raise ValueError(f'The {side} render receipt does not list its images')
+    files = {'receipt.json': file_hash(source / 'receipt.json'), 'views.json': file_hash(source / 'views.json')}
+    for view, image in images.items():
+        try:
+            path = c.relative(source, image.get('path'))
+        except ValueError:
+            raise ValueError(f'The {side} image for {view} is not a contained relative path') from None
+        if any(name != image['path'] and name.casefold() == image['path'].casefold() for name in files) or image['path'] in ('receipt.json', 'views.json'):
+            raise ValueError(f'The {side} image for {view} collides with another file in the render folder')
+        if files.setdefault(image['path'], image['sha256']) != image['sha256'] or file_hash(path) != image['sha256']:
             raise ValueError(f'The {side} image for {view} changed after its receipt')
+    return source, receipt, settings, files
+
+
+def _bind_views(checked, side, folder):
+    """Copy a checked render folder into the page, each file new and verified against its hash."""
+    source, receipt, settings, files = checked
     target = folder / 'renders' / side
     target.mkdir(parents=True)
-    for name in ['receipt.json', 'views.json'] + [image['path'] for image in receipt['images'].values()]:
-        shutil.copyfile(source / name, target / name)
+    for name, sha in files.items():
+        copy_verified(c.relative(source, name), c.relative(target, name), sha, f'The {side} render folder changed while it was copied')
     purposes = {}
     definition = settings.get('definition') if isinstance(settings, dict) else None
     if isinstance(definition, dict):
         purposes = {v['id']: v.get('purpose') for v in definition.get('views', []) if isinstance(v, dict) and 'id' in v}
     return {'digest': receipt['views_digest'], 'purposes': purposes,
             'images': {view: f'renders/{side}/{image["path"]}' for view, image in receipt['images'].items()},
-            'receipt': {'path': f'renders/{side}/receipt.json', 'sha256': file_hash(target / 'receipt.json')},
-            'settings': {'path': f'renders/{side}/views.json', 'sha256': file_hash(target / 'views.json')}}
+            'receipt': {'path': f'renders/{side}/receipt.json', 'sha256': files['receipt.json']},
+            'settings': {'path': f'renders/{side}/views.json', 'sha256': files['views.json']}}
 
 
 def _entry(history, key, label):
@@ -116,18 +132,21 @@ def build(root, out, *, from_id=None, to_id=None, before_views=None, after_views
         before = earlier[-1]
     if before['id'] == after['id']:
         raise ValueError('Comparing needs two checkpoints; pass --from and --to')
+    # Given render folders are checked before anything is written.
+    checked = {} if before_views is None else {'before': _check_views(before_views, before, 'before'),
+                                               'after': _check_views(after_views, after, 'after')}
     folder = _plain(out)
     folder.mkdir(parents=True, exist_ok=False)
     before_obs, after_obs = read_json(before['observation']), read_json(after['observation'])
     rendered = {}
-    if before_views is not None:
-        rendered = {'before': _bind_views(before_views, before, 'before', folder), 'after': _bind_views(after_views, after, 'after', folder)}
+    if checked:
+        rendered = {side: _bind_views(checked[side], side, folder) for side in ('before', 'after')}
     elif blender is not None:
         from .render import render_file
         project = None if views is not None else root
         for side, entry in (('before', before), ('after', after)):
             render_file(entry['checkpoint'], folder / 'work' / side, blender, project=project, views=views)
-            rendered[side] = _bind_views(folder / 'work' / side, entry, side, folder)
+            rendered[side] = _bind_views(_check_views(folder / 'work' / side, entry, side), side, folder)
     view_rows = []
     if rendered:
         ids = sorted(set(rendered['before']['images']) | set(rendered['after']['images']))
@@ -144,14 +163,18 @@ def build(root, out, *, from_id=None, to_id=None, before_views=None, after_views
                       'category': note['category'], 'stage_id': note['stage_id'], 'status': item['status'],
                       'validity': item['current_validity'], 'targets': anchor.get('instance_ids', []) + anchor.get('material_ids', []),
                       'checkpoint_id': anchor['checkpoint_id'], 'side': side, 'view_id': render.get('view_id'), 'pin': render.get('pin')})
-    submission = None
+    submission, elsewhere = None, []
     if events and feedback.binding(events) is not None:
         from .environment_workflow import stages
         for stage in stages(events).values():
             if stage['state'] == 'awaiting_review':
                 event = next(e for e in events if e['id'] == stage['submission_id'])
                 value = event['result']['submission']
-                submission = {'id': event['id'], 'stage_id': value['stage_id'], 'note': value['note'],
+                if value['checkpoint'] != c.checkpoint_ref(after):
+                    # Approval is offered only for the checkpoint this page shows.
+                    elsewhere.append({'stage_id': value['stage_id'], 'checkpoint_id': value['checkpoint']['checkpoint_id']})
+                    continue
+                submission = {'id': event['id'], 'stage_id': value['stage_id'], 'note': value['note'], 'checkpoint': value['checkpoint'],
                               'deliverables': value['deliverables'], 'questions': value.get('questions', []),
                               'review_policy': feedback.policy(events, value['stage_id']), 'current': events[-1]['id'] == event['id']}
     reopened = 'not run'
@@ -183,7 +206,7 @@ def build(root, out, *, from_id=None, to_id=None, before_views=None, after_views
     return {'schema': 'dcc.review.page.result.v1', 'page': str(folder / 'index.html'), 'page_digest': page_digest,
             'from': data['from'], 'to': data['to'], 'views': len(view_rows), 'views_match': data['views_match'],
             'counts': {k: len(v) for k, v in data['changes'].items() if isinstance(v, list)},
-            'submission': submission and submission['id'], 'reopened': reopened,
+            'submission': submission and submission['id'], 'submissions_not_shown': elsewhere, 'reopened': reopened,
             'next_action': f'Open the page. Import its export with: python -m dcc_harness review-import "{root}" "<export .json>" --page "{folder}"'}
 
 
@@ -206,6 +229,10 @@ def import_review(root, export, page, console=None):
         submission = data.get('submission')
         if submission is None:
             raise ValueError('The page had no stage submission to review')
+        shown = {'checkpoint_id': data['to']['id'], 'checkpoint_sha256': data['to']['checkpoint_sha256']}
+        event = next((e for e in c.read(root) if e['id'] == submission['id'] and e['kind'] == 'stage.submit'), None)
+        if event is None or event['result']['submission']['checkpoint'] != shown or submission.get('checkpoint') != shown:
+            raise ValueError('The stage submission is not for the checkpoint this page shows; build a page for its checkpoint and review again')
         payload, request = {'submission_id': submission['id'], 'review': value['review']}, str(uuid.uuid5(NAMESPACE, key + ':review'))
         approval = owner.authorize(root, 'stage.complete', payload, request, console)
         outcome = environment_workflow.apply(root, 'stage.complete', payload, submission['id'], request, page, approval=approval)

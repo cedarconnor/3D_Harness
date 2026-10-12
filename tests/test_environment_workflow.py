@@ -74,6 +74,27 @@ class EnvironmentWorkflowTests(Fixture):
         self.assertEqual(states['direction']['state'], 'needs_review')
         self.assertEqual(states['delivery']['state'], 'blocked')
 
+    def test_reopening_a_global_note_reopens_delivery(self):
+        self.bind(); nid = self.add(stage_id=None); self.verify(nid, self.respond(nid)); self.complete(self.submit())
+        self.complete(self.submit(stage_id='delivery', deliverables={'native': 'Deliver'}, evidence=[
+            {'kind': 'native_reopen', 'observation': self.ref(self.obs_path), 'producer': self.actor()},
+            {'kind': 'native_contract', 'before': self.cp(), 'contract': self.ref(self.contract)},
+            {'kind': 'feedback_reconciliation'}, {'kind': 'handoff', 'file': self.ref(self.handoff)}]))
+        self.assertEqual(ew.stages(c.read(self.root))['delivery']['state'], 'complete')
+        self.apply('feedback.decide', {'schema': 'dcc.feedback.decision.v1', 'note_id': nid, 'action': 'reopen',
+                                       'reason': 'The issue returned', 'authority': self.actor(), 'result': self.cp()})
+        states = ew.stages(c.read(self.root))
+        self.assertEqual((states['direction']['state'], states['delivery']['state']), ('complete', 'needs_review'))
+
+    def test_artifact_names_reaching_one_file_are_refused_before_writing(self):
+        self.bind()
+        ref = self.ref(self.handoff)
+        alias = {**ref, 'path': ref['path'].swapcase()}
+        with self.assertRaisesRegex(ValueError, 'same file differently'):
+            self.submit(evidence=[{'kind': 'direction_record', 'file': ref}, {'kind': 'handoff', 'file': alias}])
+        self.assertEqual(len(c.read(self.root)), 1)
+        workflow.resume(self.root)
+
     def test_omitted_note_and_unverified_response_block_completion(self):
         self.bind(); nid = self.add()
         with self.assertRaisesRegex(ValueError, 'every applicable'):
