@@ -17,8 +17,8 @@ Earlier plans are archived verbatim in [archive/plans](archive/plans/). The Octo
 | | |
 |---|---|
 | Version | 0.18.0 on `main` |
-| Active | None; every agent-owned P and M item is done |
-| Next | The gate's E items need the artist; the X items wait on the gate |
+| Active | None; P15–P18 and M6 are open from the [Scenario review](reference/SCENARIO_BLENDER_PLUGIN_REVIEW_2026-10-15.md) |
+| Next | M6, then P15; the gate's E items need the artist; the X items wait on the gate |
 | Waiting on the user | E1–E3 artist review session; E4 decision on the realistic comparison; E5 artist repair time |
 | Investment gate | Open |
 
@@ -45,6 +45,7 @@ These need artist time or a user decision rather than new code. Every stage afte
 | M3 | Separate experiment tooling (`blind`, `blind_review`, `continuity_trial`, `continuity_review`) from the pinned runtime digest | Agent | done | Done in 0.13.1: the runtime digest excludes the experiment modules, and a test fails if the pinned runtime imports one ([report](archive/releases/MAINTENANCE_0_13_1_RESULTS.md)) |
 | M4 | Shared launcher helper for the qualification orchestrators | Agent | done | Done in 0.13.1 for the seven qualifications rerun every release: `scripts/_launcher.py`. Older one-off `qualify_*` and `run_*` scripts keep their own code, since they are tied to retired fixtures; evaluators stay self-contained ([report](archive/releases/MAINTENANCE_0_13_1_RESULTS.md)) |
 | M5 | Record session cost in trial receipts ([details](#m5-session-cost)) | Agent | done | Done in 0.13.1: `python -m dcc_harness.session_cost` writes turns, elapsed minutes, tokens, cache-read share and spend (unavailable unless reported) against the ceilings; first used for E5 ([report](archive/releases/MAINTENANCE_0_13_1_RESULTS.md)) |
+| M6 | Check the `native_dirty` condition and add `--offline-mode` to owned Blender processes ([details](#p15p18-and-m6-from-the-scenario-review)) | Agent | todo | Every path that can reach a `native_dirty` check after an in-process Python edit is listed, and each either compares an in-memory hash with the saved file or its guide states the limit, with a native negative fixture. Launchers pass `--offline-mode`; source and installed suites and native fixtures pass |
 
 ### P: Product increments, ranked
 
@@ -66,6 +67,10 @@ Ranked by expected effect on the gate. Each ships as its own version.
 | P8 | GLB delivery receipt ([plan](archive/plans/P8_GLB_DELIVERY.md)) | Agent | done | Shipped in 0.14.0: `deliver-glb` exports, reimports into an empty scene in a second process and compares by stable ID, with a receipt bound to the checkpoint. Natively, a moved copy failed with `BOUNDS`, a truncated GLB failed to import, and the production garden's 1,285 meshes matched ([report](archive/releases/DELIVERY_0_14_0_RESULTS.md)) |
 | P13 | Native UV overlap, texel density and fine-grained modifier and node permissions (moved from P6) | Agent | done | Permissions in 0.17.0 ([report](archive/releases/MODIFIERS_0_17_0_RESULTS.md)); UV overlap and texel density in 0.18.0 as the separate `uv-report` measurement rather than observer fields, so earlier checkpoints are unaffected ([report](archive/releases/UV_0_18_0_RESULTS.md)) |
 | P14 | Blender craft skill library across modeling, surfaces, look, motion, characters, effects and delivery, requested by the owner ([guide](guides/BLENDER_SKILL_LIBRARY.md)) | Agent | done | Done October 11: 25 `blender-*` skills and a `blender-craft` index, synthesized from 30 supplied sources and the Blender docs. Every skill's `python verify` block passed on Blender 5.1.1 and 5.2.1 through `scripts/qualify_blender_skills.py`; running them corrected thirteen claims. Craft quality and fresh-agent use are not yet measured, and P5 should be rerun because `dcc-harness` now links the index |
+| P15 | Attribute-complete geometry hash ([details](#p15p18-and-m6-from-the-scenario-review)) | Agent | todo | A separately versioned field beside `geometry_hash` covers edges, `use_smooth` and every generic attribute, and contracts compare it when both checkpoints carry it; earlier checkpoints observe as before. Native negative fixtures for shade smooth, a sharp edge, a crease, a seam and a colour attribute each fail a protected contract, and an unchanged mesh repeats byte for byte |
+| P16 | Blockout spec for the planning stage ([details](#p15p18-and-m6-from-the-scenario-review)) | Agent | todo | A versioned greybox JSON schema with clamped validation, a helper that builds it into an owned, tagged collection with stable IDs and refuses to rebuild an edited collection, and `relations` run on the built blockout. Native positive and negative fixtures; an implementation plan in `docs/plans/` first |
+| P17 | Skill notes from the Scenario review: texture-set and World conventions, Blender 5.x image decoding defects, and the undo push after Python edits ([details](#p15p18-and-m6-from-the-scenario-review)) | Agent | todo | Notes added to `dcc-materials`, `blender-shading`, `blender-lighting` and `blender-python`, each claim with a `python verify` block that passes on Blender 5.1.1 and 5.2.1 through `scripts/qualify_blender_skills.py`; P5 rerun |
+| P18 | Skill provenance and drift record ([details](#p15p18-and-m6-from-the-scenario-review)) | Agent | todo | Every skill records its sources and the Blender versions its verify blocks passed on; a check flags a skill whose sources changed after its recorded revision, and fails in the source suite |
 
 ### R: Repository
 
@@ -89,6 +94,7 @@ Revisit each against a named, measured gap.
 | X6 | Geometry Nodes distribution identity | [D6](DESIGN_DECISIONS.md#d6-asset-and-instance-identity-are-separate) |
 | X7 | Generated textures, bakes and UDIMs | [Archived October 3 plan](archive/plans/DCC_HARNESS_BUILD_PLAN_v3_2026-10-06.txt) |
 | X8 | SDK runners and a DCC-MCP core evaluation | [D2](DESIGN_DECISIONS.md#d2-reuse-the-transport-and-implement-native-observation), [D8](DESIGN_DECISIONS.md#d8-package-the-proven-workflow) |
+| X9 | A live-session scene revision token: refuse a write when the scene changed after it was observed | [Scenario review](reference/SCENARIO_BLENDER_PLUGIN_REVIEW_2026-10-15.md) |
 
 ## Item details
 
@@ -123,6 +129,21 @@ P9 is done in 0.7.0 ([report](archive/releases/GUIDANCE_0_7_0_RESULTS.md)), P10 
 - **P10, render command.** Generalize the fixture-specific render tool: render the project's review cameras for a saved file without saving it, and write the receipt with its view settings in the format feedback evidence requires. Run renders one at a time through a queue; each request returns an ID that a later call waits on, so a slow render never blocks the session.
 - **P11, learned checks.** When feedback verification finds an error that no existing check reported, the response may propose a check: a measurable rule, its applicable stages, tolerance and a negative fixture showing that it catches the error. An owner-approved check joins a versioned library outside any single project; new workflow bindings pin the library version as they pin skills, so earlier projects are unaffected. Classify each artist note as error or taste first: only errors become checks, and taste stays project direction. Unlike Mortiflix, whose checks are plain-language rules the session marks as passed, every library check must be computed by the runtime; a proposal that cannot be measured stays a skill note. Count repeat occurrences of an existing check's error, as Mortiflix's `--same-as` does, to rank which checks matter. P2's first relation family is the natural first library entry. Needs P12 so that approval cannot come from the proposing agent.
 - **P12, owner approval channel.** Roles are caller-attributed today, so an agent can write `authority: {role: "artist"}`. Accept artist completion, blocking deferrals and check approvals only through a path the agent's tools cannot reach, such as answers the artist saves in a review page, imported with their provenance, or an interactive owner command. Record the authority change as a design decision before coding. Pair it with P4. Be explicit about strength: Mortiflix refuses owner commands when a session token is set in the environment and calls that "a guard, not a wall", because an unsandboxed agent with a shell can still edit the record. A guard against accidental self-approval is the first goal; a wall needs OS-level separation, which Windows sessions here do not have yet.
+
+### P15–P18 and M6: from the Scenario review
+
+Added October 15 from the [Scenario for Blender review](reference/SCENARIO_BLENDER_PLUGIN_REVIEW_2026-10-15.md). None of them is expected to move the investment gate; they proceed as bounded increments under [D17](DESIGN_DECISIONS.md#d17-bounded-increments-proceed-while-the-creative-gate-stays-open) once the owner authorizes them.
+
+- **M6, `native_dirty`.** Observation records `bpy.data.is_dirty`, and six checks require it to be `False`. On Blender 5.1.1 and 5.2.1, edits made from Python in the same process leave the flag `False`, so the condition proves only that nothing marked the file modified, not that the scene in memory matches the saved file. Owned background observation opens a fresh file and is unaffected. Find any path, such as observation inside a live session, where an in-process edit can precede the check. Then either compare a fresh in-memory geometry and transform hash with the saved file, or state the limit where the guides describe these checks. In the same version, add `--offline-mode` to `native.py` and `scripts/_launcher.py`.
+- **P15, geometry hash.** `mesh_record` and `_mesh_hash` in `blender.py` hash positions, loop vertex indices, loop counts and material indices. Add a field (for example `attribute_hash`) that also covers edge vertices, polygon `loop_start` and `use_smooth`, and every generic attribute with its name, type and domain. Prefix it with a versioned layout description and fix the byte order. Keep `geometry_hash` unchanged so earlier checkpoints observe as before, as `uv-report` did for UVs. Contracts compare the new field only when both checkpoints carry it, and say so in coverage.
+- **P16, blockout spec.** The planning skill describes a layout in prose. A greybox spec gives the environment stable IDs and support checks from the first stage. Use a flat list of named primitives with category, metre size, yaw and group, resting on `z = size_z / 2`. Clamp sizes, coordinates and element counts on parsing, and keep a strict mode. A rebuild stages the new collection before removing the old and refuses if the collection holds untagged objects. Write the schema and its relation to stage evidence in a plan before coding.
+- **P17, skill notes.**
+  - Materials: build a new material instead of editing a shared one; one explicit UV Map node feeds every image node; base colour is sRGB and every other map is Non-Color; smoothness is inverted into Roughness; height goes through a Bump node chained after the normal map; texture roles come from metadata, not file names.
+  - Worlds: build a new World and check the 2:1 aspect.
+  - Image decoding on 5.0–5.2: EXIF orientation and ICC profiles are ignored, AP1 and Rec.2020 EXR files load as linear Rec.709, and some JPEGs stall the main thread.
+  - Python edits: push a named undo step after a Python edit in a live session so the file reads as modified.
+  - Verify each claim natively; drop any that does not reproduce.
+- **P18, skill provenance.** P14 verified every skill's code but records neither the sources each skill was built from nor the Blender versions it passed on. Add both to each skill, after the pattern of Scenario's `docs/knowledge.json`. Add a check that flags a skill when a recorded source changes after the skill's reviewed revision.
 
 ### M5: session cost
 
@@ -218,6 +239,7 @@ Capture fixed views at blockout, surface and lighting completion, pre-revision a
 
 Newest first. One line per status change.
 
+- **2026-10-15:** P15–P18, M6 and X9 added from the [Scenario for Blender review](reference/SCENARIO_BLENDER_PLUGIN_REVIEW_2026-10-15.md). A native probe showed that Python edits leave `is_dirty` false on Blender 5.1.1 and 5.2.1.
 - **2026-10-11:** P14 done: the Blender craft skill library, 25 skills with code verified on Blender 5.1.1 and 5.2.1. Added at the owner's request; not a runtime release.
 - **2026-10-11:** P13 done. Version 0.18.0 ships `uv-report` for texel density, UV overlap and UVs outside the unit square.
 - **2026-10-11:** P13 started; its contract permissions shipped in 0.17.0.

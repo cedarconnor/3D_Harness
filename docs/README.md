@@ -56,6 +56,7 @@ Each was qualified on one production scene: [ground](recipes/GROUND_RECIPE.md), 
 |---|---|
 | [Repository ideas](reference/REPOSITORY_IDEAS_2026-10-06.md) | Source comparison with seven external projects; the basis for P2 and P4–P8 |
 | [Motion harness review](reference/MOTION_HARNESS_REVIEW_2026-10-10.md) | Gated motion-design harness compared with this one; the basis for P9–P12 and M5 |
+| [Scenario review](reference/SCENARIO_BLENDER_PLUGIN_REVIEW_2026-10-15.md) | Scenario's Blender extension compared with this one; the basis for P15–P18, M6 and X9 |
 | [Research](reference/DCC_HARNESS_RESEARCH.md) | External evidence behind the decisions, dated October 3 |
 | [Skill system](reference/DCC_HARNESS_SKILL_SYSTEM.md) | Skill catalog and motion-design expansion for stage E |
 | [Packaging and entry points](reference/DCC_HARNESS_PACKAGING_AND_ENTRY_POINTS.md) | Client packages, connectors and hooks for stage E |
