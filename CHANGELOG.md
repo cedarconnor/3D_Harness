@@ -2,9 +2,14 @@
 
 Each version is a bounded increment with its own qualification report. Test counts are portable-suite results on Windows; the two skips in each count are host symlink-permission cases. Native qualification uses Blender 5.1.1 on Windows. Studies are listed with the versions they exercised. The [build plan](docs/BUILD_PLAN.md) explains what remains open, and reports that link into `runs/` refer to local evidence excluded from Git.
 
-## Unreleased — review fixes
+## 0.18.1 — October 15, 2026
 
-Fixes for the eleven findings of the October 11 full review of `340dc9d`.
+Maintenance: build-plan item M6, and the fixes for the eleven findings of the October 11 full review of `340dc9d`.
+
+- **Fixed (M6):** `continuity_blender.observe()` in an interactive session records `native_dirty: true` with a `native_dirty_reason`. Blender does not mark edits made from Python as modified, so an observation in a live session could report a clean saved state while carrying the saved file's hash beside a different scene. Background observations are unchanged.
+- **Fixed (M6):** `observe_visibility` refuses an interactive session.
+- **Changed (M6):** owned Blender processes and the qualification launcher start with `--offline-mode`.
+- **Docs (M6):** the guides and the `dcc-harness` and `dcc-build-revise` skills no longer call in-session `observe()` equivalent to the `observe` command. It is equivalent only in a background script, straight after opening or saving the file.
 
 - **Fixed:** `review-page` refuses render receipts whose image paths are absolute, contain `..` or collide with the receipt files. It checks both folders before creating the page and copies each file to a new, verified file. Previously such a path could overwrite a file outside the page.
 - **Fixed:** a page built with `--to` an earlier checkpoint no longer offers approval of a submission for a later one. The build result lists it under `submissions_not_shown`, and `review-import` checks that the submission is for the page's after checkpoint.
@@ -16,7 +21,7 @@ Fixes for the eleven findings of the October 11 full review of `340dc9d`.
 - **Fixed:** reopening a resolved global note sends delivery back to review, as adding one does.
 - **Fixed:** `uv-report` converts world area with the scene's unit scale, so density is in pixels per metre in any unit system. The measurement records `unit_scale`.
 - **Fixed:** `deliver-glb` sets aside what the exporter writes for a collection instance (its root and members) instead of reporting them as `EXTRA`. They are listed under `instance_content`.
-- **Qualification:** 429 tests from source (the installed wheel was not rerun). Native Blender 5.1.1 probes: collection hide-render and view-layer exclusion fail a zero-permission contract, as does a render UV switch, while selecting another UV map for editing does not; scenes without either observe with the same revision as `340dc9d`. Duplicate IDs refused by both workers; the centimetre plane measured 51,200 px/m; the collection-instance file delivered with no findings.
+- **Qualification:** 429 tests from source and from the installed wheel. `qualify_saved_state.py` passed on Blender 5.1.1 and 5.2.1 after failing on the interactive observation before the fix, and the twelve earlier qualifications and instances passed on the wheel. [Report](docs/archive/releases/MAINTENANCE_0_18_1_RESULTS.md). For the review fixes, native Blender 5.1.1 probes: collection hide-render and view-layer exclusion fail a zero-permission contract, as does a render UV switch, while selecting another UV map for editing does not; scenes without either observe with the same revision as `340dc9d`. Duplicate IDs refused by both workers; the centimetre plane measured 51,200 px/m; the collection-instance file delivered with no findings.
 - **Observed, not fixed:** Blender 5.1.1's glTF exporter applies a collection-instance empty's transform twice to a child parented beneath it, so the child arrives displaced by the instance's offset. `deliver-glb` reports this as `BOUNDS`.
 
 ## Skill library — October 11, 2026

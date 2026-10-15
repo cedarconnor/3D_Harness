@@ -19,6 +19,9 @@ from .blender import observe as observe_raw
 from .evidence import digest, file_hash, validate_observation
 from .uv_guard import UV_NOISE_TOLERANCE
 
+INTERACTIVE_REASON = ("Observed in an interactive session, where Blender does not mark edits made from Python as "
+                      "modified; use the observe command for saved-state evidence")
+
 
 def _buffer(collection, prop, length, kind="f"):
     values = array.array(kind, [0]) * length
@@ -121,7 +124,12 @@ def enhance(raw):
     _normalize_packed(obs)
     obs["revision"] = digest({k: obs[k] for k in ("objects", "materials", "scene", "coverage", "issues")})
     obs["checkpoint_sha256"] = file_hash(source)
-    obs["native_dirty"] = bool(bpy.data.is_dirty)
+    # Blender marks a file modified only through undo steps, so edits made from Python or an MCP
+    # leave is_dirty false. Only a background process, where nothing but the calling script runs,
+    # can rely on it; an interactive session cannot show that memory matches the saved file.
+    obs["native_dirty"] = bool(bpy.data.is_dirty) or not bpy.app.background
+    if not bpy.app.background:
+        obs["native_dirty_reason"] = INTERACTIVE_REASON
     return obs
 
 

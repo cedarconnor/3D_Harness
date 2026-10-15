@@ -84,6 +84,7 @@ One report per version. The [changelog](../CHANGELOG.md) summarizes counts and n
 | 0.4.10 | [External revisions](archive/releases/REVISIONS_0_4_10_RESULTS.md) |
 | 0.5.0 | [Structured feedback](archive/releases/FEEDBACK_0_5_0_RESULTS.md) |
 | 0.5.1 | [Correctness maintenance](archive/releases/MAINTENANCE_0_5_1_RESULTS.md) |
+| 0.18.1 | [Maintenance: saved-state evidence, offline mode, review fixes](archive/releases/MAINTENANCE_0_18_1_RESULTS.md) |
 | 0.18.0 | [UV report](archive/releases/UV_0_18_0_RESULTS.md) |
 | 0.17.0 | [Modifier and node permissions](archive/releases/MODIFIERS_0_17_0_RESULTS.md) |
 | 0.16.0 | [Revision relocation](archive/releases/RELOCATION_0_16_0_RESULTS.md) |

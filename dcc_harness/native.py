@@ -10,7 +10,7 @@ def run_worker(blender, folder, worker, action, request):
     """Run one worker action; its request and Blender log are retained in folder."""
     request_path = folder / (action + '-request.json')
     write_json(request_path, request)
-    command = [str(blender), '--background', '--factory-startup', '--disable-autoexec',
+    command = [str(blender), '--background', '--offline-mode', '--factory-startup', '--disable-autoexec',
                '--python-exit-code', '1', '--python', str(worker), '--', action, str(request_path)]
     log_path = folder / (action + '.log')
     with log_path.open('x', encoding='utf-8') as log:

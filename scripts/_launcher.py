@@ -16,7 +16,7 @@ import subprocess
 import sys
 
 REPO = Path(__file__).resolve().parents[1]
-BLENDER_FLAGS = ('--background', '--factory-startup', '--disable-autoexec', '--python-exit-code', '1')
+BLENDER_FLAGS = ('--background', '--offline-mode', '--factory-startup', '--disable-autoexec', '--python-exit-code', '1')
 
 
 class Qualification:

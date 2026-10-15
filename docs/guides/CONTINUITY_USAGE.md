@@ -8,7 +8,7 @@ For an ordinary project, the following APIs are available in `dcc_harness.contin
 
 ## Start and inspect a project
 
-Capture the saved native state inside Blender using `dcc_harness.continuity_blender.observe()`. Its observation includes the actual saved checkpoint hash. Write the observation with `dcc_harness.evidence.write_json` to a new file.
+Capture the saved native state with the `observe` command, or in a background Blender script with `dcc_harness.continuity_blender.observe()` straight after opening or saving the file. Its observation includes the actual saved checkpoint hash. Blender does not mark edits made from Python as modified, so observing after an unsaved edit pairs that hash with a different scene; in an interactive session the observer reports `native_dirty: true` for this reason. Write the observation with `dcc_harness.evidence.write_json` to a new file.
 
 Version 0.1.1 emits continuity observation version 2. Dimensions use evaluated, world-oriented geometry with translation excluded before computing extents; world bounds still measure placement. This avoids small float32 subtraction differences making a pure translation appear to resize an object. Nonfinite authored/evaluated coordinates are rejected.
 

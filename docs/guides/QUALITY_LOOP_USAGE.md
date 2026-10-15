@@ -54,7 +54,7 @@ Use `dcc.quality.round.v2` when visibility is a required gate. It adds `visibili
 }
 ```
 
-In fresh background Blender, open the immutable checkpoint, call `continuity_blender.observe()`, then `visibility_blender.observe_visibility(queries, observation)` before changing render settings or creating temporary cameras. `spatial.check_visibility` binds results to the observed revision/checkpoint and frozen query, verifies count consistency, then computes admission. Missing coverage, dirty/stale evidence and mismatched queries do not pass.
+In fresh background Blender, open the immutable checkpoint, call `continuity_blender.observe()`, then `visibility_blender.observe_visibility(queries, observation)` before changing render settings or creating temporary cameras. Since 0.18.1 `observe_visibility` refuses an interactive session. `spatial.check_visibility` binds results to the observed revision/checkpoint and frozen query, verifies count consistency, then computes admission. Missing coverage, dirty/stale evidence and mismatched queries do not pass.
 
 The native metric samples a uniform grid over the target's projected bounding region. A target-only BVH establishes sampled silhouette coverage; the full-scene first hit identifies visible samples and blocking object IDs. It supports perspective and orthographic cameras, including shifts. It is an **opaque geometric occlusion metric**, not exact rendered pixels, alpha/transmission, perceptual recognition, depth of field or motion blur. A mostly off-screen target can still be unobstructed within its clipped ROI; composition remains a separate visual decision.
 

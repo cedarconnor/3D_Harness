@@ -6,7 +6,7 @@ For an untracked scene missing IDs, use [initial identity adoption](SCENE_ADOPTI
 
 ## Prepare and inspect the preview
 
-Run `resume` first. Save the intended external edit as a separate `.blend` and freshly observe that saved file. The `observe` command reopens it in a separate background Blender; inside Blender, `dcc_harness.continuity_blender.observe()` is equivalent. Preserve the existing IDs and write a narrow `dcc.continuity.contract.v1` contract describing allowed changes and cumulative requirements. Never infer permission for every difference simply because it exists.
+Run `resume` first. Save the intended external edit as a separate `.blend` and freshly observe that saved file. The `observe` command reopens it in a separate background Blender; in a background Blender script, `dcc_harness.continuity_blender.observe()` is equivalent straight after opening the saved file. An interactive session observes `native_dirty: true`. Preserve the existing IDs and write a narrow `dcc.continuity.contract.v1` contract describing allowed changes and cumulative requirements. Never infer permission for every difference simply because it exists.
 
 Prepare a handoff, a JSON object of decision updates, a unique step label, and a short account of the edit. Then:
 

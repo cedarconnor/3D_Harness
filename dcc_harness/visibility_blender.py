@@ -150,6 +150,9 @@ class GeometryVisibility:
 def observe_visibility(queries, observation):
     if bpy.data.is_dirty or not bpy.data.filepath:
         raise ValueError('Visibility receipt requires a saved, unmodified native checkpoint')
+    if not bpy.app.background:
+        # Edits made from Python leave is_dirty false, so only a background process can rely on it.
+        raise ValueError('Visibility receipt requires a fresh background process')
     sha = file_hash(bpy.data.filepath)
     if observation['checkpoint_sha256'] != sha:
         raise ValueError('Observation belongs to a different checkpoint')

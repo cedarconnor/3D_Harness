@@ -16,9 +16,9 @@ Earlier plans are archived verbatim in [archive/plans](archive/plans/). The Octo
 
 | | |
 |---|---|
-| Version | 0.18.0 on `main` |
-| Active | None; P15–P18 and M6 are open from the [Scenario review](reference/SCENARIO_BLENDER_PLUGIN_REVIEW_2026-10-15.md) |
-| Next | M6, then P15; the gate's E items need the artist; the X items wait on the gate |
+| Version | 0.18.1 on `main` |
+| Active | None; P15–P18 are open from the [Scenario review](reference/SCENARIO_BLENDER_PLUGIN_REVIEW_2026-10-15.md) |
+| Next | P15; the gate's E items need the artist; the X items wait on the gate |
 | Waiting on the user | E1–E3 artist review session; E4 decision on the realistic comparison; E5 artist repair time |
 | Investment gate | Open |
 
@@ -45,7 +45,7 @@ These need artist time or a user decision rather than new code. Every stage afte
 | M3 | Separate experiment tooling (`blind`, `blind_review`, `continuity_trial`, `continuity_review`) from the pinned runtime digest | Agent | done | Done in 0.13.1: the runtime digest excludes the experiment modules, and a test fails if the pinned runtime imports one ([report](archive/releases/MAINTENANCE_0_13_1_RESULTS.md)) |
 | M4 | Shared launcher helper for the qualification orchestrators | Agent | done | Done in 0.13.1 for the seven qualifications rerun every release: `scripts/_launcher.py`. Older one-off `qualify_*` and `run_*` scripts keep their own code, since they are tied to retired fixtures; evaluators stay self-contained ([report](archive/releases/MAINTENANCE_0_13_1_RESULTS.md)) |
 | M5 | Record session cost in trial receipts ([details](#m5-session-cost)) | Agent | done | Done in 0.13.1: `python -m dcc_harness.session_cost` writes turns, elapsed minutes, tokens, cache-read share and spend (unavailable unless reported) against the ceilings; first used for E5 ([report](archive/releases/MAINTENANCE_0_13_1_RESULTS.md)) |
-| M6 | Check the `native_dirty` condition and add `--offline-mode` to owned Blender processes ([details](#p15p18-and-m6-from-the-scenario-review)) | Agent | todo | Every path that can reach a `native_dirty` check after an in-process Python edit is listed, and each either compares an in-memory hash with the saved file or its guide states the limit, with a native negative fixture. Launchers pass `--offline-mode`; source and installed suites and native fixtures pass |
+| M6 | Check the `native_dirty` condition and add `--offline-mode` to owned Blender processes ([details](#p15p18-and-m6-from-the-scenario-review)) | Agent | done | Done in 0.18.1: an interactive observation is never clean and visibility refuses one; background observations unchanged; the documented limit for background scripts that edit before observing is asserted natively. Owned processes start with `--offline-mode`. Source and installed suites, the new fixture on 5.1.1 and 5.2.1, and the twelve earlier qualifications pass ([report](archive/releases/MAINTENANCE_0_18_1_RESULTS.md)) |
 
 ### P: Product increments, ranked
 
@@ -239,6 +239,8 @@ Capture fixed views at blockout, surface and lighting completion, pre-revision a
 
 Newest first. One line per status change.
 
+- **2026-10-15:** M6 done. Version 0.18.1 refuses interactive observations as saved-state evidence, adds `--offline-mode` and releases the `340dc9d` review fixes.
+- **2026-10-15:** M6 started; a native fixture reproduced a clean interactive observation after an unsaved Python edit.
 - **2026-10-15:** P15–P18, M6 and X9 added from the [Scenario for Blender review](reference/SCENARIO_BLENDER_PLUGIN_REVIEW_2026-10-15.md). A native probe showed that Python edits leave `is_dirty` false on Blender 5.1.1 and 5.2.1.
 - **2026-10-11:** P14 done: the Blender craft skill library, 25 skills with code verified on Blender 5.1.1 and 5.2.1. Added at the owner's request; not a runtime release.
 - **2026-10-11:** P13 done. Version 0.18.0 ships `uv-report` for texel density, UV overlap and UVs outside the unit square.

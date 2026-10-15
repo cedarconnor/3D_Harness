@@ -14,6 +14,7 @@ Scripts marked *launcher* run under system Python and start Blender themselves, 
 
 | Version | Scripts | Mode | Runs from a clone |
 |---|---|---|---|
+| 0.18.1 | `qualify_saved_state.py` with `saved_state_native_probe.py`: a saved scene observed in background and interactive Blender before and after an unsaved Python edit; `start` refuses the interactive observation; the `observe` command passes with `--offline-mode`. The interactive half opens a Blender window. Passed on 5.1.1 and 5.2.1; the earlier twelve rerun | launcher | Yes: builds its scene; needs a desktop session |
 | Skills, after 0.18.0 | `qualify_blender_skills.py` with `blender_skills_native.py`: every `python verify` block in the 25 `blender-*` skills, one background Blender per skill; `--only NAME...` limits the run. Passed on 5.1.1 and 5.2.1 | launcher | Yes: every block builds its own scene |
 | 0.18.0 | `qualify_uv_report.py`: seven planes with exactly known UVs (density, overlap, outside, no UV, small-triangle path) and the production garden's timing. The earlier twelve rerun | launcher | Yes: builds its scene; the production timing needs the local garden |
 | 0.17.0 | `qualify_modifiers.py`: a bevel-segment change published and a bevel-width change refused under `allowed_modifier_settings`; a Mix blend change published at the desired value and refused at another. The earlier eleven rerun. Also `p5_build_packets.py` and `p5_grade.py`, the P5 skill regression suite | launcher | Yes: builds its scenes |
