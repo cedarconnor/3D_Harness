@@ -46,6 +46,16 @@ Always index sockets by name. Old names such as `Specular`, `Transmission`, `Cle
 - **Bump and displacement.** Bump is a shading-only fake and is cheap. True displacement (`material.displacement_method = 'DISPLACEMENT'` or `'BOTH'`) needs dense geometry or adaptive subdivision, and the Displacement node's `Scale` in metres.
 - **Sizes.** Use power-of-two textures and pack or relocate them consistently. Packed images survive moving the .blend; external paths should be relative (`//textures/...`).
 
+## Wiring a texture set
+
+- **A new material for the set.** Build the texture set as a new material and assign it only to the slot it is for. Never repurpose a shared material, or every user changes; see [materials](../dcc-materials/SKILL.md).
+- **One UV Map node.** Feed every Image Texture from one UV Map node that names its layer (`uv_map = 'UVMap'`), and set the Normal Map node's `uv_map` to the same name. Otherwise each follows the mesh's active render layer, which an artist can change.
+- **Roles from metadata.** Take each map's role from the set's metadata or receipt, never from its filename. Refuse two maps for one role, and refuse roughness and smoothness together.
+- **Smoothness** is inverted roughness: route it through an Invert node (or Math `1 - x`) into Roughness.
+- **Height** is separate detail from the normal map: chain them. The Normal Map output goes to the Bump node's `Normal`, height goes to its `Height`, and the Bump output goes to the BSDF's `Normal`. `Distance` is in metres.
+- **AO.** Principled BSDF has no ambient occlusion input, and multiplying AO into Base Color darkens path-traced crevices twice. Leave an AO map unconnected unless a baked game export needs it.
+- **Rotated JPEGs.** Blender 5.1 and 5.2 ignore EXIF orientation: a photo tagged as rotated loads with its stored pixels unrotated. Compare `image.size` with the intended aspect, and re-save rotated pixels before use.
+
 ## Procedural textures at physical scale
 
 - **Coordinates.**
@@ -117,4 +127,41 @@ glass.surface_render_method, glass.use_raytrace_refraction, glass.thickness_mode
 group = bpy.data.node_groups.get('NG-edge-wear') or bpy.data.node_groups.new('NG-edge-wear', 'ShaderNodeTree')
 group.interface.new_socket('Mask', in_out='OUTPUT', socket_type='NodeSocketFloat')
 assert bpy.data.node_groups['NG-edge-wear'].interface.items_tree['Mask'].in_out == 'OUTPUT'
+```
+
+```python verify
+import bpy
+import numpy as np
+import OpenImageIO as oiio
+
+# A texture set wired as a new material: one UV Map node, smoothness inverted, height chained after the normal map.
+mat = bpy.data.materials.new('MAT-set')
+nodes, links = mat.node_tree.nodes, mat.node_tree.links
+bsdf = nodes['Principled BSDF']
+uv = nodes.new('ShaderNodeUVMap'); uv.uv_map = 'UVMap'
+maps = {}
+for role, space in (('base', 'sRGB'), ('smoothness', 'Non-Color'), ('normal', 'Non-Color'), ('height', 'Non-Color')):
+    image = bpy.data.images.new('T_set_' + role, 64, 64); image.colorspace_settings.name = space
+    node = nodes.new('ShaderNodeTexImage'); node.image = image
+    links.new(uv.outputs['UV'], node.inputs['Vector']); maps[role] = node
+links.new(maps['base'].outputs['Color'], bsdf.inputs['Base Color'])
+invert = nodes.new('ShaderNodeInvert')
+links.new(maps['smoothness'].outputs['Color'], invert.inputs['Color'])
+links.new(invert.outputs['Color'], bsdf.inputs['Roughness'])
+normal_map = nodes.new('ShaderNodeNormalMap'); normal_map.uv_map = 'UVMap'
+links.new(maps['normal'].outputs['Color'], normal_map.inputs['Color'])
+bump = nodes.new('ShaderNodeBump'); bump.inputs['Distance'].default_value = 0.002
+links.new(maps['height'].outputs['Color'], bump.inputs['Height'])
+links.new(normal_map.outputs['Normal'], bump.inputs['Normal'])
+links.new(bump.outputs['Normal'], bsdf.inputs['Normal'])
+assert all(l.is_valid for l in links) and bsdf.inputs['Normal'].links[0].from_node == bump
+assert all(n.inputs['Vector'].links[0].from_node == uv for n in maps.values())
+assert not maps['base'].image.colorspace_settings.is_data and maps['height'].image.colorspace_settings.is_data
+assert not any('occlusion' in s.name.lower() for s in bsdf.inputs)
+
+# EXIF orientation is ignored: a 4 x 2 JPEG tagged "rotate 90" still loads as 4 x 2.
+path = str(WORK / 'rotated.jpg')
+out = oiio.ImageOutput.create(path); spec = oiio.ImageSpec(4, 2, 3, 'uint8'); spec.attribute('Orientation', 6)
+out.open(path, spec); out.write_image(np.full((2, 4, 3), 128, np.uint8)); out.close()
+assert tuple(bpy.data.images.load(path).size) == (4, 2)
 ```

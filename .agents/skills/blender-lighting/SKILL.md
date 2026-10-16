@@ -31,6 +31,8 @@ In a harness project, the approved lights and cameras are protected. Read [light
 - **Several jobs at once.** When one HDRI cannot do every job (background, light and reflections), split them with a Light Path node (`Is Camera Ray`) in Cycles. Do this for a specific reason, because it breaks physical consistency.
 - **Sky texture (5.1).** The types are `SINGLE_SCATTERING`, `MULTIPLE_SCATTERING`, `PREETHAM` and `HOSEK_WILKIE`; `NISHITA` is gone.
   - The sky's sun disc renders only in Cycles. For the same sun in both engines, add a real Sun light, turn the sky's `sun_disc` off, and set `world.sun_threshold = 0` in EEVEE so it does not extract a second sun.
+- **Apply an HDRI as a new World.** Build Environment Texture (`projection = 'EQUIRECTANGULAR'`), then Background, then World Output in a new World, and assign it to the scene. The previous world stays intact to restore. Check that the image is 2:1.
+- **EXR primaries.** Blender 5.1 and 5.2 label an EXR `Linear Rec.709` even when its header declares other primaries, such as ACES AP1. Read the header with the bundled `OpenImageIO` and set the matching colour space (`'ACEScg'` for AP1) instead of trusting the default.
 - **Neutral world for products.** A low-strength neutral world (about 0.1–0.4) gives subtle reflections without flattening the shot.
 
 ## Metal, glass and product shots
@@ -105,4 +107,37 @@ assert {i.identifier for i in sky.bl_rna.properties['sky_type'].enum_items} >= {
 assert 'NISHITA' not in {i.identifier for i in sky.bl_rna.properties['sky_type'].enum_items}
 probe = bpy.data.objects.new('bounce', bpy.data.lightprobes.new('bounce', 'VOLUME'))
 assert probe.data.type == 'VOLUME' and hasattr(world, 'sun_threshold')
+```
+
+```python verify
+import bpy
+import numpy as np
+import OpenImageIO as oiio
+
+# An HDRI applied as a new World; the scene's previous world is untouched.
+scene = bpy.context.scene
+previous = scene.world = bpy.data.worlds.new('previous')
+world = bpy.data.worlds.new('hdri')
+nodes, links = world.node_tree.nodes, world.node_tree.links
+nodes.clear()
+env = nodes.new('ShaderNodeTexEnvironment'); env.projection = 'EQUIRECTANGULAR'
+env.image = bpy.data.images.new('sky', 128, 64, float_buffer=True)
+background = nodes.new('ShaderNodeBackground'); output = nodes.new('ShaderNodeOutputWorld')
+links.new(env.outputs['Color'], background.inputs['Color'])
+links.new(background.outputs['Background'], output.inputs['Surface'])
+scene.world = world
+assert env.image.size[0] == 2 * env.image.size[1] and scene.world is world and previous.name in bpy.data.worlds
+
+# An EXR declaring ACES AP1 primaries still loads labelled Linear Rec.709; read the header and correct it.
+path = str(WORK / 'ap1.exr')
+ap1 = (0.713, 0.293, 0.165, 0.830, 0.128, 0.044, 0.32168, 0.33767)
+out = oiio.ImageOutput.create(path); spec = oiio.ImageSpec(4, 2, 3, 'half')
+spec.attribute('chromaticities', oiio.TypeDesc('float[8]'), ap1)
+out.open(path, spec); out.write_image(np.ones((2, 4, 3), np.float32)); out.close()
+image = bpy.data.images.load(path)
+assert image.colorspace_settings.name == 'Linear Rec.709'
+header = oiio.ImageInput.open(path); declared = header.spec().getattribute('chromaticities'); header.close()
+if declared and all(abs(a - b) < 1e-3 for a, b in zip(declared, ap1)):
+    image.colorspace_settings.name = 'ACEScg'
+assert image.colorspace_settings.name == 'ACEScg'
 ```

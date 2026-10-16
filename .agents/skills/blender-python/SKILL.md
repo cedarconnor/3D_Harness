@@ -50,6 +50,7 @@ Use bmesh for topology work. Build it with `bm = bmesh.new()`, then `bm.from_mes
 - **Ordering.** Iterate in sorted order. Set and `bpy.data` ordering are not a contract.
 - **Get or create.** Look up an existing object, material or node group by name before creating it, so that running a script twice does not leave `.001` duplicates.
 - **Saving.** Save to a new path with `bpy.ops.wm.save_as_mainfile(filepath=..., copy=True)` when the open document must stay unchanged. Store paths relative with a `//` prefix, and resolve them with `bpy.path.abspath`.
+- **Marking edits.** Blender marks a file modified only through undo steps. Data changed from Python, including through an MCP, leaves `bpy.data.is_dirty` false, so the artist gets no prompt to save it. After a scripted change in a live session, push one named step with `bpy.ops.ed.undo_push(message='...')`, inside `context.temp_override(window=..., screen=...)` when running from a timer or a server. Push only when something actually changed. A [3D Harness](../dcc-harness/SKILL.md) observation of a live session is never clean evidence for the same reason: save, then observe the saved file.
 - **Cleanup.** `bpy.data.orphans_purge(do_recursive=True)` removes datablocks with no users. Do it only in files you own: it deletes unused materials an artist may have kept on purpose.
 
 ## API changes that break older scripts
@@ -118,4 +119,18 @@ solvers = {i.identifier for i in bpy.types.BooleanModifier.bl_rna.properties['so
 assert solvers == {'FLOAT', 'EXACT', 'MANIFOLD'}
 assert not hasattr(mesh, 'use_auto_smooth') and not hasattr(scene.eevee, 'use_bloom')
 assert len(bpy.data.objects.new('n' * 100, None).name) == 100
+```
+
+```python verify
+import bpy
+
+# Python edits do not mark the file modified; one named undo step does.
+bpy.ops.mesh.primitive_cube_add()
+bpy.ops.wm.save_as_mainfile(filepath=str(WORK / 'marked.blend'))
+assert not bpy.data.is_dirty
+bpy.context.object.location.x += 1.0
+bpy.data.materials.new('scripted')
+assert not bpy.data.is_dirty
+assert bpy.ops.ed.undo_push(message='Scripted edit') == {'FINISHED'}
+assert bpy.data.is_dirty
 ```

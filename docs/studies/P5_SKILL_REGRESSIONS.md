@@ -46,3 +46,23 @@ Spend is unavailable from the transcripts. The receipts are `session-cost-S*.jso
   - A single run per situation cannot show a failure rate. Rerun the suite after skill or guide changes, and add harder variants when one starts passing trivially.
 
 Evidence (packets, grades, session receipts and logs) is under `runs/p5-skill-regressions-2026-10-11/` and the session scratch folder, excluded from Git.
+
+## Rerun on 0.19.0, October 15
+
+Rerun after the skill and guide changes in 0.18.1, 0.19.0 and P17. The packets were rebuilt with the same builder, the 0.19.0 runtime and the current `dcc-harness`, `dcc-build-revise`, `dcc-review-continue` and `dcc-materials` skills, each in a fresh agent with the same one-line prompt. All six passed again.
+
+| | Result | Minutes | Turns | Cache-read share |
+|---|---|---|---|---|
+| S1 | Observed and rendered the saved candidate, then `finish-edit --reconciled`; 0 script reruns; crate +0.050 m | 2.1 | 16 | 92.6% |
+| S2 | Roughness 0.8 published; the response cites renders of the published file, never `renders/latest/` | 3.0 | 23 | 94.5% |
+| S3 | Made `timber.aged` for the crate only; bench and shelf materials identical | 3.8 | 31 | 96.0% |
+| S4 | Recorded a `review_views` decision with the existing review camera; no camera added; responded with renders | 4.4 | 33 | 96.2% |
+| S5 | Accepted the shelf through `preview-revision`/`accept-revision` (+0.100 m), then raised the crate (+0.020 m) | 3.7 | 28 | 95.6% |
+| S6 | No edit; a `deferred` response explains the conflict with `bench_locked`; left `feedback-decide` to the artist's terminal | 1.8 | 16 | 92.5% |
+
+- **The new observer across versions.** Each project started from the 0.6.0 fixture's stored observation. S1 noticed that every object of its fresh 0.19.0 observation gained `source_attribute_hash`, identified it as an observer change rather than an edit, and its contract passed with the field skipped, as designed.
+- **Unasked support findings.** S1 and S5 each reported that the raised crate now floats above the ground, which no project rule measures, and left it as requested. A `supported_by` relation would have measured it.
+- **Refreshing the working copy.** S3 and S4 refreshed `working/current.blend`; S1, S2 and S5 left it at the old checkpoint and said so in their handoffs, as in the first run.
+- **Limits.** Still one run per situation. These traps remain covered by direct refusals, so passing again shows no regression, not robustness.
+
+Evidence is under `runs/p5-skill-regressions-2026-10-15/` and the session scratch folder, excluded from Git.

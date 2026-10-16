@@ -2,6 +2,15 @@
 
 Each version is a bounded increment with its own qualification report. Test counts are portable-suite results on Windows; the two skips in each count are host symlink-permission cases. Native qualification uses Blender 5.1.1 on Windows. Studies are listed with the versions they exercised. The [build plan](docs/BUILD_PLAN.md) explains what remains open, and reports that link into `runs/` refer to local evidence excluded from Git.
 
+## Skill notes — October 15, 2026
+
+Build-plan item P17. Not a runtime release: skills ship with the repository, not the wheel.
+
+- **Added:** `blender-shading` gains "Wiring a texture set": a new material per set, one UV Map node, roles from metadata, smoothness inverted into roughness, height chained after the normal map, no AO input, and Blender 5.1–5.2 ignoring JPEG EXIF orientation.
+- **Added:** `blender-lighting` applies an HDRI as a new World and notes that Blender 5.1–5.2 label an EXR with ACES AP1 primaries `Linear Rec.709`. `blender-python` notes that Python edits leave `is_dirty` false until a named `undo_push`. `dcc-materials` points to both.
+- **Not added:** the review's ICC-profile and JPEG-stall claims, which did not reproduce cheaply.
+- **Qualification:** the three new verify blocks passed on Blender 5.1.1 and 5.2.1, as did the full library (28 blocks in 25 skills); the `undo_push` claim was also confirmed in an interactive session. The [P5 regressions](docs/studies/P5_SKILL_REGRESSIONS.md#rerun-on-0190-october-15) passed again on 0.19.0.
+
 ## 0.19.0 — October 15, 2026
 
 Authored attribute hash, completing build-plan item P15.

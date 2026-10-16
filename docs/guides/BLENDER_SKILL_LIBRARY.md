@@ -60,6 +60,7 @@ python scripts/qualify_blender_skills.py --blender "<BLENDER>" --out runs/<NEW-F
 |---|---|
 | Blender 5.1.1 | 25 blocks in 25 skills passed |
 | Blender 5.2.1 LTS | 25 passed, after gating the Geometry Nodes modifier-input change described below |
+| Both, October 15 | 28 blocks in 25 skills passed on each, after P17 added blocks to `blender-shading`, `blender-lighting` and `blender-python` |
 
 Among other things, the blocks run:
 
@@ -101,6 +102,16 @@ Running the blocks corrected claims from the sources and from the first drafts. 
 | A 5 mm hole needs 64 segments to stay under 0.003 mm of chord error | A 6.4 mm hole at 64 segments deviates by about 0.004 mm |
 | `clip.set_floor` orients a solve | No such operator exists; it is `clip.set_plane(plane='FLOOR')`. Found by checking the API names that appear only in prose |
 | A first camera solve of a synthetic plate is usable | 22 px at first, then 2.9 px with distinct features and overlapping keyframes, then 0.23 px after removing tracks over 1 px and solving again |
+
+## Notes added from the Scenario review
+
+P17 added notes from the [Scenario for Blender review](../reference/SCENARIO_BLENDER_PLUGIN_REVIEW_2026-10-15.md), each verified before it was written:
+
+- **Texture sets.** In `blender-shading`: wiring a texture set, with one UV Map node, inverted smoothness, height chained after the normal map, and no AO input.
+- **Image decoding.** Blender 5.1 and 5.2 ignore JPEG EXIF orientation (`blender-shading`) and label an EXR declaring ACES AP1 primaries as `Linear Rec.709` (`blender-lighting`, with HDRIs applied as a new World).
+- **Unsaved edits.** Python edits leave `is_dirty` false until a named `undo_push` (`blender-python`). This was also confirmed in an interactive session.
+
+The review also reported that JPEG ICC profiles are ignored and that some progressive JPEGs stall the main thread. Neither was reproduced here, so neither was added.
 
 ## Limits
 
