@@ -77,12 +77,18 @@ previous = json.loads(proc.stdout)
 # exactly that and nothing else, so compatibility means equal apart from qualified noise.
 from dcc_harness.uv_guard import evaluated_uv_noise_only
 now_obs, old_obs = read_json(current['observation']), read_json(previous['observation'])
+if 'source_attributes' not in old_obs['coverage']:
+    # 0.19.0 added the authored attribute hash; a previous release without it measured nothing to compare.
+    now_obs['coverage'].pop('source_attributes', None)
+    for record in now_obs['objects'].values():
+        record.pop('source_attribute_hash', None)
 differing = sorted(i for i in now_obs['objects'].keys() | old_obs['objects'].keys()
                    if now_obs['objects'].get(i) != old_obs['objects'].get(i))
 assert now_obs['objects'].keys() == old_obs['objects'].keys(), 'object sets differ'
 assert all(evaluated_uv_noise_only(old_obs['objects'][i], now_obs['objects'][i]) for i in differing), differing
 assert all(now_obs[k] == old_obs[k] for k in ('materials', 'scene', 'coverage', 'issues'))
 summary['compatibility'] = {'previous_runtime': str(a.baseline_runtime),
+                            'attribute_hash_set_aside': 'source_attributes' not in old_obs['coverage'],
                             'same_revision': current['revision'] == previous['revision'],
                             'uv_noise_only_objects': differing}
 

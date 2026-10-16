@@ -2,6 +2,15 @@
 
 Each version is a bounded increment with its own qualification report. Test counts are portable-suite results on Windows; the two skips in each count are host symlink-permission cases. Native qualification uses Blender 5.1.1 on Windows. Studies are listed with the versions they exercised. The [build plan](docs/BUILD_PLAN.md) explains what remains open, and reports that link into `runs/` refer to local evidence excluded from Git.
 
+## 0.19.0 — October 15, 2026
+
+Authored attribute hash, completing build-plan item P15.
+
+- **Added:** every mesh record carries `source_attribute_hash`, covering the authored mesh's edges and every attribute the other hashes leave out: shading, sharp edges, seams, creases, color attributes, custom normals and custom data. Observations declare it as `source_attributes` coverage. Before this, a protected mesh could be shaded smooth, given seams or a loose edge, and pass a contract that permitted no change.
+- **Changed:** a contract permitting `source_mesh_hash` for an object also permits its attribute hash; `source_attribute_hash` can be granted alone for an attribute-only change.
+- **Compatibility:** a comparison against an observation from 0.18.1 or earlier skips the field. Re-observing an earlier checkpoint gives a new revision.
+- **Qualification:** 437 tests from source and from the installed wheel. On Blender 5.1.1 and 5.2.1, seven variants of a protected mesh (smooth shading, a sharp edge, a crease, a seam, a color attribute, a loose edge, one attribute of every type) each passed unnoticed with 0.18.1 and fail on `source_attribute_hash` alone with 0.19.0. The production garden observes in 44 s on both versions. The earlier qualifications pass on the wheel. [Report](docs/archive/releases/ATTRIBUTES_0_19_0_RESULTS.md)
+
 ## 0.18.1 — October 15, 2026
 
 Maintenance: build-plan item M6, and the fixes for the eleven findings of the October 11 full review of `340dc9d`.

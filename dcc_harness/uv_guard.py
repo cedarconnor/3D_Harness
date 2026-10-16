@@ -36,6 +36,10 @@ def evaluated_uv_noise_only(before, after):
     for field in ("source_mesh_hash", "source_uv_hash", "modifier_settings", "geometry_hash", "uv_layers"):
         if field not in before or field not in after or before[field] != after[field]:
             return False
+    # Present only where measured (0.19.0 and later); a side without it measured nothing to compare.
+    if "source_attribute_hash" in before and "source_attribute_hash" in after and (
+            before["source_attribute_hash"] != after["source_attribute_hash"]):
+        return False
     a, b = before.get("evaluated_uv_values"), after.get("evaluated_uv_values")
     if not isinstance(a, dict) or not isinstance(b, dict) or a.keys() != b.keys():
         return False

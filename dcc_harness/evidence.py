@@ -112,6 +112,10 @@ def compare(before, after, allowed=None):
     allowed = allowed or {}
     if set(allowed) - {"objects", "materials", "scene"}:
         raise ValueError("Unknown change-contract section")
+    # The authored attribute hash exists only in observations that declare measuring it (0.19.0
+    # and later). Against an observation that did not measure it, there is nothing to compare.
+    unmeasured = (set() if ("source_attributes" in before["coverage"]) == ("source_attributes" in after["coverage"])
+                  else {"source_attribute_hash"})
     changes = []
     for category in ("objects", "materials"):
         old, new = before[category], after[category]
@@ -119,7 +123,8 @@ def compare(before, after, allowed=None):
             if key not in old or key not in new:
                 fields = ["created" if key not in old else "deleted"]
             else:
-                fields = [f for f in sorted(old[key].keys() | new[key].keys()) if old[key].get(f) != new[key].get(f)]
+                fields = [f for f in sorted(old[key].keys() | new[key].keys())
+                          if old[key].get(f) != new[key].get(f) and not (category == "objects" and f in unmeasured)]
             for field in fields:
                 changes.append({"category":category,"id":key,"field":field,
                                 "allowed":field in allowed.get(category, {}).get(key, [])})
@@ -130,8 +135,9 @@ def compare(before, after, allowed=None):
     # Instance coverage appears only when a scene has collection instances; a side without
     # any measured nothing to compare. When both sides measured instances, it must match.
     old_coverage, new_coverage = dict(before["coverage"]), dict(after["coverage"])
-    if ("collection_instances" in old_coverage) != ("collection_instances" in new_coverage):
-        old_coverage.pop("collection_instances", None); new_coverage.pop("collection_instances", None)
+    for optional in ("collection_instances", "source_attributes"):
+        if (optional in old_coverage) != (optional in new_coverage):
+            old_coverage.pop(optional, None); new_coverage.pop(optional, None)
     coverage_matches = old_coverage == new_coverage
     issues = before["issues"] + after["issues"]
     return {"schema":"dcc.delta.v1","before":before["revision"],"after":after["revision"],

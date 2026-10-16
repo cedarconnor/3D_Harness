@@ -15,7 +15,8 @@ CONTRACT_FIELDS = {"schema", "spec", "allowed_object_prefixes", "allowed_materia
 OBJECT_FIELDS = {"name", "type", "asset_id", "matrix_world", "parent", "collections", "visibility",
                  "material_ids", "vertices", "triangles", "geometry_hash", "uv_hash", "uv_layers",
                  "bounds", "dimensions", "light", "camera", "source_mesh_hash", "source_uv_hash",
-                 "modifier_settings", "evaluated_uv_values", "mesh_datablock", "instance", "uv_render_layer"}
+                 "modifier_settings", "evaluated_uv_values", "mesh_datablock", "instance", "uv_render_layer",
+                 "source_attribute_hash"}
 
 
 def _prefixes(items, label):
@@ -139,9 +140,11 @@ def evaluate_stage(before, after, contract):
         elif (version == 2 and obs["coverage"].get("dimensions_measurement") != "world_linear_extents_v2") or (
                 version == 1 and "dimensions_measurement" in obs["coverage"]):
             failures.append(f"{label} dimensions measurement coverage differs from its version")
+        mesh_fields = ("source_mesh_hash", "source_uv_hash", "modifier_settings", "evaluated_uv_values", "mesh_datablock")
+        if "source_attributes" in obs["coverage"]:
+            mesh_fields += ("source_attribute_hash",)
         for iid, obj in obs["objects"].items():
-            if obj.get("type") == "MESH" and any(field not in obj for field in (
-                    "source_mesh_hash", "source_uv_hash", "modifier_settings", "evaluated_uv_values", "mesh_datablock")):
+            if obj.get("type") == "MESH" and any(field not in obj for field in mesh_fields):
                 failures.append(f"{label} mesh coverage missing: {iid}")
     allow = {"objects": {}, "materials": {}, "scene": list(contract.get("allowed_scene_fields", []))}
     deleted = contract.get('allowed_deleted_ids', [])
@@ -153,6 +156,9 @@ def evaluate_stage(before, after, contract):
         for prefix, declared in contract.get("allowed_object_prefixes", {}).items():
             if iid.startswith(prefix):
                 fields.update(declared)
+        if "source_mesh_hash" in fields:
+            # Edges and attributes are part of the authored mesh: permission to change it covers them.
+            fields.add("source_attribute_hash")
         new = after["objects"].get(iid, {})
         if old.get("type") == "MESH" and evaluated_uv_noise_only(old, new):
             fields.update(("uv_hash", "evaluated_uv_values"))

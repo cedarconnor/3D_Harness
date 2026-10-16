@@ -12,6 +12,7 @@ import copy
 import hashlib
 import math
 from pathlib import Path
+import sys
 
 import bpy
 
@@ -32,6 +33,50 @@ def _buffer(collection, prop, length, kind="f"):
 def _uv(mesh):
     return {layer.name: list(_buffer(layer.data, "uv", len(layer.data) * 2))
             for layer in mesh.uv_layers}
+
+
+# foreach_get property, array type and width for each attribute type; FLOAT4 arrived in Blender 5.2.
+ATTRIBUTE_VALUES = {
+    "FLOAT": ("value", "f", 1), "INT": ("value", "i", 1), "BOOLEAN": ("value", "b", 1), "INT8": ("value", "i", 1),
+    "FLOAT2": ("vector", "f", 2), "FLOAT_VECTOR": ("vector", "f", 3), "FLOAT4": ("vector", "f", 4),
+    "FLOAT_COLOR": ("color", "f", 4), "BYTE_COLOR": ("color", "f", 4), "QUATERNION": ("value", "f", 4),
+    "FLOAT4X4": ("value", "f", 16), "INT16_2D": ("value", "i", 2), "INT32_2D": ("value", "i", 2),
+}
+# Layers measured by source_mesh_hash and source_uv_hash, or holding editor state rather than content.
+ATTRIBUTES_MEASURED_ELSEWHERE = ("position", "material_index")
+INTERNAL_ATTRIBUTES_MEASURED = (".edge_verts", ".corner_edge")
+ATTRIBUTE_COVERAGE = {"version": 1, "excluded": [
+    "position and material_index (source_mesh_hash)", "UV maps (source_uv_hash)",
+    "internal layers other than .edge_verts and .corner_edge, such as selection and hiding"]}
+
+
+def _attribute_hash(mesh):
+    """Hash authored edges and every attribute the source mesh and UV hashes leave out.
+
+    Covers smoothing, sharp edges, seams, creases, colors, custom normals and custom data. Blender
+    removes such a layer when it is cleared, so its presence is part of the hash. Returns the hash
+    and any attribute types this version cannot read; their layout is still hashed.
+    """
+    uv_maps = {layer.name for layer in mesh.uv_layers}
+    attributes = sorted((a for a in mesh.attributes if a.name in INTERNAL_ATTRIBUTES_MEASURED or not (
+        a.name.startswith(".") or a.name in ATTRIBUTES_MEASURED_ELSEWHERE or a.name in uv_maps)), key=lambda a: a.name)
+    h = hashlib.sha256()
+    h.update(repr(("attributes-v1", [(a.name, a.domain, a.data_type, len(a.data)) for a in attributes])).encode())
+    unknown = []
+    for attribute in attributes:
+        if attribute.data_type == "STRING":
+            for item in attribute.data:
+                h.update(len(item.value).to_bytes(4, "little")); h.update(item.value)
+            continue
+        if attribute.data_type not in ATTRIBUTE_VALUES:
+            unknown.append(attribute.data_type)
+            continue
+        prop, kind, width = ATTRIBUTE_VALUES[attribute.data_type]
+        values = _buffer(attribute.data, prop, len(attribute.data) * width, kind)
+        if sys.byteorder != "little":
+            values.byteswap()
+        h.update(values.tobytes())
+    return h.hexdigest(), sorted(set(unknown))
 
 
 def _rna_value(value):
@@ -83,8 +128,9 @@ def enhance(raw):
                            _buffer(mesh.polygons, "loop_total", len(mesh.polygons), "i"),
                            _buffer(mesh.polygons, "material_index", len(mesh.polygons), "i")):
                 h.update(values.tobytes())
-            source_hashes[pointer] = h.hexdigest(), digest(_uv(mesh))
-        record["source_mesh_hash"], record["source_uv_hash"] = source_hashes[pointer]
+            source_hashes[pointer] = (h.hexdigest(), digest(_uv(mesh))) + _attribute_hash(mesh)
+        record["source_mesh_hash"], record["source_uv_hash"], record["source_attribute_hash"], unknown = source_hashes[pointer]
+        obs["issues"].extend(f"Unmeasured mesh attribute type {kind}: {obj.name}" for kind in unknown)
         record["mesh_datablock"] = _rna_value(mesh)
         record["modifier_settings"] = [
             {"type": mod.type, "settings": {
@@ -114,6 +160,7 @@ def enhance(raw):
         file_format=scene.render.image_settings.file_format)
     obs["coverage"]["continuity_observation"] = 2
     obs["coverage"]["dimensions_measurement"] = "world_linear_extents_v2"
+    obs["coverage"]["source_attributes"] = copy.deepcopy(ATTRIBUTE_COVERAGE)
     # Retain this legacy v2 producer marker for observation compatibility. It
     # does not apply a tolerance or alter extracted UV values. The comparator's
     # check report records the actual (versioned) admission policy.

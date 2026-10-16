@@ -16,9 +16,9 @@ Earlier plans are archived verbatim in [archive/plans](archive/plans/). The Octo
 
 | | |
 |---|---|
-| Version | 0.18.1 on `main` |
-| Active | None; P15–P18 are open from the [Scenario review](reference/SCENARIO_BLENDER_PLUGIN_REVIEW_2026-10-15.md) |
-| Next | P15; the gate's E items need the artist; the X items wait on the gate |
+| Version | 0.19.0 on `main` |
+| Active | None; P16–P18 are open from the [Scenario review](reference/SCENARIO_BLENDER_PLUGIN_REVIEW_2026-10-15.md) |
+| Next | P17 (skill notes), then P18 and P16; the gate's E items need the artist; the X items wait on the gate |
 | Waiting on the user | E1–E3 artist review session; E4 decision on the realistic comparison; E5 artist repair time |
 | Investment gate | Open |
 
@@ -67,7 +67,7 @@ Ranked by expected effect on the gate. Each ships as its own version.
 | P8 | GLB delivery receipt ([plan](archive/plans/P8_GLB_DELIVERY.md)) | Agent | done | Shipped in 0.14.0: `deliver-glb` exports, reimports into an empty scene in a second process and compares by stable ID, with a receipt bound to the checkpoint. Natively, a moved copy failed with `BOUNDS`, a truncated GLB failed to import, and the production garden's 1,285 meshes matched ([report](archive/releases/DELIVERY_0_14_0_RESULTS.md)) |
 | P13 | Native UV overlap, texel density and fine-grained modifier and node permissions (moved from P6) | Agent | done | Permissions in 0.17.0 ([report](archive/releases/MODIFIERS_0_17_0_RESULTS.md)); UV overlap and texel density in 0.18.0 as the separate `uv-report` measurement rather than observer fields, so earlier checkpoints are unaffected ([report](archive/releases/UV_0_18_0_RESULTS.md)) |
 | P14 | Blender craft skill library across modeling, surfaces, look, motion, characters, effects and delivery, requested by the owner ([guide](guides/BLENDER_SKILL_LIBRARY.md)) | Agent | done | Done October 11: 25 `blender-*` skills and a `blender-craft` index, synthesized from 30 supplied sources and the Blender docs. Every skill's `python verify` block passed on Blender 5.1.1 and 5.2.1 through `scripts/qualify_blender_skills.py`; running them corrected thirteen claims. Craft quality and fresh-agent use are not yet measured, and P5 should be rerun because `dcc-harness` now links the index |
-| P15 | Attribute-complete geometry hash ([details](#p15p18-and-m6-from-the-scenario-review)) | Agent | todo | A separately versioned field beside `geometry_hash` covers edges, `use_smooth` and every generic attribute, and contracts compare it when both checkpoints carry it; earlier checkpoints observe as before. Native negative fixtures for shade smooth, a sharp edge, a crease, a seam and a colour attribute each fail a protected contract, and an unchanged mesh repeats byte for byte |
+| P15 | Attribute-complete geometry hash ([details](#p15p18-and-m6-from-the-scenario-review)) | Agent | done | Done in 0.19.0: `source_attribute_hash` on every mesh with `source_attributes` coverage, skipped against older observations; `source_mesh_hash` permission includes it. Seven native variants pass unnoticed on 0.18.1 and fail on the field alone on 0.19.0, on Blender 5.1.1 and 5.2.1. Earlier checkpoints re-observe with a new revision, which the exit criterion had excluded; the report explains why ([report](archive/releases/ATTRIBUTES_0_19_0_RESULTS.md)) |
 | P16 | Blockout spec for the planning stage ([details](#p15p18-and-m6-from-the-scenario-review)) | Agent | todo | A versioned greybox JSON schema with clamped validation, a helper that builds it into an owned, tagged collection with stable IDs and refuses to rebuild an edited collection, and `relations` run on the built blockout. Native positive and negative fixtures; an implementation plan in `docs/plans/` first |
 | P17 | Skill notes from the Scenario review: texture-set and World conventions, Blender 5.x image decoding defects, and the undo push after Python edits ([details](#p15p18-and-m6-from-the-scenario-review)) | Agent | todo | Notes added to `dcc-materials`, `blender-shading`, `blender-lighting` and `blender-python`, each claim with a `python verify` block that passes on Blender 5.1.1 and 5.2.1 through `scripts/qualify_blender_skills.py`; P5 rerun |
 | P18 | Skill provenance and drift record ([details](#p15p18-and-m6-from-the-scenario-review)) | Agent | todo | Every skill records its sources and the Blender versions its verify blocks passed on; a check flags a skill whose sources changed after its recorded revision, and fails in the source suite |
@@ -239,6 +239,8 @@ Capture fixed views at blockout, surface and lighting completion, pre-revision a
 
 Newest first. One line per status change.
 
+- **2026-10-15:** P15 done. Version 0.19.0 adds `source_attribute_hash`; seven attribute-only changes that passed protected contracts now fail.
+- **2026-10-15:** P15 started.
 - **2026-10-15:** M6 done. Version 0.18.1 refuses interactive observations as saved-state evidence, adds `--offline-mode` and releases the `340dc9d` review fixes.
 - **2026-10-15:** M6 started; a native fixture reproduced a clean interactive observation after an unsaved Python edit.
 - **2026-10-15:** P15–P18, M6 and X9 added from the [Scenario for Blender review](reference/SCENARIO_BLENDER_PLUGIN_REVIEW_2026-10-15.md). A native probe showed that Python edits leave `is_dirty` false on Blender 5.1.1 and 5.2.1.
