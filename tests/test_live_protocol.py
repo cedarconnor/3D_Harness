@@ -115,7 +115,8 @@ class PairedClientTests(unittest.TestCase):
         self.info = {'harness_protocol': 3, 'protocol_version': 14,
                      'upstream_commit': distribution.upstream()['commit'],
                      'features': list(blender_bridge.FEATURES),
-                     'paired_commands': list(blender_bridge.PAIRED_COMMANDS)}
+                     'paired_commands': list(blender_bridge.PAIRED_COMMANDS),
+                     'bridge_manifest': blender_bridge.bridge_manifest()}
 
     def test_protocol_two_stays_read_only(self):
         self.info['harness_protocol'] = 2

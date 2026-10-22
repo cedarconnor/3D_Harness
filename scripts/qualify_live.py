@@ -186,11 +186,12 @@ bpy.app.timers.register(control, persistent=True)
                     import asyncio
                     from qualify_live_modes import qualify
                     asyncio.run(qualify(args, out, binding, info, process))
+                secrets = [private['token']] + [json.loads(p.read_text())['token'] for p in (out / '.harness-mcp/bridge').glob('*.json')]
                 (out / 'stop').write_text('stop')
                 process.wait(timeout=20)
                 assert process.returncode == 0
                 assert not binding.exists()
-                verify_private_cleanup(out, private['token'])
+                for token in secrets: verify_private_cleanup(out, token)
                 print((out / 'result.json').read_text())
                 return
             query = {'kind': 'objects', 'scene': scene, 'limit': 1}

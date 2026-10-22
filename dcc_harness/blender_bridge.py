@@ -3,7 +3,7 @@ import json
 import socket
 import time
 
-from .distribution import upstream
+from .distribution import upstream, bridge_manifest
 from .files import reject_links
 
 COMMANDS = frozenset(('ping', 'get_addon_info', 'get_scene_info', 'get_object_info', 'list_scene_items'))
@@ -80,11 +80,16 @@ def call(command, payload, *, binding, timeout=2, expected=None):
     if expected is not None and (private['session_id'], private['generation']) != expected:
         raise ValueError('Session or document generation changed before dispatch')
     meta = upstream()
-    info = _request(private['port'], 'get_addon_info', {}, timeout)
+    try:
+        info = _request(private['port'], 'get_addon_info', {}, timeout)
+    except Exception as exc:
+        raise RuntimeError(str(exc).replace(private['token'], '[redacted]')) from None
     if (not isinstance(info, dict) or info.get('harness_protocol') != 3
             or info.get('protocol_version') != meta['protocol'] or info.get('upstream_commit') != meta['commit']
             or not FEATURES <= set(info.get('features', [])) or command not in info.get('paired_commands', [])):
         raise ValueError('Incompatible live bridge: protocol 3 and required features are necessary')
+    if info.get('bridge_manifest') != bridge_manifest():
+        raise ValueError('Incompatible live bridge manifest; install the add-on exported by this runtime')
     auth = {key: private[key] for key in ('token', 'session_id', 'generation')}
     try:
         result = _request(private['port'], command, {'auth': auth, 'payload': payload}, timeout)

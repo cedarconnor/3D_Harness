@@ -37,6 +37,9 @@ def main():
     rebuilt, = (out / 'sdist-wheels').glob('*.whl')
     with zipfile.ZipFile(wheel) as first, zipfile.ZipFile(rebuilt) as second:
         assert first.read('dcc_harness/data/rules.zip') == second.read('dcc_harness/data/rules.zip'), 'sdist rules differ'
+        expected = {name: hashlib.sha256(first.read(name)).hexdigest() for name in first.namelist() if name.startswith('dcc_harness/')}
+        actual = {name: hashlib.sha256(second.read(name)).hexdigest() for name in second.namelist() if name.startswith('dcc_harness/')}
+        assert actual == expected, 'sdist-rebuilt runtime or bridge members differ'
     clean = out / 'venv'
     venv.EnvBuilder(with_pip=True).create(clean)
     python = str(clean / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python'))
@@ -51,11 +54,19 @@ def main():
     run('installed-tests', [python, '-c', code], cwd=out, env=env)
     run('installed-cli', [python, '-m', 'dcc_harness', '--help'], cwd=out, env=env)
     run('installed-mcp-cli', [str(clean / ('Scripts/dcc-harness-mcp.exe' if os.name == 'nt' else 'bin/dcc-harness-mcp')), '--help'], cwd=out, env=env)
+    export_code = ("from dcc_harness.distribution import export_addon, verify_addon; "
+                   "import sys,json; export_addon(sys.argv[1]); print(json.dumps(verify_addon(sys.argv[1])))")
+    run('source-bridge-export', [sys.executable, '-c', export_code, str(out / 'source-bridge.zip')])
+    run('installed-bridge-export', [python, '-c', export_code, str(out / 'installed-bridge.zip')], cwd=out, env=env)
+    with zipfile.ZipFile(out / 'source-bridge.zip') as first, zipfile.ZipFile(out / 'installed-bridge.zip') as second:
+        assert {n: first.read(n) for n in first.namelist()} == {n: second.read(n) for n in second.namelist()}, 'source/installed bridge mismatch'
     if args.blender:
         for name in ('units', 'adoption', 'execution', 'mcp'):
             run('native-' + name, [python, str(repo / 'scripts' / ('qualify_' + name + '.py')),
                                   '--blender', str(Path(args.blender).resolve()), '--runtime', str(target),
                                   '--out', str(out / ('native-' + name))], cwd=out, env=env)
+        run('native-live', [python, str(repo / 'scripts/qualify_live.py'), '--blender', str(Path(args.blender).resolve()),
+                           '--runtime', str(target), '--out', str(out / 'native-live'), '--case', 'all'], cwd=out, env=env)
     with zipfile.ZipFile(wheel) as archive:
         names = archive.namelist()
         assert 'dcc_harness/execution.py' in names and 'dcc_harness/_execution_blender.py' in names

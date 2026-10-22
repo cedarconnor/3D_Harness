@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dcc-harness"
-version = "0.21.1"
+version = "0.22.0"
 description = "Combined Blender harness and MCP with managed execution, build rules and checkpoint evidence"
 readme = "README.md"
 requires-python = ">=3.11"

@@ -2,11 +2,13 @@
 
 ## Maintained release verification
 
-Run `python scripts/verify_release.py --out <fresh evidence folder> --blender <Blender executable>` from a development environment with the declared dependencies for source tests, wheel/sdist parity, clean-environment installation, installed-runtime tests and native units, adoption, managed execution and MCP gates. Omit `--blender` for portable checks only. Logs and wheel hashes are retained; user configuration is not changed.
+Run `python scripts/verify_release.py --out <fresh evidence folder> --blender <Blender executable>` from a development environment with the declared dependencies for source tests, complete wheel/sdist runtime parity, clean-environment installation, installed-runtime tests and native units, adoption, managed execution, MCP and live execution gates. Omit `--blender` for portable checks only. Logs and wheel hashes are retained; user configuration is not changed.
 
 The MCP native fixture exercises all five live observation commands and both managed modes. It also audits Python outbound socket attempts and activity-handler registration across add-on import, start, reads and shutdown. These checks run against the exported add-on from the requested runtime.
 
 `qualify_units.py`, `qualify_adoption.py`, `qualify_execution.py` and `qualify_mcp.py` can run individually with `--runtime`, `--out` and `--blender`. The MCP qualification opens and closes an owned Blender GUI fixture to test real timers/socket dispatch, then drives both managed modes over real stdio. Historical scripts below remain evidence for their original versions.
+
+`qualify_live.py --case all` uses the same runtime/out/blender arguments and runs 26 owned GUI scenarios: protocol/reload, initial attachment, built-in edits, node assets/shared materials, external refresh/reconnect, failure/recovery, cancellation/lost replies, publication races and both MCP modes. `--case protocol|attach|jobs|modes`, `--fixture`, `--mode` and `--recovery` select individual cases. The exported add-on must run without importing the host harness package; outbound sockets, activity handlers and retained pairing-secret leakage are checked. Synthetic owner confirmation is used only inside disposable qualification projects.
 
 Updated October 6, 2026. These scripts qualify releases, benchmark the runtime, and reproduce dated studies. The package does not import them. Scripts tied to finished studies stay here because retained local evidence records their absolute paths; frozen copies also live inside the study packets under `runs/`.
 

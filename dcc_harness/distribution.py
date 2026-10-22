@@ -11,6 +11,7 @@ from .files import reject_links, write_exclusive
 DATA = Path(__file__).with_name('data')
 SEEDS = ('docs/guides/MANAGED_EXECUTION.md', 'docs/guides/COMBINED_MCP.md')
 BRIDGE_FILES = {
+    'integrity.py': Path(__file__).with_name('bridge_integrity.py'),
     '__init__.py': DATA / 'bridge/__init__.py',
     'upstream.py': DATA / 'bridge/upstream.py',
     'LICENSE.upstream': DATA / 'bridge/LICENSE.upstream',
@@ -132,6 +133,23 @@ def verify_rules(destination):
 
 def upstream():
     return json.loads((DATA / 'upstream.json').read_text(encoding='utf-8'))
+
+
+def bridge_manifest():
+    from .bridge_integrity import identity
+    return identity({'schema': 'dcc.blender.bridge.manifest.v1',
+                     'files': {name: hashlib.sha256(source.read_bytes()).hexdigest() for name, source in BRIDGE_FILES.items()}})
+
+
+def verify_addon(path):
+    from .bridge_integrity import verify_contents
+    with zipfile.ZipFile(reject_links(path)) as archive:
+        names = archive.namelist()
+        prefix = 'dcc_harness_bridge/'
+        if len(names) != len(set(names)) or any(not n.startswith(prefix) for n in names):
+            raise ValueError('Invalid bridge archive members')
+        contents = {name[len(prefix):]: archive.read(name) for name in names}
+    return verify_contents(contents, bridge_manifest())
 
 
 def export_addon(destination):

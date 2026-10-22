@@ -7,7 +7,7 @@ Live inspection is advisory; saved checkpoint observations remain authoritative.
 ## Install and connect
 
 Use Python 3.11 or newer in a dedicated environment. Install the built wheel with
-`python -m pip install PATH_TO/dcc_harness-0.21.1-py3-none-any.whl`, or install this
+`python -m pip install PATH_TO/dcc_harness-0.22.0-py3-none-any.whl`, or install this
 checkout with `python -m pip install .`. Dependencies include the pinned MCP SDK.
 The existing `dcc-harness` CLI remains available.
 

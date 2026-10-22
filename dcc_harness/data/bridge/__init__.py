@@ -9,11 +9,11 @@ import socket
 import threading
 import time
 import bpy
-from . import upstream, inspection, attachment, jobs, recovery
+from . import upstream, inspection, attachment, jobs, recovery, integrity
 from .session import Session
 
 bl_info = {'name': '3D Harness observation bridge', 'author': '3D Harness contributors; Siddharth Ahuja (upstream)',
-           'version': (0, 21, 1), 'blender': (5, 1, 0), 'category': 'Interface',
+           'version': (0, 22, 0), 'blender': (5, 1, 0), 'category': 'Interface',
            'location': 'View3D > Sidebar > 3D Harness'}
 COMMANDS = ('ping', 'get_addon_info', 'get_scene_info', 'get_object_info', 'list_scene_items')
 PAIRED_COMMANDS = ('session_describe', 'inspect', 'attach_begin', 'attach_apply', 'attach_check', 'attach_acknowledge', 'attach_rebind',
@@ -74,6 +74,7 @@ class ObservationServer(upstream.BlenderMCPServer):
                 result = {'harness_protocol': 3, 'protocol_version': upstream.ADDON_PROTOCOL_VERSION,
                           'upstream_commit': '5a3618fccb2d982d0dd61e7a1879912c3100073b',
                           'capabilities': list(COMMANDS), 'features': list(FEATURES),
+                          'bridge_manifest': integrity.describe(),
                           'paired_commands': list(PAIRED_COMMANDS), 'blender_version': bpy.app.version_string}
             else:
                 result = getattr(self, name)(**params)

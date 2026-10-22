@@ -2,6 +2,14 @@
 
 Decision log, started October 3, 2026 and updated through version 0.5.0 on October 6. D1–D9 incorporate the user's goals and the supplied Claude critique; they were proposed before implementation. D10–D17 record choices made while building. The [build plan](BUILD_PLAN.md) owns sequencing and experiment budgets; this log owns architecture decisions. Supporting studies do not override either.
 
+## Direct open-scene execution — October 22, 2026
+
+Version 0.22.0 adds a live backend under the existing managed service. Runtime/backend/mode pins remain immutable; replaceable paired-session bindings are separate. Fresh adoption preserves the artist's file and unsaved state. Existing live projects use explicit refresh/reconnect; background projects require a new live adoption rather than an implicit history/runtime migration.
+
+Closed recipes and stable IDs bound live writes. Main-thread jobs retain pre-copies and durable dispatch records. Independent saved-state verification is followed by pre-publication, post-publication and next-operation alignment checks. A saved checkpoint can remain valid while the visible scene is diverged; owner stage review cannot override that distinction. Recovery archives current state and requires a current fingerprint and explicit decision.
+
+Protocol 3 writes require a matching manifest of every exported bridge member, including shared observer/identity code. This is exact-runtime compatibility, not a security sandbox. Legacy protocol 2 remains observation-only. Previews are bounded Workbench renders from owned copies with fixed comparison settings; retained image evidence has no automatic expiry, and disposable source copies are removed after successful rendering. Local command records remain distinct from prohibited background activity recording.
+
 ## Telemetry removal decision — October 22, 2026
 
 Version 0.21.1 supersedes the original full-source wrapping decision at the user's request. The bundled upstream derivative contains only transport lifecycle, scene readers and their object-label helper. Activity recording, consent/UI, trajectory collection, tracking links and unused provider/account/update code are physically removed. MIT attribution and original/modified source hashes remain. Bridge protocol 2 requires the reduced add-on. Local execution receipts and requested observations remain part of the harness; they are not uploaded by this endpoint.
