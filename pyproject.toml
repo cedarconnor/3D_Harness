@@ -1,14 +1,15 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "dcc-harness"
-version = "0.19.0"
-description = "Blender-first advisory skills, observations and checkpoint evidence"
+version = "0.21.1"
+description = "Combined Blender harness and MCP with managed execution, build rules and checkpoint evidence"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = ["mcp==1.26.0"]
+license-files = ["THIRD_PARTY_NOTICES.md", "dcc_harness/data/bridge/LICENSE.upstream"]
 
 [project.urls]
 Repository = "https://github.com/cedarconnor/3D_Harness"
@@ -16,10 +17,14 @@ Documentation = "https://github.com/cedarconnor/3D_Harness/blob/main/README.md"
 
 [project.scripts]
 dcc-harness = "dcc_harness.__main__:main"
+dcc-harness-mcp = "dcc_harness.mcp_server:main"
+
+[tool.setuptools.cmdclass]
+build_py = "build_support.BundleBuild"
 
 [tool.setuptools.packages.find]
 include = ["dcc_harness*"]
 
 [tool.setuptools.package-data]
-dcc_harness = ["data/*.json"]
+dcc_harness = ["data/*.json", "data/*.zip", "data/bridge/*.py", "data/bridge/LICENSE.upstream"]
 

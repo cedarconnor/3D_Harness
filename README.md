@@ -2,9 +2,9 @@
 
 **Persistent workflows, practical skills, and measured feedback for longer Blender projects.**
 
-3D Harness helps an agent build and revise a 3D environment while preserving its assets, materials, lighting, and project decisions across sessions. It runs above an existing Blender MCP or owned background Blender process, with the artist working through their usual agent chat.
+3D Harness helps an agent build and revise a 3D environment while preserving its assets, materials, lighting, and project decisions across sessions. Its combined MCP endpoint bundles the build rules, managed background execution and a pinned Blender observation bridge, with the artist working through their usual agent chat.
 
-**Status: v0.19.0 · Blender-first research prototype · one cooperating native writer.** See the [changelog](CHANGELOG.md) for version history and the [build plan](docs/BUILD_PLAN.md) for open gates and next work.
+**Status: v0.21.1 Ã‚Â· Blender-first research prototype Ã‚Â· combined MCP with autonomous and approval-gated execution.** See [installation and MCP operation](docs/guides/COMBINED_MCP.md), the [managed execution guide](docs/guides/MANAGED_EXECUTION.md), [changelog](CHANGELOG.md), and [build plan](docs/BUILD_PLAN.md).
 
 ![A brick potting shed with a workbench, garden planting, and a paved approach, rendered in Blender](docs/images/potting-shed.png)
 
@@ -12,6 +12,9 @@
 
 ## What it does
 
+- **Delivers one package and endpoint:** `dcc-harness-mcp` exposes build rules, managed commands and live observations. `new-project` creates an owned baseline; the optional bundled add-on is pinned to upstream MCP for Blender 2.2.2. Raw live writes and provider integrations are outside this endpoint.
+
+- **Executes through one managed service:** runs an owned copy in background Blender, independently reopens it, checks the contract and publishes once. Autonomous mode can complete stages with agent review; approval-gated mode requires owner approval before the next stage. Durable operation IDs, cancellation and time/operation budgets bound execution.
 - **Continues from files:** retains the brief, decisions, checkpoint history, handoff notes, and unresolved operations so a fresh context can resume the project.
 - **Orients a new session in seconds:** `brief` prints where the project stands and the permitted next steps, with each command filled in from the verified record.
 - **Starts from existing scenes:** previews missing identity assignments, applies the chosen plan to a new native file, and independently checks its saved identities and observation.
@@ -24,20 +27,20 @@
 - **Gives the artist a review page:** a local before/after page with the renders, what changed by stable ID, open notes and one-click answers to the agent's questions; the artist's notes come back with one command, and their approval through their own terminal.
 - **Learns from caught errors:** an error the artist found becomes a computed check, proven on the checkpoint where it happened and the one where it was fixed. The owner approves it into a versioned library, and later projects that pin the library run it before a stage completes.
 - **Measures UV quality:** reports each mesh's texel density, UV overlap and UVs outside the unit square against targets, without saving the scene.
-- **Delivers checked GLB files:** exports an accepted checkpoint to GLB, imports the file into an empty scene, and records whether every object, triangle count and bound arrived intact.
+- **Delivers checked GLB files:** exports an accepted checkpoint with unit scale 1 metre per Blender unit, imports it into an empty scene, and checks object identity, triangle counts and bounds. Other scene scales are rejected until physical conversion is qualified.
 - **Separates technical and visual acceptance:** a candidate can pass its native checks and still be retained as a visual rejection without replacing the accepted checkpoint.
 - **Supplies practical methods:** project skills cover planning, building, review, architecture, materials, environment assembly, and lighting. Python helpers support bounded construction, planting, ground, roof, terrain, and visibility tasks.
 - **Supports evaluation:** frozen trial packets, fresh-context revisions, anonymous galleries, retained failures, per-session cost receipts and a regression suite of sealed failure situations support controlled comparisons.
 
-The host agent provides reasoning and tool calls. The harness supplies project state and evidence; it does not start an autonomous agent or replace the existing MCP server.
+The host agent provides reasoning and tool calls. The harness supplies project state, evidence and a combined MCP endpoint; it does not start a separate autonomous agent.
 
 ## Getting started
 
 ### Requirements
 
-- Python **3.11 or newer**. The core runtime has no third-party Python dependencies.
+- Python **3.11 or newer**. The CLI/native runtime uses the standard library; the combined package installs the pinned MCP SDK and its dependencies.
 - Blender for native observation and authoring. Native qualification currently covers **Blender 5.1.1 on Windows**.
-- An agent client with workspace access and either an existing Blender MCP connection or access to an owned background Blender process.
+- An MCP client connected to `dcc-harness-mcp`, or an agent with workspace access to the CLI and owned background Blender.
 
 Clone the repository and inspect the CLI:
 
@@ -61,18 +64,18 @@ Open the repository in your normal Codex, Claude Code, or Cursor workspace. Wher
 
 > Read `.agents/skills/dcc-harness/SKILL.md` and use its workflow to start or resume my Blender project. Preserve the accepted scene, inspect pending operations before editing, and load the craft skills relevant to the task.
 
-The executable skills live in [`.agents/skills/`](.agents/skills/). Keep the repository available: the skills refer to its runtime and documentation. A Python wheel contains the runtime only; it does not install skills, register an MCP, or configure the client. Marketplace plugins and standalone client installers are future work.
+The source skills live in [`.agents/skills/`](.agents/skills/). The wheel includes their local reference closure, accessible through MCP or `--export-rules`, plus the exportable pinned observation add-on. It does not automatically register the MCP or configure Blender. See [combined package setup](docs/guides/COMBINED_MCP.md).
 
 ## Everyday workflow
 
 ```text
-Run brief → inspect the accepted checkpoint → reserve a scoped edit
-          ↓
-Execute the retained script once → save a new native file → observe, render and measure relations
-          ↓
-Publish the checked result, or retain the rejection → write the next handoff
-          ↓
-Build a review page for the artist → import their notes; they approve in their own terminal
+Run brief Ã¢â€ â€™ inspect the accepted checkpoint Ã¢â€ â€™ reserve a scoped edit
+          Ã¢â€ â€œ
+Execute the retained script once Ã¢â€ â€™ save a new native file Ã¢â€ â€™ observe, render and measure relations
+          Ã¢â€ â€œ
+Publish the checked result, or retain the rejection Ã¢â€ â€™ write the next handoff
+          Ã¢â€ â€œ
+Build a review page for the artist Ã¢â€ â€™ import their notes; they approve in their own terminal
 ```
 
 For a new project, first save an owned `.blend` and observe it with `python -m dcc_harness observe SAVED.blend --blender PATH --output-dir NEW_FOLDER`. This opens the file in a fresh background Blender, never saves it, and reports `READY` or the issues to fix. If the scene lacks stable harness identities, use [initial scene adoption](docs/guides/SCENE_ADOPTION.md): `adopt-preview` lists proposed assignments, then `adopt-apply` writes and independently observes a new file. Existing IDs are preserved; ambiguous identities block adoption. See the [everyday workflow](docs/guides/EVERYDAY_WORKFLOW.md) for preparation and exact edit commands.
@@ -88,6 +91,9 @@ python -m dcc_harness review ./my-project/state
 
 | Command | Purpose |
 |---|---|
+| `run-create` / `run-status` | Select immutable autonomous or approval-gated policy and inspect the run's stages, budgets and operations |
+| `run-execute` / `run-submit` | Execute/check/publish one operation, then submit stage evidence through the shared service |
+| `run-cancel` / `run-reconcile` | Stop owned execution and resolve retained attempts without replaying scripts |
 | `brief` | Start here: where a project stands and the permitted next steps with filled-in commands, as Markdown |
 | `next` / `requirements` | The same next steps as JSON; a stage's required evidence and a submission skeleton |
 | `observe` | Observe a saved `.blend` in a fresh background Blender, without saving it, for `start`, edits and revisions |
@@ -117,7 +123,7 @@ If acknowledgement is lost, inspect the saved native result and reconcile it bef
 
 For an artist edit made outside a reservation, use [external revision review](docs/guides/EXTERNAL_REVISIONS.md). It requires a separate saved candidate, fresh observation, explicit change contract, handoff and decision updates. With `--blender`, textures referenced beside the candidate are packed into an owned copy first. The workflow preserves existing history and records caller-supplied review provenance; it does not settle a pending native operation.
 
-[Structured feedback and environment stages](docs/guides/STRUCTURED_FEEDBACK.md) are optional. Notes keep their checkpoint, object, and view anchors across sessions; implementation claims, verification, and artist acceptance remain separate records. A pinned seven-stage workflow routes the existing skills and requires current evidence before a stage completes. Coordination adds no background agent or MCP server.
+[Structured feedback and environment stages](docs/guides/STRUCTURED_FEEDBACK.md) are optional. Notes keep their checkpoint, object, and view anchors across sessions; implementation claims, verification, and artist acceptance remain separate records. A pinned seven-stage workflow routes the existing skills and requires current evidence before a stage completes. Coordination adds no background agent.
 
 ## Skills
 
@@ -138,7 +144,7 @@ Read [craft capabilities and recipe boundaries](docs/guides/CRAFT_SKILLS.md) bef
 
 ## Validation and current limits
 
-The v0.19.0 source suite ran **437 tests: 435 passed, two Windows symlink-permission cases skipped**; the installed-wheel suite ran the same tests, also skipping the eleven that check source-tree documentation and skills. Every version also runs native Blender fixtures; see the [0.19.0 report](docs/archive/releases/ATTRIBUTES_0_19_0_RESULTS.md) for the attribute hash, the [0.18.1 report](docs/archive/releases/MAINTENANCE_0_18_1_RESULTS.md) for saved-state evidence and offline mode, the [0.18.0 report](docs/archive/releases/UV_0_18_0_RESULTS.md) for the UV report, the [0.17.0 report](docs/archive/releases/MODIFIERS_0_17_0_RESULTS.md) for modifier and node permissions, the [0.16.0 report](docs/archive/releases/RELOCATION_0_16_0_RESULTS.md) for revision relocation, the [0.15.0 report](docs/archive/releases/COVERAGE_0_15_0_RESULTS.md) for coverage and rechecks, the [0.14.0 report](docs/archive/releases/DELIVERY_0_14_0_RESULTS.md) for GLB delivery, the [0.13.1 report](docs/archive/releases/MAINTENANCE_0_13_1_RESULTS.md) for maintenance, the [0.13.0 report](docs/archive/releases/CHECKS_0_13_0_RESULTS.md) for learned checks, the [0.12.0 report](docs/archive/releases/OWNER_APPROVAL_0_12_0_RESULTS.md) for owner approval, the [0.11.0 report](docs/archive/releases/REVIEW_PAGE_0_11_0_RESULTS.md) for the review page, the [0.10.0 report](docs/archive/releases/INSTANCES_0_10_0_RESULTS.md) for collection instances, the [0.9.0 report](docs/archive/releases/RELATIONS_0_9_0_RESULTS.md) for `relations`, the [0.8.0 report](docs/archive/releases/RENDER_0_8_0_RESULTS.md) for `render` and `render-wait`, the [0.7.0 report](docs/archive/releases/GUIDANCE_0_7_0_RESULTS.md) for `brief`, `next` and `requirements`, the [0.6.0 report](docs/archive/releases/STEP_COST_0_6_0_RESULTS.md) for the `observe` and `fill-hashes` commands and the [0.5.1 report](docs/archive/releases/MAINTENANCE_0_5_1_RESULTS.md) for the latest maintenance fixes. The [changelog](CHANGELOG.md) summarizes each version's evidence, and the [scripts index](scripts/README.md) lists its qualification scripts.
+The v0.21.1 source and clean-installed suites each ran **481 tests: 479 passed and two Windows symlink-permission cases skipped**. Wheel/sdist rule parity, both installed entry points and native units, adoption, managed execution and live MCP qualification passed. The bundled MCP add-on now contains only observation code, with telemetry and tracking code removed. See the [telemetry-removal verification report](docs/reference/TELEMETRY_REMOVAL_VERIFICATION_2026-10-22.md). Every version also runs native Blender fixtures; see the [0.19.0 report](docs/archive/releases/ATTRIBUTES_0_19_0_RESULTS.md) for the attribute hash, the [0.18.1 report](docs/archive/releases/MAINTENANCE_0_18_1_RESULTS.md) for saved-state evidence and offline mode, the [0.18.0 report](docs/archive/releases/UV_0_18_0_RESULTS.md) for the UV report, the [0.17.0 report](docs/archive/releases/MODIFIERS_0_17_0_RESULTS.md) for modifier and node permissions, the [0.16.0 report](docs/archive/releases/RELOCATION_0_16_0_RESULTS.md) for revision relocation, the [0.15.0 report](docs/archive/releases/COVERAGE_0_15_0_RESULTS.md) for coverage and rechecks, the [0.14.0 report](docs/archive/releases/DELIVERY_0_14_0_RESULTS.md) for GLB delivery, the [0.13.1 report](docs/archive/releases/MAINTENANCE_0_13_1_RESULTS.md) for maintenance, the [0.13.0 report](docs/archive/releases/CHECKS_0_13_0_RESULTS.md) for learned checks, the [0.12.0 report](docs/archive/releases/OWNER_APPROVAL_0_12_0_RESULTS.md) for owner approval, the [0.11.0 report](docs/archive/releases/REVIEW_PAGE_0_11_0_RESULTS.md) for the review page, the [0.10.0 report](docs/archive/releases/INSTANCES_0_10_0_RESULTS.md) for collection instances, the [0.9.0 report](docs/archive/releases/RELATIONS_0_9_0_RESULTS.md) for `relations`, the [0.8.0 report](docs/archive/releases/RENDER_0_8_0_RESULTS.md) for `render` and `render-wait`, the [0.7.0 report](docs/archive/releases/GUIDANCE_0_7_0_RESULTS.md) for `brief`, `next` and `requirements`, the [0.6.0 report](docs/archive/releases/STEP_COST_0_6_0_RESULTS.md) for the `observe` and `fill-hashes` commands and the [0.5.1 report](docs/archive/releases/MAINTENANCE_0_5_1_RESULTS.md) for the latest maintenance fixes. The [changelog](CHANGELOG.md) summarizes each version's evidence, and the [scripts index](scripts/README.md) lists its qualification scripts.
 
 The [0.5.0 report](docs/archive/releases/FEEDBACK_0_5_0_RESULTS.md) covers feedback retention, evidence binding, and native revision tests. Its native exercise completed all seven workflow stages on a synthetic micro-scene. The first fresh agent exposed a missing view-definition artifact; the corrected package retains actual settings alongside their digest. In the corrected sealed trial, an independent reviewer verified three notes and left the visual note uncertain. These results test continuity mechanisms, not visual-quality improvement.
 
@@ -148,7 +154,7 @@ The comparisons so far have **not established a general visual-quality or long-h
 - In the longer comparison, sixteen fresh sessions produced fourteen native-check passes and two incomplete stages. Plain MCP completed 8/8 stages and the harness 6/8.
 - A realistic held-out comparison was interrupted after one partial build.
 
-[Short comparison](docs/archive/studies/BLIND_RESULTS.md) · [Longer comparison](docs/archive/studies/CONTINUITY_RESULTS.md) · [Realistic comparison](docs/studies/REALISM_COMPARISON.md)
+[Short comparison](docs/archive/studies/BLIND_RESULTS.md) Ã‚Â· [Longer comparison](docs/archive/studies/CONTINUITY_RESULTS.md) Ã‚Â· [Realistic comparison](docs/studies/REALISM_COMPARISON.md)
 
 The harness's own overhead has improved. On the same one-parameter revision, a fresh agent took 8 to 10 minutes on 0.5.1 and 0.6.0 and 3 minutes on 0.7.0, starting its edit after 51 seconds instead of 4 to 5 minutes ([report](docs/archive/releases/GUIDANCE_0_7_0_RESULTS.md)). On 0.9.0, two fresh agents each fixed a bench on sloping ground on the first attempt without repeating a failed whole-bench move ([report](docs/archive/releases/RELATIONS_0_9_0_RESULTS.md)). On 0.13.0, a fresh agent continuing the 1,289-object production garden found and answered all three open notes in 32 minutes ([E5 results](docs/studies/E5_CONTINUATION_RESULTS.md)). On 0.16.0, fresh agents handled all six known failure situations correctly: a lost acknowledgement, a stale image, a shared material, a missing view definition, an artist-saved revision and a conflicting late request ([P5 results](docs/studies/P5_SKILL_REGRESSIONS.md)). These are single runs, not a measured advantage over plain MCP.
 

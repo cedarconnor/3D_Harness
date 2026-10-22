@@ -1,5 +1,7 @@
 # GLB delivery
 
+Since v0.20.0, export requires `scene.unit_settings.scale_length == 1` (one metre per Blender unit). Other scales are rejected before a GLB is written. Physical conversion is not yet qualified; changing only the scene scale property is not a geometry-preserving conversion. Use a separately prepared and verified metre-scale asset. Successful bounds and tolerance comparisons below are in metres.
+
 Version 0.14.0 adds `deliver-glb`. It exports a saved scene to a binary glTF file, imports the file into an empty scene, and records whether what arrived matches what was exported. With `--project`, the receipt is bound to the accepted checkpoint the file equals.
 
 ```powershell

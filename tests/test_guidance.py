@@ -23,6 +23,23 @@ def step(result, sid):
 
 
 class NextStepTests(Fixture):
+    def test_managed_guidance_routes_edits_and_submissions_through_service(self):
+        from dcc_harness import execution
+        self.bind(); execution.create(self.root, 'autonomous')
+        result = guidance.next_steps(self.root)
+        self.assertNotIn('begin-edit', ids(result))
+        self.assertNotIn('finish-edit', ids(result))
+        self.assertIn('run-execute', ids(result))
+        self.assertIn('run-submit', ids(result))
+        self.assertEqual([s['stage_id'] for s in result['steps'] if s['id'] == 'run-execute'], ['direction'])
+
+    def test_managed_gate_is_visible_even_when_original_manifest_allowed_agent(self):
+        from dcc_harness import execution
+        self.bind(); execution.create(self.root, 'approval_gated')
+        self.submit()
+        result = guidance.next_steps(self.root)
+        self.assertTrue(step(result, 'stage-complete')['artist_required'])
+
     def test_ready_project_offers_observe_then_begin_edit_with_recorded_values(self):
         result = guidance.next_steps(self.root)
         self.assertEqual(result['schema'], 'dcc.next.v1')

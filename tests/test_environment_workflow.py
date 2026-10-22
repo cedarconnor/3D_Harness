@@ -5,6 +5,8 @@ import unittest
 
 from coordination_helpers import Fixture
 from dcc_harness import environment_workflow as ew, workflow, coordination as c
+from dcc_harness.evidence import read_json, write_json
+from test_continuity_checks import resign
 
 
 class RuntimeStampTests(unittest.TestCase):
@@ -47,6 +49,64 @@ class RuntimeStampTests(unittest.TestCase):
 
 
 class EnvironmentWorkflowTests(Fixture):
+    def material_change(self, inherited=False):
+        evidence = [{'kind': 'direction_record', 'file': self.ref(self.handoff)},
+                    {'kind': 'native_contract', 'before': self.cp(), 'contract': self.ref(self.contract)}]
+        if inherited:
+            self.bind(inherited={'direction': {'reason': 'Existing', 'gaps': [], 'evidence': evidence}})
+        else:
+            self.bind(); self.complete(self.submit(evidence=evidence))
+        contract = read_json(self.contract)
+        # Use the fixture's actual named node/socket and retain its narrow mutation scope.
+        material = self.obs['materials']['stone']
+        node = material['graph']['nodes'][0]
+        socket = 'Roughness'
+        contract['allowed_material_inputs'] = {'stone': {node['name']: {socket: .8}}}
+        path = self.base / 'material-contract.json'; write_json(path, contract)
+        edit = self.begin(contract=path)
+        native, obs_path = self.candidate()
+        obs = read_json(obs_path); obs['materials']['stone']['graph']['nodes'][0]['inputs'][socket] = .8
+        revised = self.base / 'revised-material.json'; write_json(revised, resign(obs))
+        self.assertTrue(workflow.finish_edit(self.root, edit['edit'], native, revised, self.handoff, {})['passed'])
+        states = ew.stages(c.read(self.root), c.Continuity(self.root).status())
+        self.assertEqual(states['direction']['state'], 'needs_review')
+        self.assertEqual(states['delivery']['state'], 'blocked')
+
+    def test_changed_bound_material_invalidates_completed_native_contract(self):
+        self.material_change()
+
+    def test_changed_bound_material_invalidates_inherited_native_contract(self):
+        self.material_change(inherited=True)
+
+    def publish_dimensions(self, changed):
+        contract = read_json(self.contract)
+        contract['allowed_object_prefixes'] = {'ext.table.': ['dimensions']}
+        path = self.base / 'dimension-contract.json'
+        write_json(path, contract)
+        edit = self.begin(contract=path)
+        native, obs_path = self.candidate()
+        obs = read_json(obs_path)
+        if changed:
+            obs['objects']['ext.table.top']['dimensions'][0] = 2.1
+        revised = self.base / 'revised.json'
+        write_json(revised, resign(obs))
+        return workflow.finish_edit(self.root, edit['edit'], native, revised, self.handoff, {})
+
+    def test_stale_blocking_resolution_invalidates_completion_and_admission(self):
+        self.bind(); nid = self.add(); self.verify(nid, self.respond(nid)); self.complete(self.submit())
+        self.assertTrue(self.publish_dimensions(True)['passed'])
+        states = workflow.resume(self.root)['coordination']['workflow']['stages']
+        self.assertEqual([s['state'] for s in states], ['needs_review', 'blocked'])
+        self.assertIsNotNone(states[0]['receipt_id'])
+        with self.assertRaisesRegex(ValueError, 'dependencies'):
+            self.submit(stage_id='delivery', deliverables={'native': 'Deliver'}, evidence=[])
+
+    def test_identical_observation_keeps_direction_completion(self):
+        self.bind(); nid = self.add(); self.verify(nid, self.respond(nid)); self.complete(self.submit())
+        self.assertTrue(self.publish_dimensions(False)['passed'])
+        states = workflow.resume(self.root)['coordination']['workflow']['stages']
+        self.assertEqual(states[0]['state'], 'complete')
+
     def test_packaged_manifest_and_pin_is_independent_of_source(self):
         ew.validate_manifest(ew.default_manifest())
         binding = self.bind()

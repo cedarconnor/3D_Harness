@@ -2,6 +2,30 @@
 
 Each version is a bounded increment with its own qualification report. Test counts are portable-suite results on Windows; the two skips in each count are host symlink-permission cases. Native qualification uses Blender 5.1.1 on Windows. Studies are listed with the versions they exercised. The [build plan](docs/BUILD_PLAN.md) explains what remains open, and reports that link into `runs/` refer to local evidence excluded from Git.
 
+## 0.21.1 — October 22, 2026
+
+- Removed telemetry and manual activity recording code from the bundled MCP add-on, including capture handlers, consent/UI, trajectory snapshots and tracking links. Removed unused provider/account/update code and upstream execution/UI, retaining the transport lifecycle and scene readers the harness uses.
+- Preserved the upstream MIT license, original commit/hash and separate derivative hash. Bridge protocol 2 refuses older exports; install the newly exported add-on with this package.
+- Added export-surface regression checks and native auditing for activity handlers and outbound Python socket attempts across import, start, reads and stop.
+
+## 0.21.0 — October 22, 2026
+
+- Added the combined `dcc-harness-mcp` stdio endpoint over the existing CLI/service, with explicit command allowlisting, agent authority, bounded child execution and retained request logs.
+- Wheels now contain the skill/reference bundle and an exportable observation add-on derived by wrapping the unmodified MIT-licensed MCP for Blender 2.2.2 add-on at `5a3618f`. Both sides refuse raw live writes; provider and telemetry surfaces are not registered.
+- Added `new-project` for an owned baseline, independent observation, bundled-rule binding and immutable autonomous/gated mode selection. The scene begins with a non-rendering root Empty.
+- Added real stdio, socket fragmentation/protocol, authority/cancellation and packaging tests; maintained qualification now covers clean installation, sdist/wheel rule parity and an owned live Blender bridge plus managed builds through MCP.
+- Updated craft routing to prefer managed execution when present. Historical run evidence and previous build artifacts remain outside the rule bundle and are listed explicitly.
+
+## 0.20.0 — October 22, 2026
+
+- Added a shared managed execution service and six CLI commands for autonomous and approval-gated operation: retained scripts, owned background Blender, independent reopen/check/publication, durable operation IDs, budgets, cancellation and explicit reconciliation.
+- Closed managed-project bypasses through direct workflow, continuity and legacy journal writers. Gated stages require owner review; agent review never claims artistic acceptance.
+- Fixed current stage invalidation after evidence changes, review-import preflight and replay, physical support-relation units, and malformed dimensional evidence validation.
+- GLB delivery now rejects non-unit scene scale before export; qualified physical conversion remains future work.
+- Repaired native adoption qualification and added maintained units/execution qualifications plus `scripts/verify_release.py` for source and installed-wheel verification.
+- Combined MCP/skill distribution remains a subsequent integration phase. See [managed execution](docs/guides/MANAGED_EXECUTION.md) for boundaries and recovery behavior.
+- Qualification: source and installed-wheel suites each ran 467 tests (465 passed, two skips); installed Blender 5.1.1 units, adoption, both operating modes and timeout/cancel checks passed. [Verification report](docs/reference/MANAGED_EXECUTION_VERIFICATION_2026-10-22.md).
+
 ## Skill notes — October 15, 2026
 
 Build-plan item P17. Not a runtime release: skills ship with the repository, not the wheel.

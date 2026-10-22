@@ -1,0 +1,7 @@
+include build_support.py
+include CHANGELOG.md
+recursive-include .agents/skills *
+recursive-include docs *.md *.json *.png *.txt
+recursive-include examples *.md *.json *.py *.txt
+recursive-include scripts *.py *.md
+global-exclude __pycache__ *.pyc

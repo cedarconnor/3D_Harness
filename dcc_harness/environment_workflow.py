@@ -13,6 +13,14 @@ def default_manifest():
     return json.loads(files('dcc_harness').joinpath('data/environment-workflow.v1.json').read_text(encoding='utf-8'))
 
 
+def review_policy(root, events, stage):
+    from .execution import configuration
+    managed = configuration(root)
+    if managed is not None:
+        return 'artist_required' if managed['mode'] == 'approval_gated' else 'agent_within_brief'
+    return feedback.policy(events, stage)
+
+
 # Comparison tooling: frozen packets carry their own copies, and the pinned runtime never imports
 # these modules (a test enforces it), so editing them must not invalidate workflow bindings.
 EXPERIMENT_TOOLING = frozenset({'blind.py', 'blind_review.py', 'continuity_trial.py', 'continuity_review.py', 'session_cost.py'})
@@ -80,7 +88,7 @@ def _binding(ctx):
     return event
 
 
-def stages(events):
+def stages(events, native=None):
     bound = feedback.binding(events)
     if bound is None:
         return {}
@@ -125,6 +133,56 @@ def stages(events):
                 note_stages[data['note_id']] = sid
                 if sid in result:
                     invalidate(sid)
+    if native is not None:
+        # A receipt remains history; readiness belongs to the active checkpoint.
+        for note in feedback.state(events, native).values():
+            if note['note']['priority'] == 'blocking' and note['current_validity'] != 'current':
+                sid = note['note']['stage_id'] or 'delivery'
+                if sid in result and result[sid]['state'] in ('complete', 'inherited'):
+                    invalidate(sid)
+        for sid, row in result.items():
+            if row['state'] not in ('complete', 'inherited'):
+                continue
+            if row['state'] == 'inherited':
+                submitted = bound
+                submission = {'checkpoint': bound['result']['binding']['checkpoint'],
+                              'evidence': bound['result']['binding']['inherited'][sid]['evidence']}
+            else:
+                receipt = next(e for e in events if e['id'] == row['receipt_id'])
+                submitted = next(e for e in events if e['id'] == receipt['result']['submission_id'])
+                submission = submitted['result']['submission']
+            old = next(h for h in native['task_history'] if h['id'] == submission['checkpoint']['checkpoint_id'])
+            active = native['active']
+            if old['id'] == active['id']:
+                continue
+            before, after = read_json(old['observation']), read_json(active['observation'])
+            stale = False
+            for item in submission['evidence']:
+                kind = item['kind']
+                if kind == 'native_reopen':
+                    stale = True  # A reopen certifies exact saved bytes.
+                elif kind in ('whole_scene_render', 'detail_render', 'visual_review'):
+                    stale |= before['revision'] != after['revision']
+                elif kind == 'native_contract':
+                    from .evidence import evaluate
+                    contract = read_json(c.relative(submitted['artifacts'], item['contract']['path']))
+                    stale |= not evaluate(after, contract['spec'])['passed']
+                    targets = contract['spec']['required']
+                    materials = set(contract['spec'].get('required_materials', [])) | set(contract['spec'].get('material_nodes', {}))
+                    for iid in targets:
+                        materials.update(before['objects'].get(iid, {}).get('material_ids', []))
+                        materials.update(after['objects'].get(iid, {}).get('material_ids', []))
+                    stale |= any(before['objects'].get(i) != after['objects'].get(i) for i in targets)
+                    stale |= any(before['materials'].get(i) != after['materials'].get(i) for i in materials)
+            if submitted['result'].get('checks') is not None:
+                frozen = c.Context(Path(submitted['artifacts']).parents[3], native, events, submitted['artifacts'])
+                try:
+                    ran = checks.run(frozen, sid, c.checkpoint_ref(active), submission.get('check_measurements', {}))
+                    stale |= any(not r['passed'] for r in ran or [])
+                except ValueError:
+                    stale = True
+            if stale:
+                invalidate(sid)
     for key, value in result.items():
         if value['state'] not in ('complete', 'inherited') and any(result[p]['state'] not in ('complete', 'inherited') for p in specs[key]['after']):
             value['state'] = 'blocked'
@@ -198,7 +256,7 @@ def _stage(ctx, sid):
     spec = next((s for s in bound['result']['manifest']['stages'] if s['id'] == sid), None)
     if spec is None:
         raise ValueError('Unknown workflow stage')
-    states = stages(ctx.events)
+    states = stages(ctx.events, ctx.native)
     if any(states[p]['state'] not in ('complete', 'inherited') for p in spec['after']):
         raise ValueError('Stage dependencies are not ready')
     return spec, states
@@ -268,7 +326,7 @@ def _submit(ctx, value):
     missing = sorted(set(spec['evidence']) - {r['kind'] for r in reports})
     result = {'stage_id': value['stage_id'], 'submission': value, 'reports': reports, 'missing_evidence': missing,
               'unresolved_notes': blockers(), 'predecessors': {p: states[p]['receipt_id'] for p in spec['after']},
-              'review_policy': feedback.policy(ctx.events, value['stage_id'])}
+              'review_policy': review_policy(ctx.root, ctx.events, value['stage_id'])}
     ran = checks.run(ctx, value['stage_id'], value['checkpoint'], value.get('check_measurements', {}))
     if ran is not None:
         result.update(checks=ran, failed_checks=[r['id'] for r in ran if not r['passed']])
@@ -340,7 +398,7 @@ def summary(events, native):
                 'manifest_digest': bound['result']['manifest_digest'], 'binding_event': bound['id'],
                 'runtime_compatible': bound['result']['runtime'] == runtime_stamp(),
                 'pinned_files_root': bound['artifacts'], 'review_policies': bound['result']['binding']['review_policies'],
-                'stages': list(stages(events).values())},
+                'stages': list(stages(events, native).values())},
             'notes': rows, 'total_notes': len(rows), 'unresolved_blockers': feedback.unresolved(events, native),
             'artistic_acceptance': 'not_evaluated',
             'limits': "Agent reviews are caller-attributed; artist reviews need the owner's terminal (a guard, not a wall); historical resolutions require recheck on changed checkpoints. Older/direct writers bypass this extension."}

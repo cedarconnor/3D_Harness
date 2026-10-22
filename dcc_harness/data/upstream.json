@@ -1,0 +1,11 @@
+{
+  "protocol": 14,
+  "commit": "5a3618fccb2d982d0dd61e7a1879912c3100073b",
+  "repository": "https://github.com/ahujasid/mcp-for-blender",
+  "adapter_protocol": 2,
+  "version": "2.2.2",
+  "addon_sha256": "8dbb5cb01d382535e40d8b0014884d8d2ca08d1f83d1559bbfeff1d7bcf6fa96",
+  "license": "MIT",
+  "upstream_addon_sha256": "229ee114f0504b486bdd24bbc8b08fa9b22112f5e831ef8b2e9cc507e9ccbbfe",
+  "modifications": "Observation-only derivative: removed activity recording, consent, trajectory capture, tracking links, provider/account/update code, upstream UI and raw execution. Retained transport lifecycle and three scene readers; removed capture hooks from start/stop."
+}

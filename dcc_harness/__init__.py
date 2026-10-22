@@ -1,4 +1,4 @@
-"""Advisory DCC harness. Does not intercept arbitrary native writes."""
+"""Managed and advisory Blender workflows; arbitrary native writes are not intercepted."""
 
-__version__ = "0.19.0"
+__version__ = "0.21.1"
 

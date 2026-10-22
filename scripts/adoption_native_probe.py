@@ -73,7 +73,7 @@ else:
     shutil.copyfile(base, library)
     for case in ('duplicate-instance', 'duplicate-material', 'invalid-id', 'ambiguous-asset',
                  'shared-object', 'shared-material', 'shared-material-object', 'node-material-user',
-                 'linked-object', 'unsupported-instance'):
+                 'linked-object', 'unsupported-instance', 'collection-instance'):
         bpy.ops.wm.open_mainfile(filepath=str(base), load_ui=False)
         original = bpy.data.objects['ArtistCube']
         linked = bpy.data.objects['LinkedCube']
@@ -107,10 +107,12 @@ else:
             with bpy.data.libraries.load(str(library), link=True) as (available, selected):
                 selected.objects = ['SeparateSphere']
             bpy.context.scene.collection.objects.link(selected.objects[0])
+        elif case == 'unsupported-instance':
+            original.instance_type = 'VERTS'
         else:
             empty = bpy.data.objects.new('CollectionInstance', None)
             bpy.context.scene.collection.objects.link(empty)
             empty.instance_type = 'COLLECTION'
-            empty.instance_collection = bpy.data.collections.new('UnsupportedCollection')
+            empty.instance_collection = bpy.data.collections.new('SupportedCollection')
         bpy.ops.wm.save_as_mainfile(filepath=str(out / (case + '.blend')))
     print('ADOPTION_FIXTURES_READY')

@@ -1,5 +1,13 @@
 # Scripts index
 
+## Maintained release verification
+
+Run `python scripts/verify_release.py --out <fresh evidence folder> --blender <Blender executable>` from a development environment with the declared dependencies for source tests, wheel/sdist parity, clean-environment installation, installed-runtime tests and native units, adoption, managed execution and MCP gates. Omit `--blender` for portable checks only. Logs and wheel hashes are retained; user configuration is not changed.
+
+The MCP native fixture exercises all five live observation commands and both managed modes. It also audits Python outbound socket attempts and activity-handler registration across add-on import, start, reads and shutdown. These checks run against the exported add-on from the requested runtime.
+
+`qualify_units.py`, `qualify_adoption.py`, `qualify_execution.py` and `qualify_mcp.py` can run individually with `--runtime`, `--out` and `--blender`. The MCP qualification opens and closes an owned Blender GUI fixture to test real timers/socket dispatch, then drives both managed modes over real stdio. Historical scripts below remain evidence for their original versions.
+
 Updated October 6, 2026. These scripts qualify releases, benchmark the runtime, and reproduce dated studies. The package does not import them. Scripts tied to finished studies stay here because retained local evidence records their absolute paths; frozen copies also live inside the study packets under `runs/`.
 
 **How to run them.** Scripts marked *Blender* run inside a disposable background process:

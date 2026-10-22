@@ -166,7 +166,7 @@ def build(root, out, *, from_id=None, to_id=None, before_views=None, after_views
     submission, elsewhere = None, []
     if events and feedback.binding(events) is not None:
         from .environment_workflow import stages
-        for stage in stages(events).values():
+        for stage in stages(events, state).values():
             if stage['state'] == 'awaiting_review':
                 event = next(e for e in events if e['id'] == stage['submission_id'])
                 value = event['result']['submission']
@@ -223,26 +223,47 @@ def import_review(root, export, page, console=None):
     data = read_json(page / 'page.json')
     if value.get('page') != digest(data):
         raise ValueError('This export came from another review page or a changed one; regenerate the page and review again')
-    key = digest(value)
-    results = []
+    # Item identity belongs to the page and slot, not the contents of the whole
+    # export. Editing an uncommitted note must not replay an approved stage.
+    key = value['page']
+    items = []
+    events = c.read(root)
     if value.get('review') is not None:
         submission = data.get('submission')
         if submission is None:
             raise ValueError('The page had no stage submission to review')
         shown = {'checkpoint_id': data['to']['id'], 'checkpoint_sha256': data['to']['checkpoint_sha256']}
-        event = next((e for e in c.read(root) if e['id'] == submission['id'] and e['kind'] == 'stage.submit'), None)
+        event = next((e for e in events if e['id'] == submission['id'] and e['kind'] == 'stage.submit'), None)
         if event is None or event['result']['submission']['checkpoint'] != shown or submission.get('checkpoint') != shown:
             raise ValueError('The stage submission is not for the checkpoint this page shows; build a page for its checkpoint and review again')
         payload, request = {'submission_id': submission['id'], 'review': value['review']}, str(uuid.uuid5(NAMESPACE, key + ':review'))
-        approval = owner.authorize(root, 'stage.complete', payload, request, console)
-        outcome = environment_workflow.apply(root, 'stage.complete', payload, submission['id'], request, page, approval=approval)
-        results.append({'kind': 'stage.complete', 'status': outcome['status'], 'revision': outcome['revision']})
+        items.append(('stage.complete', payload, request, environment_workflow))
     for index, note in enumerate(value['notes']):
-        events = c.read(root)
-        outcome = feedback.apply(root, 'feedback.add', note, events[-1]['id'] if events else 'none',
-                                 str(uuid.uuid5(NAMESPACE, f'{key}:note:{index}')), page)
-        results.append({'kind': 'feedback.add', 'status': outcome['status'], 'revision': outcome['revision'],
-                        'note_id': outcome['result']['note']['id']})
+        items.append(('feedback.add', note, str(uuid.uuid5(NAMESPACE, f'{key}:note:{index}')), feedback))
+    # Run every domain validator before asking for approval or writing anything.
+    # Simulated events are private to this preflight; committed results are built
+    # again under the ordinary compare-and-swap transaction lock.
+    native = Continuity(root).status()
+    simulated = list(events)
+    for kind, payload, request, module in items:
+        previous = next((e for e in events if e['request_id'] == request), None)
+        request_hash = digest({'kind': kind, 'payload': payload})
+        if previous:
+            if previous['request_hash'] != request_hash:
+                raise ValueError('Previously committed review item changed; create a new review page')
+            continue
+        context = c.Context(root, native, simulated, page)
+        result = module.BUILDERS[kind](context, payload)
+        simulated.append({'id': request_hash, 'kind': kind, 'result': result, 'artifacts': str(page)})
+    approvals = {request: owner.authorize(root, kind, payload, request, console)
+                 for kind, payload, request, module in items}
+    results = []
+    revision = events[-1]['id'] if events else 'none'
+    for kind, payload, request, module in items:
+        outcome = module.apply(root, kind, payload, revision, request, page, approval=approvals[request])
+        revision = outcome['current_revision']
+        results.append({'kind': kind, 'status': outcome['status'], 'revision': outcome['revision'],
+                        **({'note_id': outcome['result']['note']['id']} if kind == 'feedback.add' else {})})
     return {'schema': 'dcc.review.import.v1', 'page': value['page'], 'results': results}
 
 

@@ -275,6 +275,8 @@ class Continuity:
 
     def _publish(self, step_id, expected_parent, checkpoint, observation, handoff, updates, check, brief=None,
                  verified=None):
+        from .execution import require_service
+        require_service(self.root)
         if not isinstance(step_id, str) or not step_id.strip():
             raise ValueError("Step ID must be nonempty text")
         updates = _mapping(updates, "Decision updates")

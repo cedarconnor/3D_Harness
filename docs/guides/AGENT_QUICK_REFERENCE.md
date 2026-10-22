@@ -1,5 +1,9 @@
 # Agent quick reference
 
+For the combined MCP endpoint and bundled rules, start with [MCP operation](COMBINED_MCP.md).
+
+For v0.20.0+ managed projects, follow the `run-execute`, `run-submit` and `run-reconcile` actions returned by `brief`/`next`; use the [managed execution guide](MANAGED_EXECUTION.md) to select autonomous or approval-gated policy. The direct `begin-edit`/`finish-edit` sequence below remains for advisory projects and is refused on managed projects. `requirements` reports the effective policy, including owner review for every gated stage.
+
 Version 0.18.0. The exact command sequences for the most common work, for an agent continuing a 3D Harness project. Every command below is checked against the real parser by `tests/test_quick_reference.py`. Values in `<angle brackets>` and capitalized placeholders such as `PARENT_ID` are yours to fill; quote every path.
 
 ## 1. Orient

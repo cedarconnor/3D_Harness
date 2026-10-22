@@ -2,7 +2,23 @@
 
 Decision log, started October 3, 2026 and updated through version 0.5.0 on October 6. D1–D9 incorporate the user's goals and the supplied Claude critique; they were proposed before implementation. D10–D17 record choices made while building. The [build plan](BUILD_PLAN.md) owns sequencing and experiment budgets; this log owns architecture decisions. Supporting studies do not override either.
 
-## Status at version 0.5.0
+## Telemetry removal decision — October 22, 2026
+
+Version 0.21.1 supersedes the original full-source wrapping decision at the user's request. The bundled upstream derivative contains only transport lifecycle, scene readers and their object-label helper. Activity recording, consent/UI, trajectory collection, tracking links and unused provider/account/update code are physically removed. MIT attribution and original/modified source hashes remain. Bridge protocol 2 requires the reduced add-on. Local execution receipts and requested observations remain part of the harness; they are not uploaded by this endpoint.
+
+## Combined MCP decision — October 22, 2026
+
+Version 0.21.0 exposes one stdio MCP endpoint over the existing CLI and execution service. The wheel builds rules from their canonical source, including local Markdown dependencies; historical outputs are listed but not bundled. Project binding freezes those rules. A small add-on adapter wraps the exact upstream 2.2.2 source and exposes observation commands only. Managed scripts perform construction in owned background Blender. The upstream server's raw execution, providers and telemetry are not imported or registered as a competing control surface.
+
+The adapter is trusted local automation, not a Python sandbox. Artist authority stays in the existing owner terminal flow. MCP cancellation marks a durable request and asks native workers to stop; abrupt controller death still requires inspection of owned processes. Installed artifacts and real stdio/native calls are release gates. Provider parity, automatic client registration and an embedded autonomous model are outside this increment.
+
+## Managed execution decision — October 22, 2026
+
+Version 0.20.0 adds an optional managed service above the existing immutable checkpoint and coordination stores. Both modes use the same owned-process execution/check/publication path. Policy selects agent review or owner stage approval. A kernel lock serializes controllers; durable requests prevent replay after controller death. Native timeouts preserve uncertainty and require explicit reconciliation. Direct public mutation APIs refuse managed projects outside the service. This is not a sandbox for arbitrary Python or a multi-user authorization boundary.
+
+The original advisory mode and its evidence history remain supported. File storage remains; replacing all checkpoint persistence with a database was not necessary for this increment. Old exact runtime pins are preserved rather than silently migrated. Skill and upstream MCP distribution are the next separately verified layer; the service is the intended common application interface.
+
+## Historical status at version 0.5.0
 
 Reviewed October 6, 2026. The table records how each decision held up; the entries below keep their original reasoning.
 

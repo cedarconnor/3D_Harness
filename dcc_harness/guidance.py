@@ -118,7 +118,8 @@ def _steps(packet, state, events):
         for stage in stages:
             if stage['state'] == 'awaiting_review':
                 sub = stage['submission_id']
-                artist = feedback.policy(events, stage['id']) == 'artist_required'
+                from .environment_workflow import review_policy
+                artist = review_policy(packet['project'], events, stage['id']) == 'artist_required'
                 review.append({'id': 'stage-complete', 'stage_id': stage['id'], 'artist_required': artist, 'command': (
                     f'{RUN} stage-complete {project} --submission-id {sub} --review "<review .json>" '
                     f'--expected-revision {sub} --request-id {uuid.uuid4()}'),
@@ -178,11 +179,36 @@ def _steps(packet, state, events):
 def _next(packet, state, events):
     active = packet['active']
     coordination = packet.get('coordination')
+    steps = _steps(packet, state, events)
+    from .execution import configuration, status
+    if configuration(packet['project']) is not None:
+        managed = status(packet['project'])
+        project = _q(packet['project'])
+        steps = [s for s in steps if s['id'] not in ('begin-edit', 'finish-edit', 'observe', 'stage-submit')]
+        steps.insert(0, {'id': 'run-status', 'command': f'{RUN} run-status {project}',
+                         'why': f'Managed run: {managed["status"]}; mode {managed["run"]["mode"]}.'})
+        for operation in managed['operations']:
+            if operation['status'] == 'NEEDS_RECONCILIATION':
+                steps.append({'id': 'run-reconcile', 'operation_id': operation['operation_id'],
+                              'command': f'{RUN} run-reconcile {project} --operation-id {operation["operation_id"]} --reason "<inspection finding>"',
+                              'why': 'Inspect and stop any surviving worker, then reject or explicitly accept its observed candidate. Never replay it.'})
+        if managed['status'] in ('READY', 'AWAITING_APPROVAL') and not packet['metadata_lock']:
+            for stage in managed['stages']:
+                if stage['state'] in ('ready', 'needs_review', 'awaiting_review'):
+                    steps.extend([
+                        {'id': 'run-execute', 'stage_id': stage['id'], 'command': (
+                            f'{RUN} run-execute {project} --stage {stage["id"]} --operation-id {uuid.uuid4()} --parent {active["id"]} '
+                            '--script "<edit.py>" --contract "<contract.json>" --handoff "<handoff.md>" --blender "<BLENDER>"'),
+                         'why': 'Retain this operation ID for retries. Execute, reopen, check and publish through the managed service.'},
+                        {'id': 'run-submit', 'stage_id': stage['id'], 'command': f'{RUN} requirements {project} {stage["id"]}',
+                         'then': [f'{RUN} fill-hashes "<stage.draft.json>" "<stage.json>"',
+                                  f'{RUN} run-submit {project} --submission "<stage.json>"'],
+                         'why': 'Supply checkpoint evidence; autonomous mode attempts agent review, gated mode waits for the owner.'}])
     return {'schema': 'dcc.next.v1', 'project': packet['project'], 'status': packet['status'],
             'active': {k: active[k] for k in ('id', 'step_id', 'sequence', 'checkpoint', 'checkpoint_sha256')},
             'revision': coordination['revision'] if coordination else None,
             'used_labels': [h['step_id'] for h in state['task_history']],
-            'steps': _steps(packet, state, events),
+            'steps': steps,
             'relation_warnings': relations.history(packet['project'])['warnings'], 'limits': LIMITS}
 
 
@@ -199,8 +225,8 @@ def requirements(root, stage_id):
     spec = next((s for s in bound['result']['manifest']['stages'] if s['id'] == stage_id), None)
     if spec is None:
         raise ValueError('Unknown workflow stage')
-    from .environment_workflow import stages
-    states = stages(events)
+    from .environment_workflow import stages, review_policy
+    states = stages(events, state)
     notes = feedback.state(events, state)
     applicable = sorted(nid for nid, n in notes.items() if stage_id == 'delivery' or n['note']['stage_id'] in (None, stage_id))
     checkpoint = c.checkpoint_ref(state['active'])
@@ -215,7 +241,7 @@ def requirements(root, stage_id):
     return {'schema': 'dcc.requirements.v1', 'project': packet['project'], 'stage_id': stage_id,
             'state': states[stage_id]['state'],
             'blocked_by': [p for p in spec['after'] if states[p]['state'] not in ('complete', 'inherited')],
-            'review_policy': feedback.policy(events, stage_id), 'deliverables': spec['deliverables'],
+            'review_policy': review_policy(root, events, stage_id), 'deliverables': spec['deliverables'],
             'evidence': [{'kind': kind, 'what': EVIDENCE[kind][0]} for kind in spec['evidence']],
             'feedback_ids': applicable,
             'unresolved_blockers': feedback.unresolved(events, state, None if stage_id == 'delivery' else stage_id),

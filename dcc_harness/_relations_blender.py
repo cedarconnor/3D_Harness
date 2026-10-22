@@ -21,7 +21,7 @@ def world_points(obj, depsgraph):
         evaluated.to_mesh_clear()
 
 
-def measure(rule, objects, depsgraph):
+def measure(rule, objects, depsgraph, scale=1.0):
     wanted = rule['subjects'] + rule['support']
     missing = [i for i in wanted if i not in objects or objects[i].type != 'MESH']
     if missing:
@@ -39,20 +39,20 @@ def measure(rule, objects, depsgraph):
         lowest = min(p.z for p in points)
         footprint = {}
         for p in points:
-            if p.z <= lowest + rule['footprint']:
+            if p.z <= lowest + rule['footprint'] / scale:
                 footprint.setdefault((round(p.x, 6), round(p.y, 6)), p)
         distances = []
         for p in footprint.values():
-            hit = sampler.sample(p.x, p.y, top=p.z + REACH, bottom=p.z - REACH)
+            hit = sampler.sample(p.x, p.y, top=p.z + REACH / scale, bottom=p.z - REACH / scale)
             if hit is not None:
-                distances.append(p.z - hit['position'][2])
+                distances.append((p.z - hit['position'][2]) * scale)
         x0, x1 = min(p.x for p in points), max(p.x for p in points)
         y0, y1 = min(p.y for p in points), max(p.y for p in points)
         under = [top for bx0, bx1, by0, by1, top in support_boxes if bx0 <= x1 and x0 <= bx1 and by0 <= y1 and y0 <= by1]
         subjects[sid] = {'footprint_points': len(footprint), 'hits': len(distances),
                          'min_distance': min(distances) if distances else None,
                          'max_distance': max(distances) if distances else None,
-                         'bounds_gap': lowest - max(under) if under else None}
+                         'bounds_gap': (lowest - max(under)) * scale if under else None}
     return {'missing': [], 'subjects': subjects}
 
 
@@ -77,10 +77,15 @@ def main():
             raise ValueError(f'Duplicate dcc_instance_id, so a measurement could hide another object: {iid}')
         if iid:
             objects[iid] = obj
-    measured = {rule['id']: measure(rule, objects, depsgraph) for rule in definition['relations']}
+    scale = bpy.context.scene.unit_settings.scale_length
+    from dcc_harness.evidence import finite_number
+    finite_number(scale, nonnegative=True)
+    if scale == 0:
+        raise ValueError('Scene unit scale must be positive')
+    measured = {rule['id']: measure(rule, objects, depsgraph, scale) for rule in definition['relations']}
     write_json(Path(request['out']) / 'measurement.json', {
         'schema': 'dcc.relations.measurement.v1', 'checkpoint_sha256': source['sha256'], 'spec_digest': digest(definition),
-        'blender': bpy.app.version_string, 'reach': REACH, 'relations': measured})
+        'blender': bpy.app.version_string, 'reach': REACH, 'units': 'metres', 'metres_per_blender_unit': scale, 'relations': measured})
     if file_hash(source['path']) != source['sha256']:
         raise RuntimeError('Input file changed during native work')
 

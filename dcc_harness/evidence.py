@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from pathlib import Path
 
 from .files import file_hash, json_text  # noqa: F401  file_hash is re-exported for existing callers
@@ -36,7 +37,23 @@ def write_json(path, value, *, compact_observation=False):
         stream.write(data)
 
 
+def finite_number(value, *, nonnegative=False):
+    if type(value) not in (int, float) or not math.isfinite(value) or (nonnegative and value < 0):
+        raise ValueError('Expected a finite numeric value' + (' >= 0' if nonnegative else ''))
+    return value
+
+
+def vector3(value):
+    if not isinstance(value, (list, tuple)) or len(value) != 3:
+        raise ValueError('Expected exactly three numeric dimensions')
+    for number in value:
+        finite_number(number, nonnegative=True)
+    return value
+
+
 def validate_observation(observation):
+    if not isinstance(observation, dict):
+        raise ValueError('Observation must be an object')
     if observation.get("schema") != "dcc.observation.v1":
         raise ValueError("Unsupported observation schema")
     for field in ("objects", "materials", "scene", "coverage", "issues", "revision"):
@@ -45,6 +62,16 @@ def validate_observation(observation):
     payload = {k: observation[k] for k in ("objects", "materials", "scene", "coverage", "issues")}
     if digest(payload) != observation["revision"]:
         raise ValueError("Observation revision does not match measured content")
+    for field in ('objects', 'materials', 'scene', 'coverage'):
+        if not isinstance(observation[field], dict):
+            raise ValueError('Observation field must be an object: ' + field)
+    if not isinstance(observation['issues'], list):
+        raise ValueError('Observation issues must be a list')
+    for obj in observation['objects'].values():
+        if not isinstance(obj, dict):
+            raise ValueError('Observed object must be an object')
+        if 'dimensions' in obj or obj.get('type') == 'MESH':
+            vector3(obj.get('dimensions'))
 
 
 def evaluate(observation, spec):
@@ -52,9 +79,9 @@ def evaluate(observation, spec):
     validate_observation(observation)
     canonical(spec)  # Reject NaN/Infinity even when called directly, not through JSON.
     permitted = {"schema", "required", "min_asset_definitions", "required_materials", "units", "material_nodes"}
-    if spec.get("schema") != "dcc.spec.v1" or set(spec) - permitted:
+    if not isinstance(spec, dict) or spec.get("schema") != "dcc.spec.v1" or set(spec) - permitted:
         raise ValueError("Unsupported spec schema or rule")
-    if not spec.get("required"):
+    if not isinstance(spec.get('required'), dict) or not spec['required']:
         raise ValueError("Spec must declare at least one required target")
     objects = observation["objects"]
     failures = list(observation["issues"])
@@ -64,6 +91,12 @@ def evaluate(observation, spec):
     if spec.get("units") and observation["scene"]["units"] != spec["units"]:
         failures.append("Unit settings differ")
     for iid, rules in spec["required"].items():
+        if not isinstance(rules, dict):
+            raise ValueError('Target rules must be an object')
+        if 'dimensions' in rules:
+            vector3(rules['dimensions'])
+        if 'tolerance' in rules:
+            finite_number(rules['tolerance'], nonnegative=True)
         if set(rules) - {"type", "asset_id", "dimensions", "tolerance", "min_triangles", "max_triangles", "material_ids", "require_uv"}:
             raise ValueError(f"Unknown rule on {iid}")
         obj = objects.get(iid)

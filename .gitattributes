@@ -10,3 +10,7 @@
 *.hdr binary
 *.whl binary
 *.zip binary
+
+# Preserve upstream bytes so the checked-in compatibility digest survives Windows checkout.
+dcc_harness/data/bridge/upstream.py -text
+dcc_harness/data/bridge/LICENSE.upstream -text

@@ -5,7 +5,9 @@ description: Start, resume, review or revise a Blender project using 3D Harness 
 
 # Work in a persistent DCC project
 
-Use the installed `dcc-harness` command or `python -m dcc_harness` from this repository. Read [the everyday workflow](../../../docs/guides/EVERYDAY_WORKFLOW.md) for exact arguments. These skills currently depend on this runtime and repository; copying this folder alone is not a complete installation.
+Use the installed `dcc-harness` command, the combined `dcc-harness-mcp` endpoint, or `python -m dcc_harness` from this repository. The combined package bundles these skills and their references; copying a skill folder alone is not a complete installation. Read [combined MCP operation](../../../docs/guides/COMBINED_MCP.md) for setup and [the everyday workflow](../../../docs/guides/EVERYDAY_WORKFLOW.md) for advisory CLI arguments.
+
+**Managed projects:** the [managed execution guide](../../../docs/guides/MANAGED_EXECUTION.md) takes precedence over the advisory reservation instructions below. Follow `brief`/`next`, execute with `run-execute`, submit with `run-submit`, and reconcile ambiguous attempts with `run-reconcile`. Do not call `begin-edit`/`finish-edit` or an unrelated live-write MCP for managed projects. Autonomous mode advances evidence-backed stages within the brief; approval-gated mode waits for the artist's own terminal. Never manufacture artist approval. The combined observation bridge cannot build; managed scripts build owned checkpoints in background Blender.
 
 **Start every session with `brief PROJECT`.** It prints where the project stands and the permitted next steps with commands already filled from the verified record, plus open feedback, stages, the recorded brief, the latest handoff and the rules below in short. Run it again after any command that changes the project. `next PROJECT` gives the same steps as JSON, and `requirements PROJECT STAGE` gives a stage submission skeleton. [The agent quick reference](../../../docs/guides/AGENT_QUICK_REFERENCE.md) has the exact command sequences and payload shapes; read the longer guides only for cases it doesn't cover.
 

@@ -183,6 +183,34 @@ class PageTests(PageFixture):
 
 
 class ImportTests(PageFixture):
+    def test_invalid_last_note_commits_nothing_and_corrected_export_succeeds(self):
+        result, after, submitted = self.page_with_submission()
+        review = {'reviewer': {'role': 'artist', 'author': 'Reviewer', 'reference': 'Review page'},
+                  'verdict': 'pass', 'finding': 'Direction reads well', 'answers': {'path': 'Gravel'}}
+        good, bad = self.note(after), self.note(after, 'Second note')
+        bad['anchor']['instance_ids'] = ['typo.unknown']
+        before = len(c.read(self.root))
+        for notes in ([bad], [good, bad]):
+            with self.assertRaises(ValueError):
+                review_page.import_review(self.root, self.bundle(result, after, review, notes), self.base / 'page', Console())
+            self.assertEqual(len(c.read(self.root)), before)
+        bad['anchor']['instance_ids'] = ['ext.table.top']
+        outcome = review_page.import_review(self.root, self.bundle(result, after, review, [good, bad]), self.base / 'page', Console())
+        self.assertEqual([r['status'] for r in outcome['results']], ['COMMITTED'] * 3)
+
+    def test_interruption_after_approval_recovers_without_reapproving(self):
+        result, after, submitted = self.page_with_submission()
+        review = {'reviewer': {'role': 'artist', 'author': 'Reviewer', 'reference': 'Review page'},
+                  'verdict': 'pass', 'finding': 'Direction reads well', 'answers': {'path': 'Gravel'}}
+        bundle = self.bundle(result, after, review, [self.note(after)])
+        with mock.patch('dcc_harness.feedback.apply', side_effect=RuntimeError('interrupted')):
+            with self.assertRaisesRegex(RuntimeError, 'interrupted'):
+                review_page.import_review(self.root, bundle, self.base / 'page', Console())
+        # Correcting a not-yet-committed note must not change approval identity.
+        bundle = self.bundle(result, after, review, [self.note(after, 'Corrected note')])
+        outcome = review_page.import_review(self.root, bundle, self.base / 'page')
+        self.assertEqual([r['status'] for r in outcome['results']], ['ALREADY_COMMITTED', 'COMMITTED'])
+
     def page_with_submission(self):
         self.bind()
         before, after = self.publish()
@@ -222,7 +250,7 @@ class ImportTests(PageFixture):
 
     def test_an_approval_from_an_agent_session_imports_nothing(self):
         result, after, submitted = self.page_with_submission()
-        review = {'reviewer': {'role': 'artist', 'author': 'Reviewer', 'reference': 'Review page'}, 'verdict': 'pass', 'finding': 'Fine'}
+        review = {'reviewer': {'role': 'artist', 'author': 'Reviewer', 'reference': 'Review page'}, 'verdict': 'pass', 'finding': 'Fine', 'answers': {'path': 'Gravel'}}
         bundle = self.bundle(result, after, review, [self.note(after)])
         before = len(c.read(self.root))
         with self.assertRaisesRegex(RuntimeError, 'agent session'):

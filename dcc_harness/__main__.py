@@ -17,6 +17,26 @@ COORDINATION_COMMANDS = {
 def build_parser():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
+    p = sub.add_parser('new-project', help='Create a new empty owned Blender project, bind bundled rules and select execution mode')
+    p.add_argument('destination', help='New directory containing the baseline and project state')
+    p.add_argument('--brief-file', required=True); p.add_argument('--blender', required=True)
+    p.add_argument('--mode', choices=['autonomous', 'approval_gated'], required=True)
+    p.add_argument('--max-operations', type=int, default=20); p.add_argument('--seconds', type=float, default=3600)
+    p = sub.add_parser('run-create', help='Enable managed execution with an immutable operating mode')
+    p.add_argument('project'); p.add_argument('--mode', choices=['autonomous', 'approval_gated'], required=True)
+    p.add_argument('--max-operations', type=int, default=20); p.add_argument('--seconds', type=float, default=3600)
+    for command in ('run-status', 'run-cancel'):
+        p = sub.add_parser(command); p.add_argument('project')
+    p = sub.add_parser('run-execute', help='Execute one retained script, reopen, validate and publish once')
+    p.add_argument('project'); p.add_argument('--stage', required=True); p.add_argument('--operation-id', required=True)
+    p.add_argument('--script', required=True); p.add_argument('--contract', required=True); p.add_argument('--handoff', required=True)
+    p.add_argument('--blender', required=True); p.add_argument('--parent', required=True); p.add_argument('--timeout', type=float, default=300)
+    p = sub.add_parser('run-reconcile', help='Resolve a retained attempt without executing its script again')
+    p.add_argument('project'); p.add_argument('--operation-id', required=True); p.add_argument('--accept', action='store_true')
+    p.add_argument('--reason', required=True)
+    p = sub.add_parser('run-submit', help='Submit evidence; autonomous mode also completes a passing agent review')
+    p.add_argument('project'); p.add_argument('--submission', required=True); p.add_argument('--evidence-root')
+    p.add_argument('--review', help='Optional agent review and answers for autonomous mode')
     p = sub.add_parser("brief", help="Start here: where the project stands and the exact next commands, as Markdown")
     p.add_argument("project"); p.add_argument("--focus", nargs="*", default=[]); p.add_argument("--out")
     p = sub.add_parser("next", help="The permitted next steps with commands filled from the record; reads only")
@@ -149,7 +169,27 @@ def main():
             except OSError as exc:
                 _write_failed(parser, exc)
         return
-    if args.command in COORDINATION_COMMANDS:
+    if args.command == 'new-project':
+        from .bootstrap import create
+        result = create(args.destination, args.brief_file, args.blender, args.mode,
+                        max_operations=args.max_operations, seconds=args.seconds)
+    elif args.command.startswith('run-'):
+        from . import execution
+        if args.command == 'run-create':
+            result = execution.create(args.project, args.mode, max_operations=args.max_operations, seconds=args.seconds)
+        elif args.command == 'run-status':
+            result = execution.status(args.project)
+        elif args.command == 'run-cancel':
+            result = execution.cancel(args.project)
+        elif args.command == 'run-reconcile':
+            result = execution.reconcile(args.project, args.operation_id, accept=args.accept, reason=args.reason)
+        elif args.command == 'run-submit':
+            result = execution.submit(args.project, read_json(args.submission), args.evidence_root or Path(args.submission).parent,
+                                      review=read_json(args.review) if args.review else None)
+        else:
+            result = execution.execute(args.project, args.stage, args.operation_id, args.script, args.contract,
+                                       args.handoff, args.blender, args.parent, timeout=args.timeout)
+    elif args.command in COORDINATION_COMMANDS:
         from . import checks, feedback, environment_workflow, owner
         kind, argument = COORDINATION_COMMANDS[args.command]
         source = Path(getattr(args, argument))

@@ -34,6 +34,8 @@ class Project:
             raise RuntimeError("Journal damaged; reconcile before any further writes") from exc
 
     def append(self, event):
+        from .execution import require_service
+        require_service(self.root)
         with (self.root / "operations.jsonl").open("a", encoding="utf-8") as stream:
             stream.write(json.dumps({"time":now(), **event}, allow_nan=False) + "\n")
             stream.flush()

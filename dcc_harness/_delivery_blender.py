@@ -56,6 +56,8 @@ def export(request):
     if file_hash(source['path']) != source['sha256']:
         raise ValueError('Source changed before native open')
     bpy.ops.wm.open_mainfile(filepath=source['path'], load_ui=False)
+    if abs(bpy.context.scene.unit_settings.scale_length - 1.0) > 1e-8:
+        raise ValueError('GLB delivery requires unit scale 1 metre per Blender unit; physical scale conversion is not qualified')
     depsgraph = bpy.context.evaluated_depsgraph_get()
     objects, skipped = [], []
     for obj in sorted(bpy.context.scene.objects, key=stable_id):
@@ -69,7 +71,7 @@ def export(request):
     bpy.ops.export_scene.gltf(filepath=str(out / 'delivery.glb'), **SETTINGS)
     if file_hash(source['path']) != source['sha256']:
         raise ValueError('Source changed during export')
-    write_json(out / 'export.json', {'objects': objects, 'not_exported': skipped, 'settings': SETTINGS,
+    write_json(out / 'export.json', {'objects': objects, 'not_exported': skipped, 'settings': SETTINGS, 'units': 'metres',
                                      'blender': bpy.app.version_string, 'exporter': addon_version(),
                                      'source_sha256': source['sha256']})
 

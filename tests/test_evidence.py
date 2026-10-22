@@ -24,6 +24,22 @@ SPEC={"schema":"dcc.spec.v1","required":{"bench":{"dimensions":[1.9,.5,.9],"min_
 
 
 class EvidenceTests(unittest.TestCase):
+    def test_malformed_measured_dimensions_never_pass_or_compare(self):
+        for dims in ([], [1], [1, 2], [1, 2, 3, 4], [True, 2, 3], ['1', 2, 3], None):
+            bad = observation()
+            bad['objects']['bench']['dimensions'] = dims
+            resign(bad)
+            with self.subTest(dims=dims):
+                with self.assertRaises(ValueError): evaluate(bad, SPEC)
+                with self.assertRaises(ValueError): compare(bad, bad)
+
+    def test_malformed_requested_dimensions_and_tolerance_are_rejected(self):
+        for dims, tolerance in (([], 0), ([True, 2, 3], 0), (['1', 2, 3], 0), ([1, 2, 3], True), ([1, 2, 3], '0')):
+            spec = copy.deepcopy(SPEC)
+            spec['required']['bench'].update(dimensions=dims, tolerance=tolerance)
+            with self.subTest(dims=dims, tolerance=tolerance), self.assertRaises(ValueError):
+                evaluate(observation(), spec)
+
     def test_placeholder_and_missing_target_fail(self):
         original=observation()
         self.assertTrue(evaluate(original,SPEC)["passed"])

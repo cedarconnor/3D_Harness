@@ -144,6 +144,8 @@ def review(root, focus=()):
 
 
 def begin_edit(root, expected_parent, current, observation, script, contract, label):
+    from .execution import require_service
+    require_service(root)
     if not isinstance(label, str) or not label.strip():
         raise ValueError('Edit label is required')
     current, script, contract = map(_plain, (current, script, contract))
@@ -159,6 +161,8 @@ def begin_edit(root, expected_parent, current, observation, script, contract, la
         store = Continuity(root)
         state = store.status()
         packet = _packet(store, state)
+        from .execution import check_publication
+        check_publication(root)
         if packet['pending'] or packet['unresolved_edits']:
             raise RuntimeError('Unresolved edit; inspect and reconcile before another write')
         active = packet['active']
@@ -195,6 +199,8 @@ def begin_edit(root, expected_parent, current, observation, script, contract, la
 
 
 def finish_edit(root, edit_id, checkpoint, observation, handoff, updates, *, reconciled=False, reject_reason=None):
+    from .execution import require_service
+    require_service(root)
     if str(uuid.UUID(edit_id)) != edit_id:
         raise ValueError('Invalid edit ID')
     _mapping(updates, 'Decision updates')
@@ -209,22 +215,46 @@ def finish_edit(root, edit_id, checkpoint, observation, handoff, updates, *, rec
         state = store.status()
         records = {p.name: (p, r) for p, r in _reservations(store.root)}
         edit, request = records[edit_id]
-        if (edit / 'outcome.json').exists() or (edit / 'check.json').exists():
+        if (edit / 'outcome.json').exists() or ((edit / 'check.json').exists() and not reconciled):
             raise RuntimeError('Edit outcome already recorded or partial; inspect, do not replay')
-        if state['active']['id'] != request['expected_parent']:
+        accepted = next((h for h in state['task_history'] if h['step_id'] == request['label']), None) if reconciled else None
+        if accepted is not None and (accepted['checkpoint_sha256'] != file_hash(checkpoint) or
+                                     file_hash(accepted['observation']) != file_hash(observation)):
+            raise ValueError('Reconciliation differs from the published checkpoint')
+        if accepted is None and state['active']['id'] != request['expected_parent']:
             raise ValueError('Stale edit parent')
-        operation = read_json(_plain(edit / 'operation.json'))['id']
-        if [e['id'] for e in state['pending']] != [operation]:
+        operation_path = _plain(edit / 'operation.json')
+        if reconciled and not operation_path.exists():
+            candidates = [e for e in store.project.events() if e['event'] == 'begin' and
+                          e['label'] == request['label'] and Path(e['script']).resolve() == (edit / 'script.py').resolve() and
+                          e['sha256'] == request['files']['script.py']]
+            if len(candidates) != 1:
+                raise RuntimeError('Cannot uniquely recover the journal operation; inspect the reservation')
+            write_json(operation_path, {'id': candidates[0]['id']})
+        operation = read_json(operation_path)['id']
+        pending = [e['id'] for e in state['pending']]
+        completed = any(e.get('id') == operation and e['event'] in ('observed', 'reconciled')
+                        for e in store.project.events())
+        if pending != [operation] and not (reconciled and not pending and completed):
             raise RuntimeError('Reservation does not match the pending operation')
-        before = read_json(state['active']['observation'])
+        before = read_json(next(h for h in state['task_history'] if h['id'] == request['expected_parent'])['observation'])
         check = evaluate_stage(before, obs, read_json(edit / 'contract.json'))
-        write_json(edit / 'check.json', check)
-        write_json(edit / 'native-outcome.json', {'checkpoint': str(Path(checkpoint).resolve()),
+        def retain(name, value):
+            path = edit / name
+            if path.exists() and reconciled:
+                if read_json(_plain(path)) != value:
+                    raise ValueError('Reconciliation differs from retained ' + name)
+            else:
+                write_json(path, value)
+        retain('check.json', check)
+        retain('native-outcome.json', {'checkpoint': str(Path(checkpoint).resolve()),
                    'checkpoint_sha256': file_hash(checkpoint), 'observation_sha256': file_hash(observation),
                    'check_sha256': file_hash(edit / 'check.json'), 'passed': check['passed']})
-        store.project.finish(operation, edit / 'native-outcome.json', reconciled=reconciled)
-        accepted = None
-        if check['passed'] and reject_reason is None:
+        if pending:
+            store.project.finish(operation, edit / 'native-outcome.json', reconciled=reconciled)
+        if accepted is None and check['passed'] and reject_reason is None:
+            from .execution import check_publication
+            check_publication(root)
             accepted = store.publish(request['label'], request['expected_parent'], checkpoint, observation,
                                      handoff, updates, edit / 'check.json', verified=state)['active']
         outcome = {'schema': 'dcc.edit.outcome.v1', 'passed': accepted is not None,

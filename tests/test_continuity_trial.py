@@ -40,7 +40,7 @@ class ContinuityTrialTests(unittest.TestCase):
     def observe(self, native, destination):
         obs = {"schema": "dcc.observation.v1", "checkpoint_sha256": file_hash(native),
                "objects": {"bench-1": {"name": "Bench", "type": "MESH", "asset_id": "bench",
-                   "parent": None, "material_ids": ["stone"], "collections": ["Courtyard"]}},
+                   "parent": None, "material_ids": ["stone"], "collections": ["Courtyard"], "dimensions": [2, 1, 1]}},
                "materials": {"stone": {"name": "Stone"}}, "scene": {}, "issues": [],
                "coverage": {"measured": ["object identities", "material bindings"],
                             "not_measured": ["artistic quality"]}}

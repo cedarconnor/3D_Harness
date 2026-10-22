@@ -18,6 +18,11 @@ Archived documents stay as written. They remain the evidence for the claims in t
 
 ## Guides
 
+- [Combined MCP](guides/COMBINED_MCP.md): one package, client setup, bundled add-on/rules, managed commands and operating limits.
+- [MCP telemetry removal](reference/TELEMETRY_REMOVAL_VERIFICATION_2026-10-22.md): reduced add-on source, provenance, bridge upgrade and verification evidence.
+- [Live Blender/add-on upgrade design](superpowers/specs/2026-10-22-live-blender-capabilities-design.md): planned direct open-scene execution and general add-on onboarding; [P21 execution plan](superpowers/plans/2026-10-22-live-blender-execution.md) precedes [P22 capability plan](superpowers/plans/2026-10-22-addon-capabilities.md).
+- [Managed execution](guides/MANAGED_EXECUTION.md): autonomous/gated policy, durable operations, budgets, cancellation and reconciliation.
+
 | Document | Covers | Since |
 |---|---|---|
 | [Agent quick reference](guides/AGENT_QUICK_REFERENCE.md) | `brief`, `next`, `requirements`, `render`, `relations` and the exact sequences for an edit, review renders, relation measurements, a feedback response and a stage submission | 0.7.0 |

@@ -86,6 +86,10 @@ for case in ('duplicate-instance', 'duplicate-material', 'invalid-id', 'ambiguou
     blocked.append({'case': case, 'issues': result['issues']})
 
 # Identity completeness is distinct from observer support and start readiness.
+supported = adoption.preview(out / 'fixtures' / 'collection-instance.blend', out / 'collection', a.blender)
+assert supported['passed']
+collection = adoption.apply(supported['plan'], out / 'collection-applied', a.blender)
+assert collection['status'] == 'READY_FOR_START' and collection['passed'], collection
 unsupported = adoption.preview(out / 'fixtures' / 'unsupported-instance.blend', out / 'unsupported', a.blender)
 assert unsupported['passed']
 repair = adoption.apply(unsupported['plan'], out / 'unsupported-applied', a.blender)
@@ -105,7 +109,7 @@ assert {str(f): file_hash(f) for f in (out / 'fixtures').glob('*.blend')} == has
 result = {'passed': True, 'runtime': str(runtime), 'assigned_properties': adopted['assignments'],
           'fresh_start_resume': True, 'independent_native_snapshot_equal': True,
           'existing_id_and_shared_asset_preserved': True, 'repeat_preview_assignments': noop['assignments'],
-          'negative_cases': blocked, 'unsupported_observation_status': repair['status'],
+          'negative_cases': blocked, 'unsupported_observation_status': repair['status'], 'collection_instance': collection['status'],
           'cli_with_spaces': True, 'existing_output_replay_rejected': True,
           'false_inventory_rejected_before_save': True,
           'all_fixture_files_unchanged': hashes, 'active': resumed['active']['id']}
