@@ -1,0 +1,273 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schema": {
+      "const": "dcc.capability.recipe.v1"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "provider": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$"
+        },
+        "source_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "id",
+        "source_digest"
+      ],
+      "additionalProperties": false
+    },
+    "parameters": {
+      "type": "object",
+      "description": "Validated by recipe_schema.parameter_schema; closed portable subset only."
+    },
+    "compatibility": {
+      "type": "object",
+      "properties": {
+        "blender_min": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "blender_max": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "engines": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "target_types": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "MESH",
+              "EMPTY",
+              "CAMERA",
+              "LIGHT"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "contexts": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "background",
+              "live"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "blender_min",
+        "blender_max",
+        "engines",
+        "target_types",
+        "contexts"
+      ],
+      "additionalProperties": false
+    },
+    "coverage": {
+      "type": "object",
+      "properties": {
+        "reads": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "geometry",
+              "transform",
+              "materials",
+              "modifiers",
+              "nodes",
+              "properties"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "writes": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "geometry",
+              "transform",
+              "materials",
+              "modifiers",
+              "nodes",
+              "properties"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "geometry",
+              "transform",
+              "materials",
+              "modifiers",
+              "nodes",
+              "properties"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "reads",
+        "writes",
+        "dependencies"
+      ],
+      "additionalProperties": false
+    },
+    "invocation": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "python_function",
+            "operator",
+            "node_asset"
+          ]
+        },
+        "entry": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$"
+        },
+        "completion": {
+          "const": "synchronous"
+        },
+        "cancellation": {
+          "const": "between_calls"
+        }
+      },
+      "required": [
+        "kind",
+        "entry",
+        "completion",
+        "cancellation"
+      ],
+      "additionalProperties": false
+    },
+    "update": {
+      "type": "object",
+      "properties": {
+        "identity": {
+          "const": "effect_key"
+        },
+        "shared_materials": {
+          "enum": [
+            "none",
+            "all_users",
+            "single_user_copy"
+          ]
+        }
+      },
+      "required": [
+        "identity",
+        "shared_materials"
+      ],
+      "additionalProperties": false
+    },
+    "validators": {
+      "const": [
+        "inspect_output",
+        "verify_saved"
+      ]
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$"
+          },
+          "parameters": {
+            "type": "object"
+          },
+          "context": {
+            "enum": [
+              "background",
+              "live"
+            ]
+          },
+          "expect": {
+            "enum": [
+              "pass",
+              "fail"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "parameters",
+          "context",
+          "expect"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1
+    }
+  },
+  "required": [
+    "schema",
+    "id",
+    "version",
+    "capabilities",
+    "provider",
+    "parameters",
+    "compatibility",
+    "coverage",
+    "invocation",
+    "update",
+    "validators",
+    "cases"
+  ],
+  "additionalProperties": false
+}

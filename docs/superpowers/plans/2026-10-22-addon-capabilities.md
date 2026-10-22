@@ -63,11 +63,11 @@ Schemas reject unknown keys and require the fields in the design. Use registry s
 
 **Interfaces:** `recipes.validate(value: dict) -> dict`; `draft(root, value: dict, adapter_path: str, assets: list[str]) -> dict`; `load(root, recipe_id: str, digest: str) -> dict`. Invocation kinds are `python_function`, `operator`, `node_asset`. Adapter protocol: `preflight(context, parameters) -> dict`, `apply(context, parameters, effect_id) -> dict`, `inspect_output(context, effect_id) -> dict`, `verify_saved(observation, output) -> dict`. Qualification status is separate from draft content.
 
-- [ ] Write schema/registry tests for path traversal, arbitrary import during discovery, wrong parameter type, non-finite values, missing validators, altered assets and duplicate recipe IDs with different content. Assert a valid draft is `DRAFT`, cannot execute as qualified, and inspecting it never calls adapter code. Use explicitly versioned immutable storage; loading a tampered adapter fails on its digest.
-- [ ] Run `python -m unittest discover -s tests -p 'test_recipes.py' -v`; require the expected failures before adding the API.
-- [ ] Implement validation and exclusive local retention with source/asset hashes. Provide a generated recipe scaffold and inventory/operator documentation to the calling agent, not a hidden model in the server. Resolve adapter paths only from retained qualified bundles. Package the schema and built-in support runtime into both wheel and exported bridge; user provider binaries/licenses remain external.
-- [ ] Run recipe and distribution tests, including a source-archive rebuild. Confirm the guide covers semantic intent, parameter bounds, poll/context, effect identity, dependency scope, output validation, offline behavior and version-change requalification.
-- [ ] Commit `feat: define versioned add-on recipes and onboarding drafts`.
+- [x] Write schema/registry tests for path traversal, arbitrary import during discovery, wrong parameter type, non-finite values, missing validators, altered assets and duplicate recipe IDs with different content. Assert a valid draft is `DRAFT`, cannot execute as qualified, and inspecting it never calls adapter code. Use explicitly versioned immutable storage; loading a tampered adapter fails on its digest.
+- [x] Run `python -m unittest discover -s tests -p 'test_recipes.py' -v`; require the expected failures before adding the API.
+- [x] Implement validation and exclusive local retention with source/asset hashes. Provide a generated recipe scaffold and inventory/operator documentation to the calling agent, not a hidden model in the server. Resolve adapter paths only from retained qualified bundles. Package the schema and built-in support runtime into both wheel and exported bridge; user provider binaries/licenses remain external.
+- [x] Run recipe and distribution tests, including a source-archive rebuild. Confirm the guide covers semantic intent, parameter bounds, poll/context, effect identity, dependency scope, output validation, offline behavior and version-change requalification.
+- [x] Commit `feat: define versioned add-on recipes and onboarding drafts`.
 
 ### Task 3: Qualify invocation, context and actual results
 
