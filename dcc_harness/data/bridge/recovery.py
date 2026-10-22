@@ -19,14 +19,19 @@ def capture(jobs, payload):
     if decision not in ('keep-current', 'restore-precopy'):
         raise ValueError('Unsupported recovery decision')
     session, folder = jobs.session, jobs.folder(op)
-    state = jobs.status(op)
-    if ((state['state'] in ('RUNNING', 'QUEUED') and state.get('generation') == session.generation)
-            or session.active not in (None, op)):
-        raise ValueError('BUSY: wait for the actual native outcome before recovery')
-    scene = attachment.scene_for(session.scene)
-    current = attachment.snapshot(scene)
-    if attachment.fingerprint(current) != payload['expected_fingerprint']:
-        raise ValueError('STALE_SCENE: later edits must be inspected before recovery')
+    # Only this read-only region can issue a definitive no-mutation refusal.
+    # Every exception after destination creation remains an uncertain outcome.
+    try:
+        state = jobs.status(op)
+        if ((state['state'] in ('RUNNING', 'QUEUED') and state.get('generation') == session.generation)
+                or session.active not in (None, op)):
+            raise ValueError('BUSY: wait for the actual native outcome before recovery')
+        scene = attachment.scene_for(session.scene)
+        current = attachment.snapshot(scene)
+        if attachment.fingerprint(current) != payload['expected_fingerprint']:
+            raise ValueError('STALE_SCENE: later edits must be inspected before recovery')
+    except ValueError as exc:
+        return {'state': 'REFUSED_BEFORE_MUTATION', 'request': payload, 'reason': str(exc)}
     destination = reject_links(folder / 'recovery'); destination.mkdir(exist_ok=False)
     write_exclusive(destination / 'request.json', json_bytes(payload))
     write_exclusive(destination / 'archive-snapshot.json', json_bytes(current))

@@ -29,7 +29,7 @@ def verify_contents(contents, expected=None):
     return {'identity': actual, 'files': manifest['files']}
 
 
-def describe():
+def describe(expected=None):
     folder = Path(__file__).resolve().parent
     contents = {}
     for path in folder.iterdir():
@@ -38,4 +38,7 @@ def describe():
         if path.is_symlink() or not path.is_file():
             raise ValueError('Unexpected bridge member: ' + path.name)
         contents[path.name] = path.read_bytes()
-    return verify_contents(contents)['identity']
+    current = verify_contents(contents)['identity']
+    if expected is not None and current != expected:
+        raise ValueError('Bridge installation changed after import; restart Blender with the matching export')
+    return current

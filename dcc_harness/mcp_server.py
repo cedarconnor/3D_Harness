@@ -266,11 +266,17 @@ def create_server(workspace, blender=None, bridge_port=9878):
         target = reject_links(target if target.is_absolute() else workspace / target).resolve()
         if not target.is_relative_to(workspace) or not target.is_file():
             raise ValueError('Read a file inside the configured workspace')
+        parts = [part.casefold() for part in target.parts]
+        if any(parts[i:i+2] == ['.harness-mcp', 'bridge'] for i in range(len(parts)-1)):
+            raise ValueError('Private bridge descriptors are not public evidence')
         if target.stat().st_size > MAX_TEXT:
             raise ValueError('File exceeds 4 MiB; use scoped brief/resume or local inspection')
         if target.suffix.lower() in ('.png', '.jpg', '.jpeg'):
             return Image(path=str(target))
-        return target.read_text(encoding='utf-8')
+        content = target.read_text(encoding='utf-8')
+        if 'dcc.blender.session.v1' in content:
+            raise ValueError('Private bridge descriptor content is not public evidence')
+        return content
 
     @server.tool()
     def harness_rules(path: str = 'index.json'):

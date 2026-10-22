@@ -67,6 +67,9 @@ def main():
                                   '--out', str(out / ('native-' + name))], cwd=out, env=env)
         run('native-live', [python, str(repo / 'scripts/qualify_live.py'), '--blender', str(Path(args.blender).resolve()),
                            '--runtime', str(target), '--out', str(out / 'native-live'), '--case', 'all'], cwd=out, env=env)
+        run('native-live-preservation', [python, str(repo / 'scripts/qualify_live_preservation.py'),
+            '--blender', str(Path(args.blender).resolve()), '--runtime', str(target),
+            '--out', str(out / 'native-live-preservation')], cwd=out, env=env)
     with zipfile.ZipFile(wheel) as archive:
         names = archive.namelist()
         assert 'dcc_harness/execution.py' in names and 'dcc_harness/_execution_blender.py' in names

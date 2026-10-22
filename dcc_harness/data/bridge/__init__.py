@@ -9,7 +9,16 @@ import socket
 import threading
 import time
 import bpy
-from . import upstream, inspection, attachment, jobs, recovery, integrity
+if __package__ == 'dcc_harness.data.bridge':
+    # Independent workers import these modules from the installed harness layout.
+    from dcc_harness import bridge_integrity as integrity
+    _BRIDGE_IDENTITY = None
+else:
+    from . import integrity
+    # Keep the original pin across importlib.reload: sibling modules may still be old.
+    if '_BRIDGE_IDENTITY' not in globals():
+        _BRIDGE_IDENTITY = integrity.describe()
+from . import upstream, inspection, attachment, jobs, recovery
 from .session import Session
 
 bl_info = {'name': '3D Harness observation bridge', 'author': '3D Harness contributors; Siddharth Ahuja (upstream)',
@@ -71,10 +80,12 @@ class ObservationServer(upstream.BlenderMCPServer):
             elif name == 'ping':
                 result = {'pong': True}
             elif name == 'get_addon_info':
+                if _BRIDGE_IDENTITY is None:
+                    raise ValueError('Install the standalone exported bridge for live access')
                 result = {'harness_protocol': 3, 'protocol_version': upstream.ADDON_PROTOCOL_VERSION,
                           'upstream_commit': '5a3618fccb2d982d0dd61e7a1879912c3100073b',
                           'capabilities': list(COMMANDS), 'features': list(FEATURES),
-                          'bridge_manifest': integrity.describe(),
+                          'bridge_manifest': integrity.describe(expected=_BRIDGE_IDENTITY),
                           'paired_commands': list(PAIRED_COMMANDS), 'blender_version': bpy.app.version_string}
             else:
                 result = getattr(self, name)(**params)

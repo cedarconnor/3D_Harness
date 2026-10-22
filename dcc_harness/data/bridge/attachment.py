@@ -28,6 +28,7 @@ def scene_for(name):
 
 def snapshot(scene):
     """Same measured fields as independent saved verification, including source mesh/UV."""
+    assert_copyable()
     observation = measure_live(scene)
     result = {key: observation[key] for key in ('objects', 'materials', 'scene', 'coverage', 'issues')}
     result['inventory'] = inventory(scene)
@@ -70,7 +71,18 @@ def check(session, payload):
     return {'fingerprint': observed, 'matches': matches, 'diagnostic': diagnostic, **session.describe()}
 
 
+def assert_copyable():
+    """A .blend copy alone cannot promise preservation of external unsaved buffers."""
+    if any(image.is_dirty for image in bpy.data.images):
+        raise ValueError('UNSAVED_IMAGE: save image edits explicitly before managed copying or recovery')
+    if (any(getattr(bpy.data, name, ()) for name in ('sounds', 'movieclips', 'volumes', 'cache_files'))
+            or any(font.filepath and font.filepath != '<builtin>' and not font.packed_file for font in bpy.data.fonts)
+            or any(scene.sequence_editor for scene in bpy.data.scenes)):
+        raise ValueError('UNSUPPORTED_DEPENDENCIES: audio, video, external fonts, volumes and caches need separate qualification')
+
+
 def save_copy(session, path):
+    assert_copyable()
     target = reject_links(path).resolve()
     if session.project is None or not target.is_relative_to(session.project.parent):
         raise ValueError('Save copy must stay in the bound project')

@@ -30,14 +30,32 @@ def reconcile(root, operation_id, decision, expected_fingerprint):
             if (folder / 'reconciled.json').exists():
                 return read_json(folder / 'reconciled.json')
             raise RuntimeError('Recovery outcome is incomplete; inspect retained evidence, never repeat the restore')
+        attempts = reject_links(folder / 'reconcile-attempts')
+        if attempts.exists():
+            for previous in attempts.iterdir():
+                # Missing/ambiguous replies are never evidence that a restore did not happen.
+                refusal = reject_links(previous / 'refusal.json')
+                if not refusal.is_file():
+                    raise RuntimeError('Recovery outcome is incomplete; inspect retained evidence, never repeat the restore')
+                value = read_json(refusal)
+                if (value.get('state') != 'REFUSED_BEFORE_MUTATION'
+                        or value.get('request') != read_json(previous / 'request.json')):
+                    raise ValueError('Recovery refusal evidence changed')
         binding = read_binding(root)
         current = blender_bridge.call('attach_check', {}, binding=binding['descriptor'],
                                       expected=(binding['session_id'], binding['generation']))
         if current['fingerprint'] != expected_fingerprint:
             raise ValueError('STALE_SCENE: inspect later edits before choosing recovery')
-        write_json(folder / 'reconcile-request.json', intent)
+        attempt = attempts / str(uuid.uuid4()); attempt.mkdir(parents=True)
+        write_json(attempt / 'request.json', intent)
         receipt = blender_bridge.call('recovery_capture', intent, binding=binding['descriptor'],
                                        expected=(binding['session_id'], binding['generation']))
+        if (isinstance(receipt, dict) and set(receipt) == {'state', 'request', 'reason'}
+                and receipt['state'] == 'REFUSED_BEFORE_MUTATION' and receipt['request'] == intent
+                and isinstance(receipt['reason'], str)):
+            write_json(attempt / 'refusal.json', receipt)
+            raise RuntimeError(receipt['reason'])
+        write_json(folder / 'reconcile-request.json', intent)
         if receipt != read_json(folder / 'recovery/receipt.json'):
             raise ValueError('Recovery receipt differs from durable evidence')
         recovery = folder / 'recovery'

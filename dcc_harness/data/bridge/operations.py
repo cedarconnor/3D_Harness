@@ -58,6 +58,7 @@ def node_asset(obj, parameters):
 
 def coverage(scene):
     """Refuse features whose dependencies are not qualified by these built-ins."""
+    attachment.assert_copyable()
     if scene != bpy.context.scene or any(o.mode != 'OBJECT' for o in scene.objects):
         raise ValueError('BUSY: select Object mode in the paired scene')
     for obj in scene.objects:
