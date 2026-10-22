@@ -43,11 +43,15 @@ def run_process(command, log_path, *, timeout=3600, cancelled=None, env=None):
                 raise RuntimeError(f'Native process failed ({process.returncode}); inspect {log_path}')
 
 
-def run_worker(blender, folder, worker, action, request, *, timeout=3600, cancelled=None, profile=None):
+def run_worker(blender, folder, worker, action, request, *, timeout=3600, cancelled=None, profile=None, gui=False):
     """Run one worker action; its request and Blender log are retained in folder."""
     request_path = folder / (action + '-request.json')
+    if gui:
+        if action not in ('recipe_apply','recipe_verify') or profile is None:
+            raise ValueError('Owned GUI workers are limited to explicit recipe qualification')
+        request = {**request, 'owned_gui':True}
     write_json(request_path, {**request, 'profile':profile} if profile is not None else request)
-    command = [str(blender), '--background', '--offline-mode', '--factory-startup', '--disable-autoexec',
+    command = [str(blender), *([] if gui else ['--background']), '--offline-mode', '--factory-startup', '--disable-autoexec',
                '--python-exit-code', '1']
     if profile is not None:
         command += ['--python', str(Path(__file__).with_name('_profile_blender.py'))]
@@ -57,6 +61,8 @@ def run_worker(blender, folder, worker, action, request, *, timeout=3600, cancel
         run_process(command, log_path, timeout=timeout, cancelled=cancelled)
     else:
         config = folder / (action + '-user-config'); config.mkdir()
+        temporary = folder / (action + '-temporary'); temporary.mkdir()
         run_process(command, log_path, timeout=timeout, cancelled=cancelled,
                     env={**os.environ, 'BLENDER_USER_CONFIG':str(config.resolve()),
+                         'TEMP':str(temporary.resolve()), 'TMP':str(temporary.resolve()),
                          'BLENDER_USER_EXTENSIONS':str((folder / (action + '-user-extensions')).resolve())})

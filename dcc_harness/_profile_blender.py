@@ -8,9 +8,9 @@ from dcc_harness.environments import load_profile
 from dcc_harness.data.bridge import addons
 
 action, request_path = sys.argv[sys.argv.index('--') + 1:]
-if not bpy.app.background:
-    raise ValueError('This bootstrap only controls an owned background worker')
 request = read_json(request_path)
+if not bpy.app.background and not (request.get('owned_gui') is True and action in ('recipe_apply','recipe_verify')):
+    raise ValueError('This bootstrap only controls an owned qualification/worker process')
 profile = load_profile(request['profile'])
 attempts = addons.NETWORK_ATTEMPTS
 def offline_audit(event, args, attempts=attempts, folder=Path(request_path).parent, action=action, writer=write_json):

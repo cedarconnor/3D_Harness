@@ -49,6 +49,7 @@ class RecipeTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'qualified|DRAFT'):
             recipes.require_qualified(self.root, ref['id'], ref['digest'])
         self.assertEqual(self.draft(), ref)
+        self.assertEqual(recipes.inspect(self.root,ref['id'],ref['digest'])['state'],'DRAFT')
 
     def test_immutable_versions_same_id_and_tamper_detection(self):
         from dcc_harness import recipes
@@ -113,3 +114,27 @@ class RecipeTests(unittest.TestCase):
         path = Path(loaded['adapter']).parent / 'unlisted.py'; path.write_text('x=1')
         with self.assertRaisesRegex(ValueError, 'members|changed'):
             recipes.load(self.root, ref['id'], ref['digest'])
+
+    def test_qualification_cannot_register_caller_success_or_foreign_report(self):
+        from dcc_harness import recipes
+        ref = self.draft(); report = self.root / 'fake-report.json'
+        report.write_text(json.dumps({'passed':True,'recipe_digest':ref['digest']}))
+        with self.assertRaisesRegex(ValueError, 'retained|qualification'):
+            recipes.register_qualified(self.root, str(report))
+
+    def test_context_compatibility_is_explicit_and_not_inferred_from_installation(self):
+        from dcc_harness import recipes
+        value = recipe()
+        self.assertTrue(recipes.applicable(value, [5,1,1], 'BLENDER_EEVEE_NEXT', 'MESH', 'background'))
+        for context in ('modal','viewport'):
+            self.assertFalse(recipes.applicable(value, [5,1,1], 'BLENDER_EEVEE_NEXT', 'MESH', context))
+        self.assertFalse(recipes.applicable(value, [5,2,0], 'BLENDER_EEVEE_NEXT', 'MESH', 'background'))
+        self.assertFalse(recipes.applicable(value, [5,1,1], 'CYCLES', 'MESH', 'background'))
+
+    def test_recipe_requires_positive_case_for_each_qualified_context(self):
+        from dcc_harness import recipes
+        value = recipe()
+        self.assertEqual(recipes.qualifiable_contexts(value), ['background'])
+        value['cases'][0]['expect'] = 'fail'
+        value['cases'][0]['failure_contains'] = 'Expected specific failure'
+        self.assertEqual(recipes.qualifiable_contexts(value), [])

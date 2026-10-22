@@ -26,6 +26,9 @@ Each recipe declares semantic capability IDs, a provider source digest, paramete
 bounds, Blender/engine/target compatibility, supported live/background context,
 read/write/dependency coverage, deterministic entry point, synchronous completion,
 effect identity, shared-material policy, validators and qualification cases.
+Negative cases name a specific expected failure reason; an unrelated setup failure
+does not satisfy them. The full effect ID stays in evidence even when Blender's
+bounded native names use its shorter deterministic prefix.
 
 `recipes.scaffold(recipe)` supplies a deliberately incomplete adapter. The calling
 agent writes it; the server does not contain a hidden drafting model. Implement:
@@ -54,8 +57,8 @@ paid assets and licenses remain external unless explicitly supplied as recipe as
 
 ## Qualification and use
 
-Qualification is a separate retained report bound to the recipe, profile, provider and
-Blender identities. Run only on owned disposable scenes. Exercise successful effects,
+Qualification is a separate retained report bound to the recipe, profile, provider,
+Blender and harness runtime identities. Run only on owned disposable scenes. Exercise successful effects,
 wrong poll/context, no-op success, mutation before error, unsupported modal completion,
 shared material scope, independent reopen and a repeated update with one effect ID.
 Live GUI and background are separate qualifications; a background pass cannot imply

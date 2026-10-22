@@ -130,7 +130,10 @@ def validate(value):
     if not isinstance(value['cases'],list) or not value['cases']: raise ValueError('Qualification cases required')
     names = set()
     for case in value['cases']:
-        exact(case, {'name','parameters','context','expect'}); identifier(case['name'])
+        exact(case, {'name','parameters','context','expect'} | ({'failure_contains'} if case.get('expect') == 'fail' else set()))
+        identifier(case['name'])
+        if case['expect'] == 'fail' and (not isinstance(case['failure_contains'],str) or len(case['failure_contains']) < 8):
+            raise ValueError('Negative cases require a specific failure reason')
         if case['name'] in names: raise ValueError('Duplicate qualification case')
         names.add(case['name'])
         if case['context'] not in compat['contexts'] or case['expect'] not in ('pass','fail'):

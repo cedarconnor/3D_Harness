@@ -1,5 +1,6 @@
 """Explicit source-pinned provider activation; inventory never imports providers."""
 import hashlib
+import functools
 import importlib.abc
 import importlib.machinery
 from pathlib import Path
@@ -11,15 +12,25 @@ try:
     from . import provider_sources
     from .evidence import digest
     from .files import file_hash, reject_links
+    from .offline import scope
 except ImportError:
     from dcc_harness import provider_sources
     from dcc_harness.evidence import digest
     from dcc_harness.files import file_hash, reject_links
+    from dcc_harness.offline import scope
 
 PINS = {}
 ACTIVE_PROFILE = None
 LAST_ACTIVATION = None
 NETWORK_ATTEMPTS = []
+
+
+def offline_call(function):
+    @functools.wraps(function)
+    def bounded(*args, **kwargs):
+        with scope(NETWORK_ATTEMPTS):
+            return function(*args, **kwargs)
+    return bounded
 
 
 def build():
@@ -108,6 +119,7 @@ class ProfileFinder(importlib.abc.MetaPathFinder):
 FINDER = ProfileFinder()
 
 
+@offline_call
 def enable_profile(profile):
     global ACTIVE_PROFILE, LAST_ACTIVATION
     if LAST_ACTIVATION and LAST_ACTIVATION['state'] != 'ENABLED':

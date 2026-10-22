@@ -65,10 +65,12 @@ bpy.app.timers.register(control)
     if os.name == 'nt':
         startup = subprocess.STARTUPINFO(); startup.dwFlags |= subprocess.STARTF_USESHOWWINDOW; startup.wShowWindow = 0
     config_dir = out / 'gui-config'; config_dir.mkdir()
+    temporary = out / 'gui-temporary'; temporary.mkdir()
     with (out / 'gui.log').open('x') as log:
         process = subprocess.Popen([args.blender, '--offline-mode', '--factory-startup', '--disable-autoexec',
             '--python-exit-code', '1', '--python', str(script)], stdin=subprocess.DEVNULL, stdout=log,
             stderr=subprocess.STDOUT, startupinfo=startup, env={**os.environ, 'BLENDER_USER_CONFIG':str(config_dir),
+                'TEMP':str(temporary), 'TMP':str(temporary),
                 'BLENDER_USER_EXTENSIONS':str(out / 'gui-extensions')})
         token = None
         try:
@@ -177,8 +179,124 @@ write_json(folder / 'result.json', {'passed':True, 'profile':initial,
     print(json.dumps(result, indent=2))
 
 
+def fixture_recipe(provider, kind, entry, cases, *, name=None, shared=False):
+    return {'schema':'dcc.capability.recipe.v1', 'id':name or provider['id'] + '.' + kind, 'version':1,
+        'capabilities':['surface.fixture'], 'provider':{'id':provider['id'],'source_digest':provider['source_digest']},
+        'parameters':{'type':'object','properties':{'amount':{'type':'number','minimum':.01,'maximum':.5},
+             'behavior':{'type':'string','enum':['normal','noop','mutate_error','missing_reopen','duplicate','network','modal','shared_bad','copy']}},
+             'required':['amount','behavior'],'additionalProperties':False},
+        'compatibility':{'blender_min':[5,1,0],'blender_max':[5,2,0],'engines':['BLENDER_EEVEE'],
+                         'target_types':['MESH'],'contexts':['background','live']},
+        'coverage':{'reads':['geometry','materials'],'writes':['modifiers','materials'] if shared else ['modifiers'],
+                    'dependencies':['geometry','materials']},
+        'invocation':{'kind':kind,'entry':entry,'completion':'synchronous','cancellation':'between_calls'},
+        'update':{'identity':'effect_key','shared_materials':'all_users' if shared else 'none'},
+        'validators':['inspect_output','verify_saved'],'cases':cases}
+
+
+def fixture_case(name, context='background', behavior='normal', expect='pass'):
+    result = {'name':name,'parameters':{'amount':.15,'behavior':behavior},'context':context,'expect':expect}
+    if expect == 'fail':
+        reasons = {'noop':'exactly one measured owned effect', 'mutate_error':'Fixture mutated before error',
+                   'missing_reopen':'provider was disabled or changed', 'duplicate':'exactly one measured owned effect',
+                   'network':'Offline profile attempted', 'modal':'incomplete/modal',
+                   'shared_bad':'Shared material users differ', 'normal':'UNSUPPORTED_CONTEXT'}
+        result['failure_contains'] = reasons[behavior]
+    return result
+
+
+def onboarding(args):
+    runtime = Path(args.runtime).resolve(); sys.path.insert(0,str(runtime))
+    from dcc_harness import environments, recipes
+    from dcc_harness.evidence import read_json,write_json
+    from dcc_harness.native import run_worker
+    out = Path(args.out).resolve(); out.mkdir(parents=True,exist_ok=False)
+    fixture_root = Path(__file__).resolve().parents[1] / 'tests/fixtures/addons'
+    shutil.copytree(fixture_root / 'legacy/capability_fixture',out / 'providers/capability_fixture')
+    shutil.copytree(fixture_root / 'legacy/capability_fixture',out / 'providers/capability_second')
+    second = out / 'providers/capability_second/__init__.py'
+    second.write_text(second.read_text().replace('object.capability_', 'object.second_').replace("mod.segments = 2", "mod.segments = 3"))
+    asset_script = out / 'asset.py'
+    asset_script.write_text('''
+import bpy, json, sys
+from pathlib import Path
+_, path = sys.argv[sys.argv.index('--')+1:]; request = json.loads(Path(path).read_text())
+tree = bpy.data.node_groups.new('FixtureGroup','GeometryNodeTree')
+tree.interface.new_socket(name='Geometry',in_out='INPUT',socket_type='NodeSocketGeometry')
+tree.interface.new_socket(name='Geometry',in_out='OUTPUT',socket_type='NodeSocketGeometry')
+entry = tree.nodes.new('NodeGroupInput'); output = tree.nodes.new('NodeGroupOutput')
+transform = tree.nodes.new('GeometryNodeTransform'); transform.inputs['Translation'].default_value = (.1,0,0)
+tree.links.new(entry.outputs['Geometry'],transform.inputs['Geometry']); tree.links.new(transform.outputs['Geometry'],output.inputs['Geometry'])
+bpy.data.libraries.write(request['output'],{tree})
+''')
+    setup = out / 'setup'; setup.mkdir()
+    asset = out / 'providers/capability_fixture/fixture.blend'
+    run_worker(args.blender,setup,asset_script,'asset',{'output':str(asset)},timeout=60)
+    inventory = environments.inventory(blender=args.blender,roots=[{'path':str(out / 'providers'),'namespace':''}],out=out / 'inventory')
+    project = out / 'project'; providers = {p['id']:p for p in inventory['providers']}
+    profile = environments.create_profile(project,inventory,['capability_fixture'],{})
+    second_profile = environments.create_profile(project,inventory,['capability_second'],{})
+    both = [fixture_case('background'),fixture_case('live','live')]
+    values = [
+        fixture_recipe(providers['capability_fixture'],'python_function','capability_fixture.mark',both + [
+            fixture_case(name,behavior=name,expect='fail') for name in ('noop','mutate_error','missing_reopen','duplicate','network')]),
+        fixture_recipe(providers['capability_fixture'],'operator','object.capability_fixture',both + [
+            fixture_case('noop',behavior='noop',expect='fail'),fixture_case('modal',behavior='modal',expect='fail')]),
+        fixture_recipe(providers['capability_fixture'],'operator','object.capability_viewport',[
+            fixture_case('viewport','live'),fixture_case('missing_viewport',expect='fail')],name='fixture.viewport'),
+        fixture_recipe(providers['capability_fixture'],'operator','object.capability_never',[
+            fixture_case('poll_failure')],name='fixture.never'),
+        fixture_recipe(providers['capability_fixture'],'python_function','capability_fixture.mark',[
+            fixture_case('shared_valid'),fixture_case('shared_invalid',behavior='shared_bad',expect='fail')],name='fixture.shared',shared=True),
+        fixture_recipe(providers['capability_fixture'],'node_asset','FixtureGroup',both),
+        fixture_recipe(providers['capability_second'],'python_function','capability_second.mark',both),
+    ]
+    single = fixture_recipe(providers['capability_fixture'],'python_function','capability_fixture.mark',[
+        fixture_case('shared_copy',behavior='copy'),fixture_case('shared_missing_copy',expect='fail')],name='fixture.single-copy',shared=True)
+    single['update']['shared_materials'] = 'single_user_copy'
+    single['cases'][1]['failure_contains'] = 'Shared material copy policy'
+    values.append(single)
+    results = []
+    for value in values:
+        ref = recipes.draft(project,value,str(fixture_root / 'capability_adapter.py'),[str(asset)] if value['invocation']['kind']=='node_asset' else [])
+        selected_profile = second_profile if value['provider']['id']=='capability_second' else profile
+        result = recipes.qualify(project,ref['id'],ref['digest'],selected_profile['digest'],blender=args.blender,
+                                 out=project / 'capabilities/qualifications' / ref['id'])
+        expected = 'FAILED' if value['id']=='fixture.never' else 'QUALIFIED'
+        assert result['state']==expected, json.dumps({'recipe':value['id'],'expected':expected,'result':result})
+        report = read_json(result['report'])
+        if expected == 'QUALIFIED':
+            recipes.register_qualified(project,result['report'])
+            recipes.require_qualified(project,ref['id'],ref['digest'])
+        else:
+            try: recipes.register_qualified(project,result['report'])
+            except ValueError: pass
+            else: raise AssertionError('Failed poll recipe registered')
+            assert recipes.inspect(project,ref['id'],ref['digest'])['state']=='FAILED'
+        if value['id']=='fixture.viewport':
+            try: recipes.require_qualified(project,ref['id'],ref['digest'],context='background')
+            except ValueError: pass
+            else: raise AssertionError('GUI qualification incorrectly implied background support')
+        results.append({'recipe':ref,'profile':selected_profile,'qualification':result,'contexts':report['contexts']})
+        print(value['id'],expected,flush=True)
+    # Source changes without version changes invalidate existing registrations.
+    entry = out / 'providers/capability_fixture/__init__.py'; original = entry.read_bytes()
+    entry.write_bytes(original + b'\n# source drift\n')
+    try:
+        try: recipes.require_qualified(project,results[0]['recipe']['id'],results[0]['recipe']['digest'])
+        except ValueError: pass
+        else: raise AssertionError('Changed provider retained qualification')
+        assert recipes.inspect(project,results[0]['recipe']['id'],results[0]['recipe']['digest'])['state']=='STALE'
+    finally: entry.write_bytes(original)
+    result = {'passed':True,'case':'onboarding','recipes':results,'source_drift_refused':True,
+              'limits':'Synthetic providers, owned GUI/background scenes; no artistic superiority claim'}
+    write_json(out / 'VERIFICATION.json',result)
+    print('PASS: function/operator/node-asset qualification, context, reopen, repeat, failure and source-drift cases',flush=True)
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--runtime', required=True); parser.add_argument('--blender', required=True)
-    parser.add_argument('--out', required=True); parser.add_argument('--case', choices=['profiles'], default='profiles')
-    profiles(parser.parse_args())
+    parser.add_argument('--out', required=True); parser.add_argument('--case', choices=['profiles','onboarding'], default='profiles')
+    args = parser.parse_args()
+    {'profiles':profiles,'onboarding':onboarding}[args.case](args)

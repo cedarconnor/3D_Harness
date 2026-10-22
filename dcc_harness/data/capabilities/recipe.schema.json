@@ -242,6 +242,10 @@
               "pass",
               "fail"
             ]
+          },
+          "failure_contains": {
+            "type": "string",
+            "minLength": 8
           }
         },
         "required": [
@@ -250,7 +254,30 @@
           "context",
           "expect"
         ],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "expect": {
+                  "const": "fail"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "failure_contains"
+              ]
+            },
+            "else": {
+              "not": {
+                "required": [
+                  "failure_contains"
+                ]
+              }
+            }
+          }
+        ]
       },
       "minItems": 1
     }

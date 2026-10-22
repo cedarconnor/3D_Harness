@@ -109,3 +109,17 @@ class EnvironmentTests(unittest.TestCase):
             result = self.scan()
             self.assertEqual(self.item(result, 'import_sentinel')['availability'], 'UNKNOWN')
             self.assertTrue(self.item(result, 'harness_fixture')['compatible'])
+
+    def test_offline_scope_blocks_only_explicit_managed_calls(self):
+        import socket
+        from dcc_harness.offline import scope
+        attempts = []
+        with socket.socket() as server:
+            server.bind(('127.0.0.1',0)); server.listen(1)
+            with scope(attempts), socket.socket() as client:
+                with self.assertRaisesRegex(RuntimeError,'Offline provider'):
+                    client.connect(server.getsockname())
+            self.assertEqual(len(attempts),1)
+            with socket.create_connection(server.getsockname()):
+                connection,_ = server.accept(); connection.close()
+            self.assertEqual(len(attempts),1)
