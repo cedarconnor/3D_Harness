@@ -16,6 +16,8 @@ from .continuity import Continuity
 from .evidence import digest, file_hash, finite_number, read_json, write_json
 from .files import reject_links, copy_verified
 from .native import run_worker
+from .execution_backends import make_backend
+from .live_contracts import validate_operation
 
 _permit = ContextVar('managed_execution_root', default=None)
 _stage_context = ContextVar('managed_execution_stage', default=None)
@@ -32,8 +34,10 @@ def configuration(root):
     if not folder.exists():
         return None
     config = read_json(reject_links(folder / 'run.json'))
-    if config.get('schema') != 'dcc.execution.run.v1' or config.get('mode') not in ('autonomous', 'approval_gated'):
+    if config.get('schema') not in ('dcc.execution.run.v1', 'dcc.execution.run.v2') or config.get('mode') not in ('autonomous', 'approval_gated'):
         raise ValueError('Invalid managed execution configuration')
+    if config['schema'] == 'dcc.execution.run.v2' and config.get('backend') not in ('background', 'live'):
+        raise ValueError('Invalid managed execution backend')
     return config
 
 
@@ -95,9 +99,11 @@ def _exclusive(root):
                 fcntl.flock(stream, fcntl.LOCK_UN)
 
 
-def create(root, mode, *, max_operations=20, seconds=3600):
+def create(root, mode, *, max_operations=20, seconds=3600, backend='background'):
     if mode not in ('autonomous', 'approval_gated'):
         raise ValueError('Mode must be autonomous or approval_gated')
+    if backend not in ('background', 'live'):
+        raise ValueError('Unknown execution backend')
     if type(max_operations) is not int or max_operations < 1:
         raise ValueError('Operation budget must be a positive integer')
     finite_number(seconds)
@@ -112,7 +118,7 @@ def create(root, mode, *, max_operations=20, seconds=3600):
             raise ValueError('Enable approval-gated mode before completing or inheriting stages; reopen prior stages first')
         folder = _folder(root)
         folder.mkdir(exist_ok=False)
-        write_json(folder / 'run.json', {'schema': 'dcc.execution.run.v1', 'id': str(uuid.uuid4()),
+        write_json(folder / 'run.json', {'schema': 'dcc.execution.run.v2', 'backend': backend, 'id': str(uuid.uuid4()),
                    'mode': mode, 'max_operations': max_operations, 'deadline': time.time() + seconds,
                    'binding': bound['id'], 'runtime': ew.runtime_stamp(), 'initial_checkpoint': native['active']['id']})
     return status(root)
@@ -222,14 +228,26 @@ def _admit(root, stage, expected_parent):
 
 
 def execute(root, stage, operation_id, script, contract, handoff, blender, expected_parent, *, timeout=300):
-    """Reserve, execute once, independently reopen, check and publish an owned copy."""
-    c.identifier(operation_id)
-    finite_number(timeout)
-    if timeout <= 0:
-        raise ValueError('Operation timeout must be positive')
+    """Compatibility entry point for existing managed background scripts."""
+    return execute_operation(root, {'schema': 'dcc.execution.operation.v2', 'backend': 'background',
+        'stage': stage, 'operation_id': operation_id, 'script': str(script), 'contract': str(contract),
+        'handoff': str(handoff), 'blender': str(blender), 'expected_parent': expected_parent, 'timeout': timeout})
+
+
+def execute_operation(root, value):
+    """One admission/reservation/verification/publication path for all native backends."""
+    value = validate_operation(value)
+    stage, operation_id, timeout = value['stage'], value['operation_id'], value['timeout']
+    script, contract, handoff = value['script'], value['contract'], value['handoff']
+    blender, expected_parent, kind = value['blender'], value['expected_parent'], value['backend']
+    config = configuration(root)
+    if config is None or config.get('backend', 'background') != kind:
+        raise ValueError('Operation backend does not match the managed run')
     sources = {name: reject_links(path) for name, path in [('script.py', script), ('contract.json', contract), ('handoff.md', handoff)]}
     request = {'stage': stage, 'expected_parent': expected_parent, 'blender': str(blender), 'timeout': timeout,
-               'files': {name: file_hash(path) for name, path in sources.items()}}
+               'backend': kind, 'files': {name: file_hash(path) for name, path in sources.items()}}
+    if 'live' in value:
+        request['live'] = value['live']
     folder = reject_links(_folder(root) / 'operations' / operation_id)
     with _exclusive(root), _authorized(root, stage):
         if folder.exists():
@@ -265,8 +283,34 @@ def execute(root, stage, operation_id, script, contract, handoff, blender, expec
                     raise RuntimeError('Run cancelled')
                 run_worker(blender, folder, worker, action, payload, timeout=remaining, cancelled=cancelled)
             candidate = folder / 'candidate.blend'
-            run(WORKER, 'execute', {'source': {'path': str(folder / 'input.blend'), 'sha256': active['checkpoint_sha256']},
-                                   'script': reserved['script'], 'script_sha256': request['files']['script.py'], 'output': str(candidate)})
+            backend = make_backend(kind, root=root, folder=folder, run=run)
+            native_request = {**request, 'operation_id': operation_id,
+                              'source': {'path': str(folder / 'input.blend'), 'sha256': active['checkpoint_sha256']},
+                              'script': reserved['script'], 'script_sha256': request['files']['script.py'],
+                              'output': str(candidate), 'deadline': deadline}
+            prepared = backend.prepare(native_request)
+            write_json(folder / 'prepared.json', prepared)
+            if cancelled() or time.time() >= deadline:
+                raise RuntimeError('Execution cancelled or expired before dispatch')
+            write_json(folder / 'dispatched.json', {'operation_id': operation_id, 'backend': kind,
+                                                   'request_sha256': digest(request)})
+            job_id = backend.submit(native_request, prepared)
+            if job_id != operation_id:
+                raise ValueError('Backend returned a different operation identity')
+            while True:
+                if cancelled() or time.time() >= deadline:
+                    backend.cancel(operation_id)
+                    raise RuntimeError('Execution cancelled or expired; inspect backend outcome')
+                receipt = backend.status(operation_id)
+                if receipt.get('operation_id') != operation_id:
+                    raise ValueError('Backend receipt identity mismatch')
+                if receipt['state'] == 'SAVED':
+                    if Path(receipt['candidate']).resolve() != candidate.resolve() or file_hash(candidate) != receipt['sha256']:
+                        raise ValueError('Backend candidate does not match retained output')
+                    break
+                if receipt['state'] not in ('QUEUED', 'RUNNING', 'CANCEL_REQUESTED'):
+                    raise RuntimeError('Native operation requires reconciliation: ' + receipt['state'])
+                time.sleep(.1)
             run(OBSERVER, 'observe', {'source': {'path': str(candidate), 'sha256': file_hash(candidate)},
                                      'out': str(folder), 'compact': True})
             if cancelled() or time.time() >= deadline:
