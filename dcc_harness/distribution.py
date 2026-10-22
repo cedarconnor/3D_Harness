@@ -26,6 +26,12 @@ BRIDGE_FILES = {
     'observation_storage.py': Path(__file__).with_name('observation_storage.py'),
     'project.py': Path(__file__).with_name('project.py'),
     'uv_guard.py': Path(__file__).with_name('uv_guard.py'),
+    'recipe_contracts.py': Path(__file__).with_name('live_recipes.py'),
+    'operations.py': DATA / 'bridge/operations.py',
+    'jobs.py': DATA / 'bridge/jobs.py',
+    'recovery.py': DATA / 'bridge/recovery.py',
+    'live_snapshot.py': Path(__file__).with_name('live_snapshot.py'),
+    'node_asset_blender.py': Path(__file__).with_name('node_asset_blender.py'),
     'upstream.json': DATA / 'upstream.json',
 }
 

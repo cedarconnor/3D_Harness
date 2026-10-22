@@ -109,5 +109,7 @@ class Session:
     def close(self):
         with self._lock:
             self._prepared.clear()
+            self.generation = str(uuid.uuid4())
+            self.reason = 'Bridge stopped'
             self._token = secrets.token_hex(32)
             reject_links(self.descriptor_path).unlink(missing_ok=True)

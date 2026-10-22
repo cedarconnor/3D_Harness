@@ -21,6 +21,7 @@ from .live_contracts import validate_operation
 
 _permit = ContextVar('managed_execution_root', default=None)
 _stage_context = ContextVar('managed_execution_stage', default=None)
+_publication_guard = ContextVar('native_publication_guard', default=None)
 WORKER = Path(__file__).with_name('_execution_blender.py')
 OBSERVER = Path(__file__).with_name('_observe_blender.py')
 
@@ -70,6 +71,9 @@ def check_publication(root):
     _, states = ew._stage(ctx, stage)
     if states[stage]['state'] in ('complete', 'inherited'):
         raise ValueError('Reopen a completed stage before executing edits')
+    guard = _publication_guard.get()
+    if guard is not None:
+        guard()
 
 
 @contextmanager
@@ -256,6 +260,9 @@ def execute_operation(root, value):
                 raise ValueError('Operation ID reused with different content')
             return _outcome(folder)
         active, config = _admit(root, stage, expected_parent)
+        if kind == 'live' and request.get('live', {}).get('recipe') != 'external.capture':
+            from .live import ensure_aligned
+            ensure_aligned(root)
         # Validate before creating a durable reservation.
         from .continuity_checks import validate_contract
         validate_contract(read_json(sources['contract.json']))
@@ -311,12 +318,18 @@ def execute_operation(root, value):
                 if receipt['state'] not in ('QUEUED', 'RUNNING', 'CANCEL_REQUESTED'):
                     raise RuntimeError('Native operation requires reconciliation: ' + receipt['state'])
                 time.sleep(.1)
-            run(OBSERVER, 'observe', {'source': {'path': str(candidate), 'sha256': file_hash(candidate)},
-                                     'out': str(folder), 'compact': True})
+            backend.verify(receipt)
             if cancelled() or time.time() >= deadline:
                 raise RuntimeError('Execution cancelled or time budget exhausted before publication')
-            outcome = workflow.finish_edit(root, reserved['edit'], candidate, folder / 'observation.json', folder / 'handoff.md', {})
+            guard = _publication_guard.set(lambda: backend.before_publish(receipt))
+            try:
+                updates = ({'live_external_revision': {'operation_id': operation_id, 'provenance': 'external_live_edit'}}
+                           if kind == 'live' and request.get('live', {}).get('recipe') == 'external.capture' else {})
+                outcome = workflow.finish_edit(root, reserved['edit'], candidate, folder / 'observation.json', folder / 'handoff.md', updates)
+            finally:
+                _publication_guard.reset(guard)
             result = {'operation_id': operation_id, 'status': outcome['status'], 'outcome': outcome}
+            result.update(backend.published(result, receipt))
             write_json(folder / 'outcome.json', result)
             return result
         except Exception as exc:
@@ -330,6 +343,8 @@ def reconcile(root, operation_id, *, accept=False, reason):
     c.identifier(operation_id); c.text(reason)
     folder = reject_links(_folder(root) / 'operations' / operation_id)
     request = read_json(reject_links(folder / 'request.json'))
+    if request.get('backend') == 'live':
+        raise ValueError('Use live reconciliation with an explicit current fingerprint and recovery decision')
     with _exclusive(root), _authorized(root, request['stage']):
         _outcome(folder)  # Verify retained input hashes during recovery too.
         if (folder / 'outcome.json').exists():

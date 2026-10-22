@@ -304,6 +304,11 @@ def _answers(questions, answers):
 
 
 def _submit(ctx, value):
+    from .execution import configuration
+    config = configuration(ctx.root)
+    if config and config.get('backend') == 'live':
+        from .live import ensure_aligned
+        ensure_aligned(ctx.root)
     c.fields(value, {'schema', 'stage_id', 'checkpoint', 'deliverables', 'evidence', 'feedback_ids', 'note'}, {'questions', 'check_measurements'})
     if 'questions' in value:
         _questions(value['questions'])

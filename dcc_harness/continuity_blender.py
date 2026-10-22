@@ -138,6 +138,14 @@ def enhance(raw, *, saved=True):
                 for prop in mod.bl_rna.properties if not prop.is_readonly
             }} for mod in obj.modifiers
         ]
+        for modifier, settings in zip(obj.modifiers, record['modifier_settings']):
+            if modifier.type == 'NODES':
+                from .node_asset_blender import modifier_record
+                try:
+                    settings['node_asset'] = modifier_record(modifier)
+                except ValueError as exc:
+                    settings['node_asset'] = {'unmeasured': str(exc)}
+                    obs['issues'].append(str(exc) + ': ' + obj.name)
         evaluated = obj.evaluated_get(deps)
         evaluated_mesh = evaluated.to_mesh(preserve_all_data_layers=True, depsgraph=deps)
         try:

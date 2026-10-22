@@ -9,11 +9,13 @@ try:
     from .identity import plan_identities, validate_plan
     from .adoption_inventory_blender import inventory
     from .continuity_blender import measure_live
+    from .live_snapshot import fingerprint, equivalent
 except ModuleNotFoundError:
     from dcc_harness.files import file_hash, json_bytes, reject_links, write_exclusive
     from dcc_harness.identity import plan_identities, validate_plan
     from dcc_harness.adoption_inventory_blender import inventory
     from dcc_harness.continuity_blender import measure_live
+    from dcc_harness.live_snapshot import fingerprint, equivalent
 from . import inspection
 
 
@@ -24,7 +26,7 @@ def scene_for(name):
     return scene
 
 
-def measured(scene):
+def snapshot(scene):
     """Same measured fields as independent saved verification, including source mesh/UV."""
     observation = measure_live(scene)
     result = {key: observation[key] for key in ('objects', 'materials', 'scene', 'coverage', 'issues')}
@@ -39,7 +41,33 @@ def measured(scene):
             for child in value:
                 normalize(child)
     normalize(result)
-    return hashlib.sha256(json.dumps(result, sort_keys=True, allow_nan=False).encode()).hexdigest()
+    return result
+
+
+def measured(scene):
+    return fingerprint(snapshot(scene))
+
+
+def check(session, payload):
+    scene = scene_for(session.scene)
+    current = snapshot(scene)
+    observed = fingerprint(current)
+    matches = payload.get('fingerprint') == observed
+    if payload.get('snapshot'):
+        path = reject_links(payload['snapshot']).resolve()
+        if not path.is_relative_to(session.project.parent):
+            raise ValueError('Snapshot escapes project')
+        expected = json.loads(path.read_text())
+        if fingerprint(expected) != payload['fingerprint']:
+            raise ValueError('Expected snapshot was changed')
+        matches = equivalent(expected, current)
+    diagnostic = None
+    if payload.get('fingerprint') is not None and not matches:
+        import uuid
+        folder = reject_links(session.project / 'live/divergence'); folder.mkdir(parents=True, exist_ok=True)
+        diagnostic = str(folder / (str(uuid.uuid4()) + '.json'))
+        write_exclusive(diagnostic, json_bytes(current))
+    return {'fingerprint': observed, 'matches': matches, 'diagnostic': diagnostic, **session.describe()}
 
 
 def save_copy(session, path):
@@ -51,8 +79,19 @@ def save_copy(session, path):
     target.parent.mkdir(parents=True, exist_ok=True)
     original = bpy.data.filepath
     disk_sha = file_hash(original) if original and Path(original).is_file() else None
-    result = bpy.ops.wm.save_as_mainfile(filepath=str(target), copy=True, relative_remap=True,
-                                        check_existing=False)
+    # Checkpoint storage may copy these bytes again. Freeze measured dependency paths
+    # as absolute in the copy while restoring the exact artist-side path strings.
+    paths = [(image, image.filepath, bpy.path.abspath(image.filepath, library=image.library))
+             for image in bpy.data.images if image.filepath and not image.packed_file and not image.library]
+    paths += [(library, library.filepath, bpy.path.abspath(library.filepath)) for library in bpy.data.libraries]
+    try:
+        for item, _, absolute in paths:
+            item.filepath = absolute
+        result = bpy.ops.wm.save_as_mainfile(filepath=str(target), copy=True, relative_remap=False,
+                                            check_existing=False)
+    finally:
+        for item, original_path, _ in paths:
+            item.filepath = original_path
     if result != {'FINISHED'} or not target.is_file():
         raise RuntimeError('Native save-copy did not finish')
     if bpy.data.filepath != original or (disk_sha and file_hash(original) != disk_sha):
@@ -70,9 +109,10 @@ def begin(session, payload):
     folder = session.project.parent
     # A crash or retry cannot repeat identity writes: pre-copy and dispatch are immutable.
     try:
-        before = measured(scene)
+        initial = snapshot(scene); before = fingerprint(initial)
+        write_exclusive(folder / 'attach-before.json', json_bytes(initial))
         source = save_copy(session, folder / 'pre-adoption.blend')
-        if before != measured(scene):
+        if not equivalent(initial, snapshot(scene)):
             raise RuntimeError('STALE_SCENE: save-copy changed measured state')
         info = inventory(scene)
         # Empty scenes are enrolled using the same root as background bootstrap.
@@ -100,7 +140,10 @@ def apply(session, payload):
     scene = scene_for(session.scene)
     if file_hash(retained['source']['path']) != retained['source']['sha256']:
         raise ValueError('Pre-adoption recovery copy changed')
-    session.consume(retained['prepared'], payload['request_hash'], measured(scene))
+    initial = json.loads(reject_links(folder / 'attach-before.json').read_text())
+    if fingerprint(initial) != retained['prepared']['fingerprint'] or not equivalent(initial, snapshot(scene)):
+        raise ValueError('STALE_SCENE: attachment state changed')
+    session.consume(retained['prepared'], payload['request_hash'], fingerprint(initial))
     write_exclusive(folder / 'attach-dispatched.json', json_bytes({'operation_id': payload['operation_id']}))
     plan = retained['plan']
     if retained['empty']:
@@ -123,13 +166,15 @@ def apply(session, payload):
             targets.append((item, assignment['property'], assignment['value']))
         for item, prop, value in targets:
             item[prop] = value
-    before_save = measured(scene)
+    before_save = snapshot(scene)
     baseline = save_copy(session, folder / 'baseline.blend')
-    if before_save != measured(scene):
+    if not equivalent(before_save, snapshot(scene)):
         raise RuntimeError('Save-copy changed the adopted live scene')
+    write_exclusive(folder / 'attach-snapshot.json', json_bytes(before_save))
     receipt = {'schema': 'dcc.live.adoption.v1', 'operation_id': payload['operation_id'],
                'session_id': session.session_id, 'generation': session.generation,
-               'scene': scene.name, 'baseline': baseline, 'fingerprint': before_save,
+               'scene': scene.name, 'baseline': baseline, 'fingerprint': fingerprint(before_save),
+               'snapshot': str(folder / 'attach-snapshot.json'),
                'inventory': inventory(scene), 'provenance': 'live_metadata_adoption',
                'artistic_acceptance': 'not_assessed'}
     write_exclusive(folder / 'attach-saved.json', json_bytes(receipt))
@@ -140,7 +185,28 @@ def apply(session, payload):
 def acknowledge(session, payload):
     if set(payload) != {'operation_id', 'fingerprint', 'generation'}:
         raise ValueError('Invalid attachment acknowledgment')
-    if payload['generation'] != session.generation or measured(scene_for(session.scene)) != payload['fingerprint']:
+    matched = check(session, {'fingerprint': payload['fingerprint'], 'snapshot': str(session.project.parent / 'attach-snapshot.json')})
+    if payload['generation'] != session.generation or not matched['matches']:
         raise ValueError('LIVE_DIVERGED: adopted scene changed during verification')
     session.release(payload['operation_id'])
     return {'state': 'READY', **session.describe()}
+
+
+def rebind(session, payload):
+    if set(payload) != {'project', 'scene', 'allow_unresolved'} or type(payload['allow_unresolved']) is not bool:
+        raise ValueError('Explicit project, scene and unresolved-state policy required')
+    scene = scene_for(payload['scene'])
+    session.bind(payload['project'], scene.name)
+    if session.active:
+        status_path = session.project / 'execution/operations' / session.active / 'live-status.json'
+        state = json.loads(reject_links(status_path).read_text()) if status_path.exists() else {}
+        if (not payload['allow_unresolved'] or
+                (state.get('generation') == session.generation and state.get('state') in ('QUEUED', 'RUNNING'))):
+            raise ValueError('BUSY: active operation requires status/reconciliation')
+    import uuid
+    folder = reject_links(session.project / 'live/inspections'); folder.mkdir(parents=True, exist_ok=True)
+    path = folder / (str(uuid.uuid4()) + '.json')
+    current = snapshot(scene)
+    write_exclusive(path, json_bytes(current))
+    return {**session.describe(), 'fingerprint': fingerprint(current), 'snapshot': str(path),
+            'filepath': bpy.data.filepath}

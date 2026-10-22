@@ -10,7 +10,9 @@ COMMANDS = frozenset(('ping', 'get_addon_info', 'get_scene_info', 'get_object_in
 MAX_RESPONSE = 8 * 1024 * 1024
 MAX_REQUEST = 65536
 FEATURES = frozenset(('paired_sessions', 'document_generation', 'scoped_inspection'))
-PAIRED_COMMANDS = frozenset(('session_describe', 'inspect', 'attach_begin', 'attach_apply', 'attach_check', 'attach_acknowledge'))
+PAIRED_COMMANDS = frozenset(('session_describe', 'inspect', 'attach_begin', 'attach_apply', 'attach_check', 'attach_acknowledge', 'attach_rebind',
+                            'job_prepare', 'job_submit', 'job_status', 'job_cancel', 'job_check', 'job_acknowledge',
+                            'recovery_capture', 'recovery_acknowledge'))
 
 
 def _request(port, command, params, timeout):

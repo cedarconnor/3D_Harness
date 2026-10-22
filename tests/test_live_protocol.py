@@ -82,6 +82,12 @@ class SessionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'workspace'):
             self.session.bind(self.workspace.parent / 'outside', 'Scene')
 
+    def test_stopped_bridge_invalidates_queued_job_generation(self):
+        old = self.session.generation
+        self.session.close()
+        self.assertNotEqual(old, self.session.generation)
+        self.assertFalse(self.session.descriptor_path.exists())
+
 
 class ExportManifestTests(unittest.TestCase):
     def test_export_hashes_all_bridge_modules(self):

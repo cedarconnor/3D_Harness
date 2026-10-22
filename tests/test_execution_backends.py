@@ -105,7 +105,7 @@ class BackendTests(Fixture):
                 self.cancelled = operation_id
         backend = FakeLive()
         with mock.patch('subprocess.Popen.kill') as kill:
-            with mock.patch('dcc_harness.execution.make_backend', return_value=backend):
+            with mock.patch('dcc_harness.execution.make_backend', return_value=backend), mock.patch('dcc_harness.live.ensure_aligned'):
                 result = execution.execute_operation(self.root, request)
         kill.assert_not_called()
         self.assertEqual(result['status'], 'NEEDS_RECONCILIATION')

@@ -10,6 +10,9 @@ class ExecutionBackend(Protocol):
     def submit(self, request: dict, prepared: dict) -> str: ...
     def status(self, operation_id: str) -> dict: ...
     def cancel(self, operation_id: str) -> dict: ...
+    def verify(self, receipt: dict) -> None: ...
+    def before_publish(self, receipt: dict) -> None: ...
+    def published(self, result: dict, receipt: dict) -> dict: ...
 
 
 class BackgroundBackend:
@@ -44,11 +47,22 @@ class BackgroundBackend:
         # run_worker owns its child and polls the service cancellation marker.
         return {'operation_id': operation_id, 'state': 'CANCEL_REQUESTED'}
 
+    def verify(self, receipt: dict) -> None:
+        self.run(Path(__file__).with_name('_observe_blender.py'), 'observe',
+                 {'source': {'path': receipt['candidate'], 'sha256': receipt['sha256']},
+                  'out': str(self.folder), 'compact': True})
+
+    def before_publish(self, receipt: dict) -> None:
+        pass
+
+    def published(self, result: dict, receipt: dict) -> dict:
+        return {}
+
 
 def make_backend(kind, *, root, folder, run):
     if kind == 'background':
         return BackgroundBackend(folder, run)
     if kind == 'live':
         from .live import LiveBackend
-        return LiveBackend(root, folder)
+        return LiveBackend(root, folder, run)
     raise ValueError('Unknown execution backend')
