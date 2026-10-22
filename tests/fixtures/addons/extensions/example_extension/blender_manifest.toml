@@ -1,0 +1,9 @@
+schema_version = "1.0.0"
+id = "example_extension"
+version = "1.0.0"
+name = "Synthetic extension"
+tagline = "Offline qualification fixture"
+maintainer = "3D Harness"
+type = "add-on"
+blender_version_min = "5.1.0"
+license = ["SPDX:MIT"]

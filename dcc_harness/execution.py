@@ -261,6 +261,12 @@ def execute_operation(root, value):
                'backend': kind, 'files': {name: file_hash(path) for name, path in sources.items()}}
     if 'live' in value:
         request['live'] = value['live']
+    if 'profile' in value:
+        from .environments import load_profile
+        load_profile(value['profile'])
+        if kind == 'live':
+            raise ValueError('Live profiles require a qualified capability recipe')
+        request['profile'] = value['profile']
     folder = reject_links(_folder(root) / 'operations' / operation_id)
     with _exclusive(root), _authorized(root, stage):
         if folder.exists():
@@ -297,7 +303,11 @@ def execute_operation(root, value):
                     raise TimeoutError('Execution time budget exhausted')
                 if cancelled():
                     raise RuntimeError('Run cancelled')
-                run_worker(blender, folder, worker, action, payload, timeout=remaining, cancelled=cancelled)
+                if 'profile' in request:
+                    run_worker(blender, folder, worker, action, payload, timeout=remaining,
+                               cancelled=cancelled, profile=request['profile'])
+                else:
+                    run_worker(blender, folder, worker, action, payload, timeout=remaining, cancelled=cancelled)
             candidate = folder / 'candidate.blend'
             backend = make_backend(kind, root=root, folder=folder, run=run)
             native_request = {**request, 'operation_id': operation_id,

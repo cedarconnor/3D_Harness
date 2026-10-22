@@ -26,5 +26,5 @@ build_py = "build_support.BundleBuild"
 include = ["dcc_harness*"]
 
 [tool.setuptools.package-data]
-dcc_harness = ["data/*.json", "data/*.zip", "data/bridge/*.py", "data/bridge/LICENSE.upstream"]
+dcc_harness = ["data/*.json", "data/*.zip", "data/bridge/*.py", "data/bridge/LICENSE.upstream", "data/capabilities/*.json"]
 

@@ -1,6 +1,6 @@
 # Reusable Blender Add-on Capabilities Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Discover future add-ons, qualify reusable recipes, select appropriate providers and enforce preferred/required use throughout managed builds and revisions.
 
@@ -51,11 +51,11 @@ Schemas reject unknown keys and require the fields in the design. Use registry s
 
 **Interfaces:** `environments.inventory(binding: dict | None, *, blender: str) -> dict`; `create_profile(root, inventory: dict, selected: list[str], preferences: dict) -> dict`; `validate_profile(profile: dict, inventory: dict) -> dict`. Bridge `addons.inventory() -> dict`, `addons.enable_profile(profile: dict) -> dict` checks sources before activation. Background workers receive an explicit profile path/hash; existing requests with no profile remain unchanged.
 
-- [ ] Add tests asserting distinct installed/enabled/compatible states; exact source-hash invalidation despite unchanged version; ambiguous provider ownership remains unknown; disabled add-ons are not imported during inventory; secrets are redacted. Synthetic fixtures must include a legacy module, an extension manifest, a conflicting module name and a provider requiring unavailable network/license configuration. Assert `validate_profile` fails on changed bytes or missing required dependencies.
-- [ ] Run `python -m unittest discover -s tests -p 'test_environments.py' -v` and retain red results.
-- [ ] Read filesystem/extension metadata and registered operator metadata separately. Profile only explicitly selected local providers; do not auto-install/download/update. Activate matching profile modules in isolated workers and independent observers before loading/evaluating the candidate. Live activation records the enabled-state delta without persisting global preferences. A missing GUI-only verifier environment yields an explicit verification failure, not a pass from the factory worker.
-- [ ] Run portable tests and a native profile fixture proving the desktop-enabled provider is absent in factory mode, becomes available under the profile, and is also present in the independent verifier. Inspect reports for secret leakage and record any declared unsupported dependencies.
-- [ ] Commit `feat: inventory and pin Blender add-on environments`.
+- [x] Add tests asserting distinct installed/enabled/compatible states; exact source-hash invalidation despite unchanged version; ambiguous provider ownership remains unknown; disabled add-ons are not imported during inventory; secrets are redacted. Synthetic fixtures must include a legacy module, an extension manifest, a conflicting module name and a provider requiring unavailable network/license configuration. Assert `validate_profile` fails on changed bytes or missing required dependencies.
+- [x] Run `python -m unittest discover -s tests -p 'test_environments.py' -v` and retain red results.
+- [x] Read filesystem/extension metadata and registered operator metadata separately. Profile only explicitly selected local providers; do not auto-install/download/update. Activate matching profile modules in isolated workers and independent observers before loading/evaluating the candidate. Live activation records the enabled-state delta without persisting global preferences. A missing GUI-only verifier environment yields an explicit verification failure, not a pass from the factory worker.
+- [x] Run portable tests and a native profile fixture proving the desktop-enabled provider is absent in factory mode, becomes available under the profile, and is also present in the independent verifier. Inspect reports for secret leakage and record any declared unsupported dependencies.
+- [x] Commit `feat: inventory and pin Blender add-on environments`.
 
 ### Task 2: Recipe contracts, local registry and draft onboarding
 

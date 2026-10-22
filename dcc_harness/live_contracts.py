@@ -21,7 +21,7 @@ class OperationRequest(TypedDict):
 
 def validate_operation(value: dict) -> dict:
     required = set(OperationRequest.__annotations__)
-    if not isinstance(value, dict) or not required <= set(value) or set(value) - required - {'live'}:
+    if not isinstance(value, dict) or not required <= set(value) or set(value) - required - {'live', 'profile'}:
         raise ValueError('Invalid managed operation fields')
     if value['schema'] != 'dcc.execution.operation.v2' or value['backend'] not in ('background', 'live'):
         raise ValueError('Invalid operation schema or backend')
@@ -33,5 +33,7 @@ def validate_operation(value: dict) -> dict:
         raise ValueError('Operation timeout must be positive')
     if 'live' in value and (value['backend'] != 'live' or not isinstance(value['live'], dict)):
         raise ValueError('Live payload requires the live backend')
+    if 'profile' in value and not isinstance(value['profile'], dict):
+        raise ValueError('An explicit profile reference is required')
     canonical(value)  # Reject nonfinite or unserializable nested values before reserving.
     return value.copy()

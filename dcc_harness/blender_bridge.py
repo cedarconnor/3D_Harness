@@ -12,7 +12,7 @@ MAX_REQUEST = 65536
 FEATURES = frozenset(('paired_sessions', 'document_generation', 'scoped_inspection'))
 PAIRED_COMMANDS = frozenset(('session_describe', 'inspect', 'attach_begin', 'attach_apply', 'attach_check', 'attach_acknowledge', 'attach_rebind',
                             'job_prepare', 'job_submit', 'job_status', 'job_cancel', 'job_check', 'job_acknowledge',
-                            'recovery_capture', 'recovery_acknowledge', 'preview_capture'))
+                            'recovery_capture', 'recovery_acknowledge', 'preview_capture', 'addons_inventory'))
 
 
 def _request(port, command, params, timeout):

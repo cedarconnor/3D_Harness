@@ -27,8 +27,8 @@ bl_info = {'name': '3D Harness observation bridge', 'author': '3D Harness contri
 COMMANDS = ('ping', 'get_addon_info', 'get_scene_info', 'get_object_info', 'list_scene_items')
 PAIRED_COMMANDS = ('session_describe', 'inspect', 'attach_begin', 'attach_apply', 'attach_check', 'attach_acknowledge', 'attach_rebind',
                    'job_prepare', 'job_submit', 'job_status', 'job_cancel', 'job_check', 'job_acknowledge',
-                   'recovery_capture', 'recovery_acknowledge', 'preview_capture')
-FEATURES = ('paired_sessions', 'document_generation', 'scoped_inspection')
+                   'recovery_capture', 'recovery_acknowledge', 'preview_capture', 'addons_inventory')
+FEATURES = ('paired_sessions', 'document_generation', 'scoped_inspection', 'addon_profiles_v1')
 server = None
 
 
@@ -65,6 +65,11 @@ class ObservationServer(upstream.BlenderMCPServer):
                               'scenes': [s.name for s in bpy.data.scenes]}
                 elif name == 'inspect':
                     result = inspection.inspect(params['payload'])
+                elif name == 'addons_inventory':
+                    from . import addons
+                    if params['payload']:
+                        raise ValueError('Inventory takes no activation parameters')
+                    result = addons.inventory_inputs()
                 elif name == 'attach_check':
                     result = attachment.check(self.session, params['payload'])
                 elif name == 'preview_capture':

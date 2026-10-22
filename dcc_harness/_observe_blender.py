@@ -7,6 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import bpy
 from dcc_harness.evidence import file_hash, read_json, write_json
+from dcc_harness.environments import assert_worker_profile
 
 
 def main():
@@ -16,6 +17,7 @@ def main():
     if action != 'observe':
         raise ValueError('Unknown observation worker action')
     request = read_json(request_path)
+    assert_worker_profile(request)
     source = request['source']
     if file_hash(source['path']) != source['sha256']:
         raise ValueError('Source changed before native open')
@@ -24,6 +26,7 @@ def main():
         raise ValueError('Source changed during native open')
     from dcc_harness.continuity_blender import observe
     write_json(Path(request['out']) / 'observation.json', observe(), compact_observation=request['compact'])
+    assert_worker_profile(request)
     if file_hash(source['path']) != source['sha256']:
         raise RuntimeError('Input file changed during native work')
 

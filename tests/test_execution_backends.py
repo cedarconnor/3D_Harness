@@ -9,6 +9,34 @@ from dcc_harness.evidence import read_json, write_json, file_hash
 
 
 class BackendTests(Fixture):
+    def test_profile_is_pinned_and_applied_to_execution_and_observer(self):
+        from dcc_harness import environments, provider_sources
+        self.start(); request = self.request()
+        inventory = provider_sources.scan([{'path':str(Path(__file__).parent / 'fixtures/addons/legacy'), 'namespace':''}],
+            {'version':[5, 1, 1], 'build_hash':'fixture', 'background':True})
+        profile = environments.create_profile(self.root, inventory, ['harness_fixture'], {})
+        request['profile'] = profile
+        def worker(*args, **kwargs):
+            self.assertEqual(kwargs['profile'], profile)
+            self.worker(*args, **kwargs)
+        with mock.patch('dcc_harness.execution.run_worker', side_effect=worker) as native:
+            result = execution.execute_operation(self.root, request)
+        self.assertEqual(result['status'], 'PUBLISHED')
+        self.assertEqual([c.args[3] for c in native.call_args_list], ['execute', 'observe'])
+        folder = self.root / 'execution/operations' / request['operation_id']
+        self.assertEqual(read_json(folder / 'request.json')['profile'], profile)
+
+    def test_changed_profile_fails_before_reservation(self):
+        from dcc_harness import environments, provider_sources
+        self.start(); request = self.request()
+        inventory = provider_sources.scan([{'path':str(Path(__file__).parent / 'fixtures/addons/legacy'), 'namespace':''}],
+            {'version':[5, 1, 1], 'build_hash':'fixture', 'background':True})
+        request['profile'] = environments.create_profile(self.root, inventory, ['harness_fixture'], {})
+        Path(request['profile']['path']).write_text('{}')
+        with self.assertRaisesRegex(ValueError, 'Profile file changed'):
+            execution.execute_operation(self.root, request)
+        self.assertFalse((self.root / 'execution/operations').exists())
+
     def request(self, operation_id=None):
         return {'schema': 'dcc.execution.operation.v2', 'backend': 'background',
                 'operation_id': operation_id or str(uuid.uuid4()), 'stage': 'direction',

@@ -11,6 +11,9 @@ from .files import reject_links, write_exclusive
 DATA = Path(__file__).with_name('data')
 SEEDS = ('docs/guides/MANAGED_EXECUTION.md', 'docs/guides/COMBINED_MCP.md')
 BRIDGE_FILES = {
+    'profile.schema.json': DATA / 'capabilities/profile.schema.json',
+    'provider_sources.py': Path(__file__).with_name('provider_sources.py'),
+    'addons.py': DATA / 'bridge/addons.py',
     'integrity.py': Path(__file__).with_name('bridge_integrity.py'),
     '__init__.py': DATA / 'bridge/__init__.py',
     'upstream.py': DATA / 'bridge/upstream.py',

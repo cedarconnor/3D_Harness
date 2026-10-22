@@ -8,6 +8,7 @@ from dcc_harness.evidence import read_json, write_json, file_hash
 from dcc_harness.adoption_inventory_blender import inventory
 from dcc_harness.data.bridge.attachment import snapshot
 from dcc_harness.live_snapshot import equivalent, fingerprint
+from dcc_harness.environments import assert_worker_profile
 
 
 def main():
@@ -17,6 +18,7 @@ def main():
     if action != 'verify':
         raise ValueError('Unsupported live verification action')
     request = read_json(request_path)
+    assert_worker_profile(request)
     source = request['source']
     if file_hash(source['path']) != source['sha256']:
         raise ValueError('Candidate changed before verification')
@@ -38,6 +40,7 @@ def main():
         verify_live(scene, request['recipe'])
     from dcc_harness.continuity_blender import observe
     observation = observe(scene)
+    assert_worker_profile(request)
     if file_hash(source['path']) != source['sha256']:
         raise ValueError('Candidate changed during verification')
     write_json(Path(request['out']) / 'observation.json', observation, compact_observation=True)
