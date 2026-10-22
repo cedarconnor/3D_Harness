@@ -10,6 +10,15 @@ from .files import reject_links, write_exclusive
 
 DATA = Path(__file__).with_name('data')
 SEEDS = ('docs/guides/MANAGED_EXECUTION.md', 'docs/guides/COMBINED_MCP.md')
+BRIDGE_FILES = {
+    '__init__.py': DATA / 'bridge/__init__.py',
+    'upstream.py': DATA / 'bridge/upstream.py',
+    'LICENSE.upstream': DATA / 'bridge/LICENSE.upstream',
+    'session.py': DATA / 'bridge/session.py',
+    'inspection.py': DATA / 'bridge/inspection.py',
+    'files.py': Path(__file__).with_name('files.py'),
+    'upstream.json': DATA / 'upstream.json',
+}
 
 
 def source_rules(repo):
@@ -116,10 +125,13 @@ def export_addon(destination):
     if hashlib.sha256((vendor / 'upstream.py').read_bytes()).hexdigest() != meta['addon_sha256']:
         raise ValueError('Pinned upstream add-on changed')
     stream = io.BytesIO()
+    contents = {name: source.read_bytes() for name, source in BRIDGE_FILES.items()}
+    manifest = {'schema': 'dcc.blender.bridge.manifest.v1',
+                'files': {name: hashlib.sha256(data).hexdigest() for name, data in contents.items()}}
     with zipfile.ZipFile(stream, 'w', zipfile.ZIP_DEFLATED) as bundle:
-        for name in ('__init__.py', 'upstream.py', 'LICENSE.upstream'):
-            bundle.writestr('dcc_harness_bridge/' + name, (vendor / name).read_bytes())
-        bundle.writestr('dcc_harness_bridge/upstream.json', json.dumps(meta, indent=2))
+        for name, data in contents.items():
+            bundle.writestr('dcc_harness_bridge/' + name, data)
+        bundle.writestr('dcc_harness_bridge/manifest.json', json.dumps(manifest, indent=2))
     target = reject_links(destination)
     write_exclusive(target, stream.getvalue())
     return {'path': str(target), 'sha256': hashlib.sha256(stream.getvalue()).hexdigest(), 'upstream': meta}

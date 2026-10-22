@@ -2,7 +2,7 @@
   "protocol": 14,
   "commit": "5a3618fccb2d982d0dd61e7a1879912c3100073b",
   "repository": "https://github.com/ahujasid/mcp-for-blender",
-  "adapter_protocol": 2,
+  "adapter_protocol": 3,
   "version": "2.2.2",
   "addon_sha256": "8dbb5cb01d382535e40d8b0014884d8d2ca08d1f83d1559bbfeff1d7bcf6fa96",
   "license": "MIT",

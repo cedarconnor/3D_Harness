@@ -106,7 +106,7 @@ bpy.app.timers.register(finish)
                         return result if error else result['result']
                     tools = [t.name for t in (await session.list_tools()).tools]
                     assert (await call('blender_observe', {'command': 'ping'}))['result'] == {'pong': True}
-                    assert (await call('blender_observe', {'command': 'get_addon_info'}))['result']['harness_protocol'] == 2
+                    assert (await call('blender_observe', {'command': 'get_addon_info'}))['result']['harness_protocol'] == 3
                     items = (await call('blender_observe', {'command': 'list_scene_items',
                                                         'params': {'query': 'Cube_模型'}}))['result']
                     assert items['total'] == 1 and items['items'][0]['name'] == 'Cube_模型', items
