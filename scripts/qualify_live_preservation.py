@@ -57,6 +57,7 @@ assert hashlib.sha256((out / 'texture.png').read_bytes()).hexdigest() == disk
 assert hashlib.sha256((out / 'artist.blend').read_bytes()).hexdigest() == artist
 assert bpy.data.filepath == str(out / 'artist.blend')
 image.reload()
+bridge.attachment.assert_copyable()  # Empty default sequence editors carry no external dependencies.
 # A queued job is a known no-effect refusal; the same explicit decision can be
 # retried after it settles, while ambiguous dispatch remains non-repeatable.
 jobs.status = lambda _:{'state':'QUEUED', 'generation':'fixture'}

@@ -77,7 +77,7 @@ def assert_copyable():
         raise ValueError('UNSAVED_IMAGE: save image edits explicitly before managed copying or recovery')
     if (any(getattr(bpy.data, name, ()) for name in ('sounds', 'movieclips', 'volumes', 'cache_files'))
             or any(font.filepath and font.filepath != '<builtin>' and not font.packed_file for font in bpy.data.fonts)
-            or any(scene.sequence_editor for scene in bpy.data.scenes)):
+            or any(scene.sequence_editor and len(scene.sequence_editor.strips) for scene in bpy.data.scenes)):
         raise ValueError('UNSUPPORTED_DEPENDENCIES: audio, video, external fonts, volumes and caches need separate qualification')
 
 
