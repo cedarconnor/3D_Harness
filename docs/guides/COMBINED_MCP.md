@@ -96,6 +96,8 @@ Original and modified source hashes are recorded in `upstream.json`. The adjacen
 adapter registers its own UI and managed dispatcher. Harness bridge protocol 3 adds
 paired sessions and scoped live execution; protocol 2 remains read-only compatibility.
 Replace earlier exports with the current package's add-on before using live writes.
+Restart Blender after replacing an export. The bridge pins its identity when
+imported and refuses a changed installation until a clean restart.
 Paid generation, downloads and arbitrary live Python are outside this integration's
 surface; this is not full upstream tool parity.
 
@@ -113,6 +115,8 @@ run. Inspect `run-status` and retained results before `run-reconcile`. Closing o
 killing the entire MCP process abruptly may leave a native child alive; inspect
 owned background processes before reconciliation. Live cancellation never kills the
 artist's Blender; inspect `live-status` and choose explicit `live-reconcile` recovery.
+Known pre-mutation recovery refusals can be retried explicitly after resolving the
+reported condition. A missing or ambiguous response is never a retry permission.
 Do not assume a transport error means that
 nothing changed. There is no automatic mutation retry.
 
@@ -120,6 +124,12 @@ Input helpers write exclusively beneath `WORKSPACE/inputs`; evidence reads are
 restricted to the workspace. CLI artifact paths and trusted Python scripts have
 ordinary local filesystem authority, so the server is not a filesystem or Python
 sandbox. Render images above 4 MiB need local inspection or a smaller review view.
+Private bridge descriptors cannot be read through the public evidence reader.
+
+Save unsaved image edits explicitly before live attachment, editing or recovery:
+a `.blend` copy alone is not proof that texture-paint buffers were preserved.
+The initial live copy boundary also refuses audio/video/sequence data, volumes,
+cache datablocks and unpacked external fonts pending separate qualification.
 
 Run `scripts/verify_release.py --out NEW_DIRECTORY --blender BLENDER_PATH` from a
 development environment with the declared dependencies. It checks source tests,

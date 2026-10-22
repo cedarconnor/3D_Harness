@@ -12,10 +12,10 @@ The owner authorized fixing all six findings in the [adversarial review](referen
 |---|---|---|---|
 | P19 Adversarial fixes and managed execution | Codex | done | Six findings and five independent-review issues fixed. Source and installed suites: 467 tests each; native units/adoption/two-mode execution, timeout/cancel passed. [Verification](reference/MANAGED_EXECUTION_VERIFICATION_2026-10-22.md). |
 | P20 Combined harness/MCP distribution | Codex | done | Pinned observation adapter, bundled rules/add-on, one endpoint, 0.21.1 removes telemetry code; source and installed suites (481 tests each), clean install and native MCP qualification passed. [Verification](reference/TELEMETRY_REMOVAL_VERIFICATION_2026-10-22.md). |
-| P21 Direct open-scene Blender execution | Codex | todo | [Implementation plan](superpowers/plans/2026-10-22-live-blender-execution.md): paired sessions, live edits, richer inspection/previews, recoverable copies, concurrency checks and both workflow modes. Source/installed/native qualification before P22. |
+| P21 Direct open-scene Blender execution | Codex | verifying | [Implementation plan](superpowers/plans/2026-10-22-live-blender-execution.md): paired sessions, live edits, richer inspection/previews, recoverable copies, concurrency checks and both workflow modes implemented. Five final-review issues fixed; rebuilt source/installed/native release gate pending before P22. |
 | P22 Reusable add-on capabilities | Codex | todo | [Implementation plan](superpowers/plans/2026-10-22-addon-capabilities.md): discovery, pinned environments, tested recipes, preferred/required selection and fresh stage receipts. Generic synthetic providers first; product-specific qualification later. |
 
-The owner requested these upgrade plans and selected direct editing in the open scene. The [design](superpowers/specs/2026-10-22-live-blender-capabilities-design.md) records that choice and the engineering defaults. P21/P22 are planned, not implemented; this request does not change the existing verified 0.21.1 release.
+The owner approved implementation and selected direct editing in the open scene. The [design](superpowers/specs/2026-10-22-live-blender-capabilities-design.md) records that choice and the engineering defaults. P21 is implemented with release qualification pending; P22 remains planned until that gate passes.
 
 ## How to track work
 

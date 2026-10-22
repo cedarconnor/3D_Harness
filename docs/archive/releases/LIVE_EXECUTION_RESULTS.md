@@ -12,7 +12,11 @@ Target: 0.22.0, Python 3.11, MCP SDK 1.26.0 and Blender 5.1.1 on Windows. The ma
 
 ## Retained evidence
 
-The final machine-readable release report is written to `runs/overhaul/p21-release/VERIFICATION.json`, with per-check logs and a fresh installed runtime. The live matrix retains one result and audit per case under its `native-live` directory. Local run data is excluded from the distributed rule bundle.
+The current machine-readable release gate writes to `runs/overhaul/p21-release-fixed/VERIFICATION.json`, with per-check logs and a fresh installed runtime. The live matrix retains one result and audit per case under its `native-live` directory. Local run data is excluded from the distributed rule bundle.
+
+The first candidate passed 532 source and installed tests (two permission skips each), artifact parity and the existing native gates, then failed at the live verifier's package-layout import. The fresh independent review found that defect plus four material issues: unsaved image buffers, definitive pre-mutation recovery refusals, descriptor disclosure through the general MCP reader, and a handshake that measured disk bytes rather than the loaded implementation. All five received focused regressions and fixes; the full rebuilt release gate must pass before acceptance.
+
+`p21-review-dirty-red` reproduces acceptance of a dirty external-image buffer as a recoverable copy. `p21-review-preservation-final` proves refusal before copying/restoring, with original pixels and disk files unchanged, plus pre-mutation busy refusal and refusal of unqualified external audio. Portable regressions cover package imports, in-place bridge replacement, private descriptor reads and recovery retries after known refusal versus no replay after a lost reply.
 
 Before the artifact gate, the source suite ran 529 tests: 527 passed and two existing Windows permission cases skipped. Focused manifest tests additionally reproduce and fix altered/missing exports, incompatible bridge code before authentication, and private-token redaction during handshake failures.
 
@@ -21,5 +25,7 @@ Native development evidence includes `p21-task4-*` and `p21-task5-*` under `runs
 ## Qualification limits
 
 This is owned fixture evidence, not artist approval or production-scene qualification. Live built-ins require supported Object-mode scenes and refuse unmeasured animation/rig/simulation/linked/override/cross-scene contexts. Initial node assets support group input/output and Geometry Node Transform; arbitrary operators and third-party add-ons are not live-executable through this increment. Background trusted scripting remains available in background projects.
+
+Unsaved image pixels must be explicitly saved before managed snapshots, copies or recovery. Audio, video/sequence data, volumes/cache datablocks and unpacked external fonts are refused because their preservation has not been qualified. An installed add-on replacement requires restarting Blender; reloading only the package initializer cannot certify its already-loaded sibling modules. Known structured pre-mutation recovery refusals permit another explicit attempt; missing or ambiguous responses still block replay.
 
 The old telemetry-free upstream derivative and MIT notice are retained. The add-on makes no automatic external calls and registers no user-activity handlers. Explicit local job/verification records are retained. No user-wide client registration, upstream provider installation or GitHub push is part of this release work.

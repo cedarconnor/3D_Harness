@@ -10,6 +10,8 @@ The MCP native fixture exercises all five live observation commands and both man
 
 `qualify_live.py --case all` uses the same runtime/out/blender arguments and runs 26 owned GUI scenarios: protocol/reload, initial attachment, built-in edits, node assets/shared materials, external refresh/reconnect, failure/recovery, cancellation/lost replies, publication races and both MCP modes. `--case protocol|attach|jobs|modes`, `--fixture`, `--mode` and `--recovery` select individual cases. The exported add-on must run without importing the host harness package; outbound sockets, activity handlers and retained pairing-secret leakage are checked. Synthetic owner confirmation is used only inside disposable qualification projects.
 
+`qualify_live_preservation.py` additionally proves dirty-image copy/restore refusal without changing the owned artist buffer or files, known busy refusal before mutation, and refusal of unqualified external audio. The maintained release gate runs it against the installed wheel.
+
 Updated October 6, 2026. These scripts qualify releases, benchmark the runtime, and reproduce dated studies. The package does not import them. Scripts tied to finished studies stay here because retained local evidence records their absolute paths; frozen copies also live inside the study packets under `runs/`.
 
 **How to run them.** Scripts marked *Blender* run inside a disposable background process:
