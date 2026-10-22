@@ -298,7 +298,9 @@ bpy.data.libraries.write(request['output'],{tree})
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--runtime', required=True); parser.add_argument('--blender', required=True)
-    parser.add_argument('--out', required=True); parser.add_argument('--case', choices=['profiles','onboarding','routing'], default='profiles')
+    parser.add_argument('--out', required=True); parser.add_argument('--case', choices=['profiles','onboarding','routing','revisions'], default='profiles')
+    parser.add_argument('--qualification-root',help='Existing current-runtime owned onboarding proof for revision checks')
     args = parser.parse_args()
     from qualify_capability_routing import routing
-    {'profiles':profiles,'onboarding':onboarding,'routing':routing}[args.case](args)
+    from qualify_capability_revisions import revisions
+    {'profiles':profiles,'onboarding':onboarding,'routing':routing,'revisions':revisions}[args.case](args)

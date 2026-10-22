@@ -215,6 +215,16 @@ def _next(packet, state, events):
                          'then': [f'{RUN} fill-hashes "<stage.draft.json>" "<stage.json>"',
                                   f'{RUN} run-submit {project} --submission "<stage.json>"'],
                          'why': 'Supply checkpoint evidence; autonomous mode attempts agent review, gated mode waits for the owner.'}])
+    from .capabilities import bound_policy, status as capability_status
+    bound=bound_policy(events)
+    if bound and packet['status']!='RECONCILE':
+        for sid in sorted({s for rule in bound['policy']['rules'] for s in rule['stages']}):
+            report=capability_status(packet['project'],sid,c.checkpoint_ref(state['active']))
+            for row in report['requirements']:
+                if not row['passed']:
+                    steps.insert(0,{'id':'capability-required','stage_id':sid,'requirement':row['requirement'],
+                        'resolution':row['resolution'],'command':f'{RUN} requirements {_q(packet["project"])} {sid}',
+                        'why':'Required capability output is missing or stale. Resolve and execute once within the managed budget; do not loop on unavailable providers.'})
     return {'schema': 'dcc.next.v1', 'project': packet['project'], 'status': packet['status'],
             'active': {k: active[k] for k in ('id', 'step_id', 'sequence', 'checkpoint', 'checkpoint_sha256')},
             'revision': coordination['revision'] if coordination else None,

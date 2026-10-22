@@ -137,6 +137,12 @@ def stages(events, native=None):
                 if sid in result:
                     invalidate(sid)
     if native is not None:
+        from .capabilities import bound_policy, verify_receipts
+        if bound_policy(events) is not None:
+            root=Path(bound['artifacts']).parents[3]
+            for sid,row in result.items():
+                if row['state'] in ('complete','inherited') and not verify_receipts(root,sid,c.checkpoint_ref(native['active']))['passed']:
+                    invalidate(sid)
         # A receipt remains history; readiness belongs to the active checkpoint.
         for note in feedback.state(events, native).values():
             if note['note']['priority'] == 'blocking' and note['current_validity'] != 'current':

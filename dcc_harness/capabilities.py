@@ -114,6 +114,41 @@ def benchmark_input(observation,target):
     return comparison_input(measured)
 
 
+def observed_scope(observation,target,fields):
+    """Projection matching native recipe measurements; unknown coverage never matches."""
+    obj=observation['objects'].get(target)
+    if obj is None: raise ValueError('Capability target is missing')
+    result={}
+    for field in fields:
+        if field=='geometry':
+            result[field]={k:obj[k] for k in ('source_mesh_hash','source_uv_hash','source_attribute_hash','geometry_hash') if k in obj}
+        elif field=='transform': result[field]=obj['matrix_world']
+        elif field=='modifiers': result[field]=obj.get('modifier_settings',[])
+        elif field in ('materials','nodes'):
+            result[field]={mid:observation['materials'][mid] for mid in obj['material_ids'] if mid is not None}
+            result['material_users']={mid:sorted(oid for oid,o in observation['objects'].items() if mid in o.get('material_ids',[])) for mid in result[field]}
+        else: raise ValueError('UNSUPPORTED_COVERAGE: '+field)
+    return result
+
+
+def changes(root,before,after):
+    bound=bound_policy(c.read(root))
+    if bound is None: return []
+    rows=[]
+    for stage in sorted({s for rule in bound['policy']['rules'] for s in rule['stages']}):
+        key=lambda r:(r['rule']['id'],r['target_id'])
+        old={key(r):r for r in requirements(root,stage,before)}
+        new={key(r):r for r in requirements(root,stage,after)}
+        for identity in sorted(old.keys() | new.keys()):
+            a,b=old.get(identity),new.get(identity)
+            state=('MISSING_TARGET' if b is None or b['target_type']=='MISSING' else 'ENROLLED' if a is None else
+                   'DEPENDENCIES_CHANGED' if a['dependency_fingerprint']!=b['dependency_fingerprint'] else
+                   'OUTPUT_OR_CONTEXT_CHANGED' if a!=b else None)
+            if state: rows.append({'stage':stage,'rule_id':identity[0],'target_id':identity[1],'state':state,
+                                   'effect_id':effect_key((b or a)['rule']['capability'],identity[1],(b or a)['rule']['slot'])})
+    return rows
+
+
 def requirements(root,stage_id,observation):
     from .execution import configuration
     bound=bound_policy(c.read(root))
@@ -140,6 +175,9 @@ def candidate_evidence(root,ref,requirement):
         bundle=recipes.require_qualified(root,ref['recipe_id'],ref['recipe_digest'],
                     context=requirement['context'],profile_digest=ref['profile_digest'])
         recipe=bundle['recipe']; report=bundle['report']
+        coverage=recipe['coverage']
+        if 'properties' in set(sum(coverage.values(),[])) or not set(coverage['reads']+coverage['dependencies']) <= set(requirement['rule']['dependencies']):
+            return {'qualified':False,'reason':'UNSUPPORTED_COVERAGE: unmeasured properties or incomplete policy dependencies'}
         if requirement['context']=='live' and not any(r.get('actual_passed') and r['context']=='live'
                 and r.get('background_verified',{}).get('passed') for r in report['results']):
             return {'qualified':False,'reason':'UNSUPPORTED_CONTEXT: managed background reopen is not qualified'}
@@ -227,7 +265,10 @@ def verify_operation_receipt(root,folder,requirement,checkpoint):
     outcome=_outcome(folder)
     request=read_json(reject_links(folder / 'request.json'))
     if ('capability' not in request or outcome['status']!='PUBLISHED'
-            or receipt.get('checkpoint')!=checkpoint or receipt.get('current_requirement_digest')!=digest(requirement)):
+            or receipt.get('current_requirement_digest')!=digest(requirement)):
+        return False
+    native=c.Continuity(root).status()
+    if checkpoint!=c.checkpoint_ref(native['active']) or receipt['checkpoint'] not in [c.checkpoint_ref(h) for h in native['task_history']]:
         return False
     if (receipt['operation_id']!=folder.name or receipt['request_sha256']!=digest(request)
             or receipt['checkpoint']!=c.checkpoint_ref(outcome['outcome']['active'])
@@ -242,8 +283,8 @@ def verify_operation_receipt(root,folder,requirement,checkpoint):
         'parameters_digest':digest(cap['parameters']),'input_dependency_fingerprint':cap['requirement']['dependency_fingerprint'],
         'dependency_fingerprint':requirement['dependency_fingerprint']}
     if any(receipt[k]!=v for k,v in expected.items()): raise ValueError('Capability receipt bindings changed')
-    recipes.require_qualified(root,selected['recipe_id'],selected['recipe_digest'],
-                              profile_digest=selected['profile_digest'],context=request['backend'])
+    bundle=recipes.require_qualified(root,selected['recipe_id'],selected['recipe_digest'],
+                                     profile_digest=selected['profile_digest'],context=request['backend'])
     for name,wanted in receipt['evidence'].items():
         if name not in ('capability-output.json','capability-verified.json','observation.json'):
             raise ValueError('Unexpected capability receipt artifact')
@@ -251,6 +292,10 @@ def verify_operation_receipt(root,folder,requirement,checkpoint):
     verified=read_json(folder / 'capability-verified.json')
     if verified.get('passed') is not True or verified['output_fingerprint']!=receipt['output_fingerprint']:
         raise ValueError('Capability independent output validation failed')
+    scope=sorted(set(sum(bundle['recipe']['coverage'].values(),[])))
+    current=observed_scope(read_json(native['active']['observation']),requirement['target_id'],scope)
+    if current!=verified['measurements'] or current!=read_json(folder / 'capability-output.json')['after']:
+        return False
     return True
 
 
@@ -311,7 +356,13 @@ def execute(root,requirement,resolution,parameters,operation_id,*,blender,contra
     from . import execution
     c.identifier(operation_id)
     if resolution.get('selected') is None: raise ValueError('No qualified provider selected for execution')
-    root=reject_links(root).resolve(); folder=reject_links(root / 'capabilities/inputs' / operation_id)
+    root=reject_links(root).resolve()
+    existing=root / 'execution/operations' / operation_id / 'request.json'
+    if not existing.exists():
+        with execution._exclusive(root):
+            reused=reuse(root,requirement,resolution,parameters)
+            if reused is not None: return reused
+    folder=reject_links(root / 'capabilities/inputs' / operation_id)
     folder.mkdir(parents=True,exist_ok=True)
     script=folder / 'script.py'
     content=b'# Qualified capability invocation; dispatched by the shared execution service.\n'
@@ -320,7 +371,6 @@ def execute(root,requirement,resolution,parameters,operation_id,*,blender,contra
     else: write_exclusive(script,content)
     cap={'root':str(root),'requirement':requirement,'resolution':resolution,'parameters':parameters,
          'effect_id':effect_key(requirement['rule']['capability'],requirement['target_id'],requirement['rule']['slot'])}
-    existing=root / 'execution/operations' / operation_id / 'request.json'
     parent=(read_json(existing)['expected_parent'] if existing.exists() else c.Continuity(root).status()['active']['id'])
     value={'schema':'dcc.execution.operation.v2','backend':requirement['context'],'stage':requirement['stage'],
            'operation_id':operation_id,'script':str(script),'contract':str(contract),'handoff':str(handoff),
@@ -329,6 +379,29 @@ def execute(root,requirement,resolution,parameters,operation_id,*,blender,contra
     if value['backend']=='live':
         value['live']={'recipe':'capability.recipe','target':requirement['target_id'],'parameters':{'operation_id':operation_id}}
     return execution.execute_operation(root,value)
+
+
+def reuse(root,requirement,resolution,parameters):
+    """Read-only reuse under the execution lock; no reservation, UUID consumption or job."""
+    native=c.Continuity(root).status(); events=c.read(root)
+    c.Context(Path(root),native,events,Path(root)).quiet()
+    active=native['active']; observation=read_json(active['observation'])
+    if requirement not in requirements(root,requirement['stage'],observation): raise ValueError('Stale capability requirement')
+    if parameters!=requirement['rule']['parameters'] or resolution!=resolve(root,requirement,inventory_for_requirement(root,requirement)):
+        raise ValueError('Capability resolution or parameters changed')
+    if requirement['context']=='live':
+        from .live import ensure_aligned
+        ensure_aligned(root)
+    checkpoint=c.checkpoint_ref(active)
+    for folder in sorted((Path(root) / 'execution/operations').glob('*')):
+        if not (folder / 'capability-receipt.json').is_file(): continue
+        try:
+            if verify_operation_receipt(root,folder,requirement,checkpoint):
+                return {'status':'REUSED','checkpoint':checkpoint,'operation_id':folder.name,
+                        'capability_receipt':{'path':str(folder / 'capability-receipt.json'),
+                                              'sha256':file_hash(folder / 'capability-receipt.json')}}
+        except (ValueError,OSError,KeyError): continue
+    return None
 
 
 def record_operation(root,folder,result,request):

@@ -288,5 +288,9 @@ def refresh(root, binding, *, expected_parent):
                'live': {'recipe': 'external.capture', 'target': state['scene'],
                         'parameters': {'snapshot': state['snapshot'], 'fingerprint': state['fingerprint']}}}
     result = execution.execute_operation(root, request)
+    from .capabilities import changes, requirements
+    after=read_json(workflow.resume(root)['active']['observation'])
     return {'state': result.get('live_state', result['status']), 'operation': result,
+            'capability_changes': changes(root,before,after),
+            'capability_requirements': requirements(root,stage,after),
             'provenance': 'external_live_edit', 'artistic_acceptance': 'not_assessed'}

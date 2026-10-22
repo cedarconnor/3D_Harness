@@ -27,3 +27,5 @@ Save accepted task boundaries to new checkpoint filenames. Observe saved files w
 
 For an A/B/C experiment, B uses written procedures with native inspection; added deterministic measurement scripts belong to C. Evaluate all conditions with the same independent evaluator.
 
+
+At stage entry and after geometry, material, provider or recipe changes, check capability requirements and actual saved-output freshness. Stable capability/target/slot identity updates one owned effect. A separate layer needs an explicit new slot. Use the shared execution service and normal budgets; inspect failures rather than looping. Refresh direct user edits before using saved receipts. Unrelated measured changes can retain valid evidence; deleted or edited effects cannot.

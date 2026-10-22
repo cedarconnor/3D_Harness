@@ -102,3 +102,21 @@ invocation, independent output validation and publication. Stage submission and
 completion recheck service-owned evidence; a prose claim or owner approval cannot
 substitute for required technical evidence. Projects with no capability policy
 retain their existing behavior.
+
+## Revision freshness
+
+At managed boundaries, requirements enroll matching targets and recheck declared
+inputs, profile/recipe sources and the measured output scope. A matching receipt can
+survive an unrelated checkpoint; a new request reuses it without a native job or budget
+charge. Geometry/material changes and removed or edited effects require a new update
+with the same effect key. New explicit slots permit additional layers. Broad recipes
+may conservatively invalidate each other when they share measured output scope; no
+automatic repair loop runs, and ordinary execution budgets still apply.
+
+`changes(root, before, after)` reports scene enrollment/dependency changes. `status`
+and stage checks additionally validate current provider/recipe qualification. Direct
+artist edits require explicit live refresh first; no activity watcher is installed.
+Initial managed support refuses recipes whose coverage includes custom properties,
+which P21 does not measure, and refuses policies that omit declared recipe inputs.
+The isolated qualifier can inspect broader recipe properties, but that does not make
+them eligible for managed use. Existing projects keep their pinned runtime and rules.

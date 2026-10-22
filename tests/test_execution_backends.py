@@ -11,7 +11,7 @@ from dcc_harness.evidence import read_json, write_json, file_hash
 class BackendTests(Fixture):
     def test_capability_uses_same_reservation_budget_and_independent_verifier(self):
         from dcc_harness import capabilities, environments, provider_sources
-        self.start(); request=self.request(); request['capability']={'fixture':True}
+        self.start(); request=self.request(); request['capability']={'requirement':{},'resolution':{},'parameters':{}}
         inventory=provider_sources.scan([{'path':str(Path(__file__).parent / 'fixtures/addons/legacy'),'namespace':''}],
                     {'version':[5,1,1],'build_hash':'fixture','background':True})
         request['profile']=environments.create_profile(self.root,inventory,['harness_fixture'],{})
@@ -21,6 +21,7 @@ class BackendTests(Fixture):
                 write_json(folder / 'capability-verified.json',{'passed':True})
             else: self.worker(blender,folder,worker,action,payload,**kwargs)
         with mock.patch.object(capabilities,'admit',return_value=request['capability']), \
+             mock.patch.object(capabilities,'reuse',return_value=None), \
              mock.patch.object(capabilities,'record_operation',return_value={'sha256':'a'*64}), \
              mock.patch('dcc_harness.execution.run_worker',side_effect=worker) as native:
             first=execution.execute_operation(self.root,request)

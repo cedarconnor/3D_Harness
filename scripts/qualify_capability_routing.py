@@ -11,7 +11,7 @@ import zipfile
 
 
 @contextmanager
-def owned_bridge(args,out,engine):
+def owned_bridge(args,out,engine,source=None):
     from dcc_harness import distribution,blender_bridge
     from qualify_live import wait_for,verify_private_cleanup
     out.mkdir(parents=True,exist_ok=False)
@@ -19,11 +19,12 @@ def owned_bridge(args,out,engine):
     with zipfile.ZipFile(out / 'bridge.zip') as archive: archive.extractall(out / 'addon')
     with socket.socket() as listener: listener.bind(('127.0.0.1',0)); port=listener.getsockname()[1]
     script=out / 'gui.py'
-    script.write_text('CONFIG = '+repr({'out':str(out),'port':port,'engine':engine})+'\n'+'''
+    script.write_text('CONFIG = '+repr({'out':str(out),'port':port,'engine':engine,'source':str(source) if source else None})+'\n'+'''
 import bpy,json,sys,time
 from pathlib import Path
 out=Path(CONFIG['out']); sys.path.insert(0,str(out / 'addon'))
 bpy.context.preferences.filepaths.temporary_directory=str(out / 'temporary')
+if CONFIG['source']: bpy.ops.wm.open_mainfile(filepath=CONFIG['source'])
 bpy.context.scene.render.engine=CONFIG['engine']
 bpy.ops.wm.save_as_mainfile(filepath=str(out / 'artist-fixture.blend'))
 bpy.ops.wm.open_mainfile(filepath=str(out / 'artist-fixture.blend'))
@@ -38,6 +39,24 @@ bridge.register(); bridge.server=bridge.ObservationServer(CONFIG['port'],out); b
 (out / 'ready.json').write_text(json.dumps({'descriptor':str(bridge.server.session.descriptor_path)}))
 deadline=time.monotonic()+900
 def control():
+    command=out / 'fixture-edit.json'
+    if command.exists():
+        value=json.loads(command.read_text()); command.unlink()
+        try:
+            obj=next((o for o in bpy.context.scene.objects if o.get('dcc_instance_id')==value.get('target')),None)
+            if value['action']=='geometry': obj.data.vertices[0].co.x += .125; obj.data.update()
+            elif value['action']=='delete':
+                for mod in list(obj.modifiers):
+                    if mod.name.startswith('DCC::'): obj.modifiers.remove(mod)
+            elif value['action']=='unrelated': bpy.context.scene.camera.location.x += .25
+            elif value['action']=='material': obj.active_material.node_tree.nodes.get('Principled BSDF').inputs['Roughness'].default_value=.72
+            elif value['action']=='reload':
+                bpy.ops.wm.save_as_mainfile(filepath=str(out / 'reload.blend'))
+                bpy.ops.wm.open_mainfile(filepath=str(out / 'reload.blend'))
+            else: raise ValueError('Unsupported owned fixture action')
+            result={'passed':True}
+        except Exception as exc: result={'passed':False,'error':str(exc)}
+        (out / (value['id']+'.json')).write_text(json.dumps(result))
     if (out / 'stop').exists() or time.monotonic()>deadline:
         bridge.unregister()
         assert not attempts and all(tuple(getattr(bpy.app.handlers,k))==before[k] for k in watched)
@@ -45,7 +64,7 @@ def control():
         (out / 'audit.json').write_text(json.dumps({'outbound_attempts':attempts,'activity_handlers_unchanged':True,'standalone_export':True}))
         bpy.ops.wm.quit_blender(); return None
     return .1
-bpy.app.timers.register(control)
+bpy.app.timers.register(control,persistent=True)
 ''')
     config=out / 'config'; config.mkdir(); temporary=out / 'temporary'; temporary.mkdir()
     startup=None

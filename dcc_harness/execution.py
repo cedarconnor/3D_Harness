@@ -278,8 +278,11 @@ def execute_operation(root, value):
             return _outcome(folder)
         active, config = _admit(root, stage, expected_parent)
         if 'capability' in request:
-            from .capabilities import admit
+            from .capabilities import admit, reuse
             admit(root,value)
+            capability=request['capability']
+            reused=reuse(root,capability['requirement'],capability['resolution'],capability['parameters'])
+            if reused is not None: return reused
         if kind == 'live' and request.get('live', {}).get('recipe') != 'external.capture':
             from .live import ensure_aligned
             ensure_aligned(root)
