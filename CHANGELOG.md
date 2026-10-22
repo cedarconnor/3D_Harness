@@ -2,13 +2,14 @@
 
 Each version is a bounded increment with its own qualification report. Test counts are portable-suite results on Windows; the two skips in each count are host symlink-permission cases. Native qualification uses Blender 5.1.1 on Windows. Studies are listed with the versions they exercised. The [build plan](docs/BUILD_PLAN.md) explains what remains open, and reports that link into `runs/` refer to local evidence excluded from Git.
 
-## 0.22.0 — October 22, 2026 (qualification candidate)
+## 0.22.0 — October 22, 2026
 
 - Added paired open-scene execution through the same reservation, budget, verification and publication service as background jobs. Initial recipes cover transforms, Principled inputs, bounded modifiers and qualified node assets.
 - Added recoverable live adoption, explicit external-edit import/reconnect, stale-state refusal, cooperative cancellation and explicit recovery that archives current state before restore.
 - Added live MCP/CLI controls and fixed-setting saved-copy previews. Autonomous and approval-gated workflows retain the same technical checks and separate owner authority.
 - Added complete bridge manifests, source/installed/sdist parity and a maintained 26-case live native matrix. See [qualification evidence](docs/archive/releases/LIVE_EXECUTION_RESULTS.md) for scope and release-gate status.
 - Telemetry removal remains intact; no automatic add-on installation, external service or user-activity recorder was added.
+- Fixed five final-review findings: installed verifier imports, unsaved texture preservation, recovery retry after definitive refusal, private descriptor disclosure and loaded bridge identity. Source/installed suites each passed 536 tests with two existing skips; all 26 live native scenarios and the dirty-image preservation fixture passed.
 
 ## 0.21.1 — October 22, 2026
 

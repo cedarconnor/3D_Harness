@@ -108,11 +108,11 @@ Define validated dict schemas in `live_contracts.py` and type them with TypedDic
 
 **Files:** Modify `scripts/verify_release.py`, `scripts/qualify_mcp.py`, `scripts/README.md`, `pyproject.toml`, `dcc_harness/__init__.py`, `README.md`, `CHANGELOG.md`, `docs/BUILD_PLAN.md`, `docs/DESIGN_DECISIONS.md`; add `docs/archive/releases/LIVE_EXECUTION_RESULTS.md`.
 
-- [ ] Add release assertions that the exported add-on imports with no source checkout/harness package on Blender's Python path; every manifest file/hash matches in wheel and source-archive rebuild; the token is absent from all delivered artifacts/logs. Regression tests must fail if a bridge module is missing.
-- [ ] Run the new artifact tests against a deliberately incomplete temporary export; require failure, then the complete export; require success.
-- [ ] Wire `qualify_live.py --case all` into the maintained release verifier. Qualify attach, edits, context failure, same-file reload, external edits, lost replies, restart, cancellation, restore refusal and both modes on owned native fixtures. Retain all evidence. Bump version to 0.22.0 only at this release boundary, including bridge metadata.
-- [ ] Run `python scripts/verify_release.py --out FRESH_DIRECTORY --blender BLENDER_PATH`; require source/installed suites, current qualifiers and live qualifiers to pass. Run `git diff --check`. Review all changed runtime/authority paths and resolve actionable findings before reporting completion. Document unsupported operators and observation coverage rather than overstating generic support.
-- [ ] Commit `release: qualify live Blender execution` with explicit file paths; mark P21 done with evidence. Do not push or change global registration as part of this planning request. Start P22 only after this gate passes.
+- [x] Add release assertions that the exported add-on imports with no source checkout/harness package on Blender's Python path; every manifest file/hash matches in wheel and source-archive rebuild; the token is absent from all delivered artifacts/logs. Regression tests must fail if a bridge module is missing.
+- [x] Run the new artifact tests against a deliberately incomplete temporary export; require failure, then the complete export; require success.
+- [x] Wire `qualify_live.py --case all` into the maintained release verifier. Qualify attach, edits, context failure, same-file reload, external edits, lost replies, restart, cancellation, restore refusal and both modes on owned native fixtures. Retain all evidence. Bump version to 0.22.0 only at this release boundary, including bridge metadata.
+- [x] Run `python scripts/verify_release.py --out FRESH_DIRECTORY --blender BLENDER_PATH`; require source/installed suites, current qualifiers and live qualifiers to pass. Run `git diff --check`. Review all changed runtime/authority paths and resolve actionable findings before reporting completion. Document unsupported operators and observation coverage rather than overstating generic support.
+- [x] Commit `release: qualify live Blender execution` with explicit file paths; mark P21 done with evidence. Do not push or change global registration as part of this planning request. Start P22 only after this gate passes.
 
 ## Handoff and Planning Checks
 
