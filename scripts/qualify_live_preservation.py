@@ -29,6 +29,11 @@ image = bpy.data.images.new('Painted image', width=2, height=2)
 image.filepath_raw = str(out / 'texture.png'); image.file_format = 'PNG'; image.save()
 bpy.data.images.remove(image)
 image = bpy.data.images.load(str(out / 'texture.png'))
+bpy.ops.mesh.primitive_cube_add()
+material = bpy.data.materials.new('Painted material'); material.use_nodes = True
+bpy.data.objects['Cube'].data.materials.append(material)
+texture = material.node_tree.nodes.new('ShaderNodeTexImage'); texture.image = image
+material.node_tree.links.new(texture.outputs['Color'], material.node_tree.nodes.get('Principled BSDF').inputs['Base Color'])
 _ = image.pixels[:]
 bpy.ops.wm.save_as_mainfile(filepath=str(out / 'artist.blend'))
 disk = hashlib.sha256((out / 'texture.png').read_bytes()).hexdigest()
