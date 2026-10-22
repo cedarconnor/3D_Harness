@@ -8,6 +8,7 @@ from .evidence import digest, finite_number, file_hash, read_json, write_json
 from .files import reject_links, write_exclusive, json_bytes
 from .native import run_worker
 from .live_recovery import reconcile
+from .live_surface import sessions, inspect, status, cancel, execute, preview, validate_preview
 
 
 def attach(root, binding, *, scene=None, expected_parent=None, brief_file=None, mode=None,

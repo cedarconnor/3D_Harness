@@ -17,6 +17,25 @@ COORDINATION_COMMANDS = {
 def build_parser():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
+    p = sub.add_parser('live-sessions', help='Discover explicitly paired local sessions without exposing secrets')
+    p.add_argument('workspace')
+    p = sub.add_parser('live-inspect'); p.add_argument('--request', required=True)
+    p = sub.add_parser('live-attach', help='Adopt the explicit open scene into a new managed project')
+    p.add_argument('destination'); p.add_argument('--binding', required=True); p.add_argument('--scene', required=True)
+    p.add_argument('--brief-file', required=True); p.add_argument('--mode', choices=['autonomous', 'approval_gated'], required=True)
+    p.add_argument('--blender', required=True); p.add_argument('--max-operations', type=int, default=20)
+    p.add_argument('--seconds', type=float, default=3600)
+    p = sub.add_parser('live-refresh'); p.add_argument('project'); p.add_argument('--binding', required=True)
+    p.add_argument('--parent', required=True)
+    for command in ('live-execute', 'live-preview'):
+        p = sub.add_parser(command); p.add_argument('project'); p.add_argument('--request', required=True)
+        if command == 'live-preview': p.add_argument('--blender', required=True)
+    for command in ('live-status', 'live-cancel', 'live-reconcile'):
+        p = sub.add_parser(command); p.add_argument('project')
+        p.add_argument('--operation-id', required=command != 'live-status')
+        if command == 'live-reconcile':
+            p.add_argument('--decision', choices=['keep-current', 'restore-precopy'], required=True)
+            p.add_argument('--fingerprint', required=True)
     p = sub.add_parser('new-project', help='Create a new empty owned Blender project, bind bundled rules and select execution mode')
     p.add_argument('destination', help='New directory containing the baseline and project state')
     p.add_argument('--brief-file', required=True); p.add_argument('--blender', required=True)
@@ -169,7 +188,20 @@ def main():
             except OSError as exc:
                 _write_failed(parser, exc)
         return
-    if args.command == 'new-project':
+    if args.command.startswith('live-'):
+        from . import live
+        if args.command == 'live-sessions': result = live.sessions(args.workspace)
+        elif args.command == 'live-inspect': result = live.inspect(read_json(args.request))
+        elif args.command == 'live-attach':
+            result = live.attach(args.destination, args.binding, scene=args.scene, brief_file=args.brief_file,
+                mode=args.mode, blender=args.blender, max_operations=args.max_operations, seconds=args.seconds)
+        elif args.command == 'live-refresh': result = live.refresh(args.project, args.binding, expected_parent=args.parent)
+        elif args.command == 'live-execute': result = live.execute(args.project, read_json(args.request))
+        elif args.command == 'live-preview': result = live.preview(args.project, read_json(args.request), blender=args.blender)
+        elif args.command == 'live-status': result = live.status(args.project, args.operation_id)
+        elif args.command == 'live-cancel': result = live.cancel(args.project, args.operation_id)
+        else: result = live.reconcile(args.project, args.operation_id, args.decision, args.fingerprint)
+    elif args.command == 'new-project':
         from .bootstrap import create
         result = create(args.destination, args.brief_file, args.blender, args.mode,
                         max_operations=args.max_operations, seconds=args.seconds)

@@ -157,7 +157,16 @@ def status(root):
              'COMPLETE' if stages and all(s['state'] == 'complete' for s in stages.values()) else
              'BUDGET_EXHAUSTED' if time.time() >= config['deadline'] or len(operations) >= config['max_operations'] else
              'AWAITING_APPROVAL' if config['mode'] == 'approval_gated' and any(s['state'] == 'awaiting_review' for s in stages.values()) else 'READY')
-    return {'schema': 'dcc.execution.status.v1', 'status': state, 'run': config, 'operations': operations,
+    live_state = {}
+    if config.get('backend') == 'live':
+        from .live import read_binding
+        try:
+            live_state = {'live_state': read_binding(root)['state'], 'alignment': 'Use live-status for current scene comparison'}
+        except (OSError, ValueError):
+            live_state = {'live_state': 'UNBOUND', 'alignment': 'No verified live binding'}
+        if live_state['live_state'] != 'READY' and state in ('READY', 'COMPLETE', 'AWAITING_APPROVAL'):
+            state = live_state['live_state']
+    return {'schema': 'dcc.execution.status.v1', 'status': state, 'run': config, 'operations': operations, **live_state,
             'stages': list(stages.values()), 'active': c.checkpoint_ref(native['active']),
             'artistic_acceptance': 'not_evaluated'}
 

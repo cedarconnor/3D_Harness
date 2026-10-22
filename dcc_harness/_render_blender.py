@@ -54,6 +54,31 @@ def main():
     if file_hash(source['path']) != source['sha256']:
         raise ValueError('Source changed during native open')
     scene = bpy.context.scene
+    preview = request.get('preview')
+    if preview is not None:
+        scene = bpy.data.scenes[preview['scene']]
+        bpy.context.window.scene = scene
+        scene.frame_set(preview['frame'])
+        scene.display.shading.light = 'STUDIO'
+        scene.display.shading.studio_light = 'paint.sl'
+        scene.display.shading.color_type = 'MATERIAL'
+        scene.display.shading.background_type = 'VIEWPORT'
+        scene.display.shading.background_color = (.05, .05, .05)
+        scene.display.shading.show_shadows = True
+        scene.display.shading.show_cavity = False
+        scene.display.shading.show_specular_highlight = True
+        scene.display.shading.show_object_outline = False
+        scene.display.shading.show_xray = False
+        scene.display.shading.studiolight_rotate_z = 0
+        scene.display.light_direction = (1, 1, 1)
+        scene.display.shadow_shift = .1
+        scene.display.shadow_focus = 0
+        requested_samples = request['definition']['render']['samples']
+        scene.display.render_aa = str(next(n for n in (5, 8, 11, 16, 32) if n >= requested_samples))
+        scene.render.film_transparent = False
+        scene.render.pixel_aspect_x = scene.render.pixel_aspect_y = 1
+        scene.display_settings.display_device = 'sRGB'
+        scene.view_settings.gamma = 1
     settings = definition['render']
     scene.render.engine = settings['engine']
     scene.render.resolution_x, scene.render.resolution_y = settings['resolution']
@@ -79,6 +104,13 @@ def main():
                           'view_transform': scene.view_settings.view_transform, 'look': scene.view_settings.look,
                           'exposure': scene.view_settings.exposure, 'gamma': scene.view_settings.gamma},
                 'views': {}}
+    if preview is not None:
+        resolved['preview'] = {'scene': scene.name, 'lighting': 'studio:paint.sl', 'color_type': 'MATERIAL',
+                               'background': [.05, .05, .05], 'shadows': True, 'cavity': False,
+                               'specular': True, 'antialiasing': scene.display.render_aa, 'kind': 'geometry_render'}
+        resolved['preview'].update(outline=False, xray=False, light_rotation=0,
+                                   light_direction=list(scene.display.light_direction), shadow_shift=scene.display.shadow_shift,
+                                   shadow_focus=scene.display.shadow_focus)
     images, seconds = {}, {}
     for view in definition['views']:
         camera = resolve_camera(scene, view)

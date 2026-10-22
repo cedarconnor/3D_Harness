@@ -58,7 +58,7 @@ if CONFIG['fixture'] != 'empty':
         for i in range(2):
             duplicate = obj.copy(); duplicate['dcc_instance_id'] = 'instance.duplicate'
             bpy.context.scene.collection.objects.link(duplicate)
-    elif CONFIG['case'] == 'jobs':
+    elif CONFIG['case'] in ('jobs', 'modes'):
         mat = bpy.data.materials.new('Material'); mat.use_nodes = True
         obj.data.materials.append(mat)
         if CONFIG['fixture'] == 'shared':
@@ -81,7 +81,7 @@ if CONFIG['fixture'] != 'empty':
         with bpy.data.libraries.load(str(out / 'library.blend'), link=True) as (source, target):
             target.objects = ['Cube']
         bpy.context.scene.collection.objects.link(target.objects[0])
-if CONFIG['case'] == 'protocol' or CONFIG['fixture'] in ('dirty', 'relative', 'duplicate', 'linked'):
+if CONFIG['case'] in ('protocol', 'modes') or CONFIG['fixture'] in ('dirty', 'relative', 'duplicate', 'linked'):
     bpy.ops.wm.save_as_mainfile(filepath=str(out / 'fixture.blend'))
 if CONFIG['case'] == 'attach' and CONFIG['fixture'] in ('untitled', 'dirty', 'relative'):
     obj.location.x = 2.5
@@ -127,13 +127,15 @@ if CONFIG['case'] == 'jobs' and CONFIG['fixture'] in ('queued-cancel', 'queued-r
     bridge.jobs.Jobs.run = interrupted_run
 assert bridge.server.running
 (out / 'ready.json').write_text(json.dumps({'descriptor': str(bridge.server.session.descriptor_path)}))
-deadline = time.monotonic() + 120
+deadline = time.monotonic() + 600
 def control():
     if (out / 'stop').exists() or time.monotonic() > deadline:
         bridge.unregister()
         assert {n: tuple(getattr(bpy.app.handlers, n)) for n in watched} == before
         assert not attempts
-        (out / 'audit.json').write_text(json.dumps({'outbound_attempts': attempts, 'activity_handlers_unchanged': True}))
+        assert not any(n == 'dcc_harness' or n.startswith('dcc_harness.') for n in sys.modules)
+        (out / 'audit.json').write_text(json.dumps({'outbound_attempts': attempts, 'activity_handlers_unchanged': True,
+                                                  'standalone_export': True}))
         bpy.ops.wm.quit_blender()
         return None
     if (out / 'reload').exists():
@@ -144,6 +146,11 @@ def control():
         bpy.data.objects['Cube'].location.x += 1
         bpy.context.view_layer.update()
         (out / 'mutated').write_text('done')
+    if (out / 'undo-fixture-mutate').exists():
+        (out / 'undo-fixture-mutate').unlink()
+        bpy.data.objects['Cube'].location.x -= 1
+        bpy.context.view_layer.update()
+        (out / 'fixture-restored').write_text('done')
     if (out / 'restart').exists():
         (out / 'restart').unlink()
         bridge.server.stop()
@@ -170,15 +177,20 @@ bpy.app.timers.register(control, persistent=True)
             info = blender_bridge.call('session_describe', {}, binding=binding)
             scene = info['scenes'][0]
             assert private['token'] not in json.dumps(info)
-            if args.case in ('attach', 'jobs'):
+            if args.case in ('attach', 'jobs', 'modes'):
                 if args.case == 'attach':
                     attach_case(args, out, binding, info, process)
-                else:
+                elif args.case == 'jobs':
                     jobs_case(args, out, binding, info, process)
+                else:
+                    import asyncio
+                    from qualify_live_modes import qualify
+                    asyncio.run(qualify(args, out, binding, info, process))
                 (out / 'stop').write_text('stop')
                 process.wait(timeout=20)
                 assert process.returncode == 0
                 assert not binding.exists()
+                verify_private_cleanup(out, private['token'])
                 print((out / 'result.json').read_text())
                 return
             query = {'kind': 'objects', 'scene': scene, 'limit': 1}
@@ -223,6 +235,7 @@ bpy.app.timers.register(control, persistent=True)
             process.wait(timeout=20)
             assert process.returncode == 0
             assert not binding.exists()
+            verify_private_cleanup(out, private['token'])
             audit = json.loads((out / 'audit.json').read_text())
             result = {'case': 'protocol', 'passed': True, 'same_path_reload_invalidated': True,
                       'stable_id_ambiguity_refused': True, 'private_token_not_disclosed': True, **audit}
@@ -235,6 +248,41 @@ bpy.app.timers.register(control, persistent=True)
                     process.wait(timeout=10)
                 except subprocess.TimeoutExpired:
                     process.kill(); process.wait()  # Only this disposable fixture's owned process.
+
+
+def verify_private_cleanup(out, secret):
+    token = secret.encode()
+    for path in out.rglob('*'):
+        if not path.is_file(): continue
+        with path.open('rb') as stream:
+            carry = b''
+            while chunk := stream.read(1024 * 1024):
+                block = carry + chunk
+                if token in block:
+                    raise AssertionError('Private pairing material retained in ' + str(path))
+                carry = block[-len(token):]
+
+
+def all_cases(args):
+    from types import SimpleNamespace
+    out = Path(args.out).resolve(); out.mkdir(parents=True, exist_ok=False)
+    cases = [('protocol', 'untitled', 'autonomous', 'restore-precopy')]
+    cases += [('attach', fixture, 'autonomous', 'restore-precopy') for fixture in
+              ('untitled', 'dirty', 'relative', 'empty', 'duplicate', 'linked', 'interrupted', 'stale')]
+    cases += [('jobs', fixture, 'autonomous', 'restore-precopy') for fixture in
+              ('untitled', 'fail', 'stale-recovery', 'cancel', 'lost-reply', 'external', 'reconnect', 'nodes',
+               'shared', 'pre-publication', 'post-publication', 'queued-cancel', 'queued-reload', 'context')]
+    cases += [('jobs', 'fail', 'autonomous', 'keep-current')]
+    cases += [('modes', 'untitled', mode, 'restore-precopy') for mode in ('autonomous', 'approval_gated')]
+    reports = []
+    for index, (case, fixture, mode, recovery) in enumerate(cases):
+        folder = out / ('%02d-%s-%s-%s' % (index, case, fixture, mode))
+        protocol(SimpleNamespace(**{**vars(args), 'out': str(folder), 'case': case, 'fixture': fixture,
+                                    'mode': mode, 'recovery': recovery}))
+        reports.append({'case': case, 'fixture': fixture, 'mode': mode, 'recovery': recovery,
+                        'report': str(folder / 'result.json'), 'audit': str(folder / 'audit.json')})
+        (out / 'progress.json').write_text(json.dumps(reports, indent=2))
+    (out / 'VERIFICATION.json').write_text(json.dumps({'passed': True, 'cases': reports}, indent=2))
 
 
 def jobs_case(args, out, binding, before, process):
@@ -488,10 +536,12 @@ if __name__ == '__main__':
     parser.add_argument('--runtime', required=True)
     parser.add_argument('--blender', required=True)
     parser.add_argument('--out', required=True)
-    parser.add_argument('--case', choices=['protocol', 'attach', 'jobs'], default='protocol')
+    parser.add_argument('--case', choices=['protocol', 'attach', 'jobs', 'modes', 'all'], default='protocol')
+    parser.add_argument('--mode', choices=['autonomous', 'approval_gated'], default='autonomous')
     parser.add_argument('--fixture', choices=['untitled', 'dirty', 'relative', 'empty', 'duplicate', 'linked',
                                               'interrupted', 'stale', 'fail', 'stale-recovery', 'cancel', 'lost-reply',
                                               'external', 'reconnect', 'nodes', 'shared', 'pre-publication', 'post-publication',
                                               'queued-cancel', 'queued-reload', 'context'], default='untitled')
     parser.add_argument('--recovery', choices=['keep-current', 'restore-precopy'], default='restore-precopy')
-    protocol(parser.parse_args())
+    args = parser.parse_args()
+    (all_cases if args.case == 'all' else protocol)(args)

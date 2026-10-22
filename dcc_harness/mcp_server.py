@@ -23,7 +23,9 @@ COMMANDS = frozenset(('brief', 'next', 'requirements', 'resume', 'review', 'star
     'workflow-template', 'workflow-bind', 'stage-reopen',
     'feedback-add', 'feedback-respond', 'feedback-verify', 'feedback-decide', 'check-propose',
     'observe', 'render', 'render-wait', 'relations', 'uv-report', 'deliver-glb',
-    'adopt-preview', 'adopt-apply', 'review-page', 'check', 'diff', 'fill-hashes', 'pack-observation'))
+    'adopt-preview', 'adopt-apply', 'review-page', 'check', 'diff', 'fill-hashes', 'pack-observation',
+    'live-sessions', 'live-inspect', 'live-attach', 'live-refresh', 'live-execute', 'live-status',
+    'live-cancel', 'live-reconcile', 'live-preview'))
 MAX_TEXT = 4 * 1024 * 1024
 
 
@@ -63,6 +65,12 @@ async def run_cli(arguments, workspace, blender=None, *, timeout=3600):
     if hasattr(parsed, 'blender') and parsed.blender and blender and Path(parsed.blender).resolve() != Path(blender).resolve():
         raise ValueError('Use the Blender executable configured for this MCP server')
     workspace = reject_links(workspace).resolve()
+    if parsed.command == 'live-execute':
+        source = Path(parsed.request)
+        if not source.is_absolute(): source = workspace / source
+        value = json.loads(reject_links(source).read_text(encoding='utf-8'))
+        if blender and Path(value.get('blender', '')).resolve() != Path(blender).resolve():
+            raise ValueError('Use the Blender executable configured for this MCP server')
     folder = workspace / '.harness-mcp' / 'requests' / str(uuid.uuid4())
     reject_links(folder).mkdir(parents=True, exist_ok=False)
     write_exclusive(folder / 'request.json', json.dumps({'arguments': args}).encode())
@@ -83,7 +91,7 @@ async def run_cli(arguments, workspace, blender=None, *, timeout=3600):
             import anyio
             with anyio.CancelScope(shield=True):
                 write_exclusive(folder / 'cancel.request', b'Interrupted MCP request; inspect retained result before any retry.\n')
-                if parsed.command == 'run-execute':
+                if parsed.command in ('run-execute', 'live-execute'):
                     root = Path(parsed.project)
                     if not root.is_absolute():
                         root = workspace / root
@@ -121,11 +129,86 @@ def create_server(workspace, blender=None, bridge_port=9878):
     from . import __version__, blender_bridge
     server = FastMCP('3D Harness', instructions=(
         'Start with harness_info and the bundled dcc-harness skill. Use harness_command brief/next to follow current state. '
-        'Construct only through run-execute; do not use an unrelated raw Blender MCP to bypass this workflow. '
+        'Construct through managed run-execute or blender_execute. Discover a session and stable target IDs before live edits. '
         'AWAITING_APPROVAL requires the artist in their own terminal. Never impersonate the artist. '
         'Live observations are advisory, not checkpoint evidence.'))
     workspace = reject_links(workspace).resolve()
     workspace.mkdir(parents=True, exist_ok=True)
+
+    def retained_payload(value):
+        return write_input(workspace, 'live/' + str(uuid.uuid4()) + '.json',
+                           json.dumps(value, allow_nan=False))['path']
+
+    def required_blender():
+        if not blender: raise ValueError('Configure the MCP server with --blender for native verification')
+        return blender
+
+    @server.tool()
+    async def blender_session(action: str, payload: dict) -> dict:
+        """Discover sessions, describe an explicit binding, attach a named scene, or refresh a live project.
+
+        attach: destination,binding,scene,brief_file,mode; optional max_operations,seconds.
+        refresh: project,binding,expected_parent. describe: binding. discover: empty payload.
+        No approval or automatic session choice. Refresh explicitly imports external edits.
+        """
+        if action == 'discover' and not payload:
+            return await run_cli(['live-sessions', str(workspace)], workspace, blender)
+        if action == 'describe' and set(payload) == {'binding'}:
+            return await asyncio.to_thread(blender_bridge.call, 'session_describe', {}, binding=payload['binding'])
+        if action == 'attach':
+            required = {'destination', 'binding', 'scene', 'brief_file', 'mode'}
+            if not required <= set(payload) <= required | {'max_operations', 'seconds'}:
+                raise ValueError('Invalid attachment fields')
+            args = ['live-attach', payload['destination'], '--blender', required_blender()]
+            for key, value in payload.items():
+                if key != 'destination': args += ['--' + key.replace('_', '-'), str(value)]
+            return await run_cli(args, workspace, blender)
+        if action == 'refresh' and set(payload) == {'project', 'binding', 'expected_parent'}:
+            return await run_cli(['live-refresh', payload['project'], '--binding', payload['binding'],
+                                  '--parent', payload['expected_parent']], workspace, blender)
+        raise ValueError('Unknown session action or invalid fields; discover, describe, attach, refresh only')
+
+    @server.tool()
+    async def blender_inspect(query: dict) -> dict:
+        """Inspect explicit binding, scene and kind; paginate with offset/limit. Stable IDs are required for targets."""
+        return await run_cli(['live-inspect', '--request', retained_payload(query)], workspace, blender)
+
+    @server.tool()
+    async def blender_execute(request: dict) -> dict:
+        """Execute {project, operation}; operation is dcc.execution.operation.v2 with backend=live and a closed live recipe.
+
+        Keep the UUID for identical retries, which return status only. Technical publication never grants owner approval.
+        """
+        if set(request) != {'project', 'operation'}: raise ValueError('Expected project and operation')
+        required_blender()
+        return await run_cli(['live-execute', request['project'], '--request', retained_payload(request['operation'])], workspace, blender)
+
+    @server.tool()
+    async def blender_job(action: str, operation_id: str, payload: dict) -> dict:
+        """status/cancel: payload={project}. reconcile also needs decision and current expected_fingerprint.
+
+        Cancellation is cooperative and never promises rollback. Empty operation_id is allowed only for run status.
+        Recovery is explicit and archives current state before restore. No approval action exists here.
+        """
+        keys = {'project', 'decision', 'expected_fingerprint'} if action == 'reconcile' else {'project'}
+        if action not in ('status', 'cancel', 'reconcile') or set(payload) != keys:
+            raise ValueError('Invalid job action or fields')
+        args = ['live-' + action, payload['project']]
+        if operation_id: args += ['--operation-id', operation_id]
+        elif action != 'status': raise ValueError('Operation UUID required')
+        if action == 'reconcile': args += ['--decision', payload['decision'], '--fingerprint', payload['expected_fingerprint']]
+        return await run_cli(args, workspace, blender)
+
+    @server.tool()
+    async def blender_preview(request: dict) -> dict:
+        """Render bounded fixed-setting previews: {project, preview}. Discover session/generation first.
+
+        preview requires session_id,generation,frame,width,height,samples,camera={lens,location,target},compare_checkpoint.
+        Returns geometry-render images and provenance; never an artistic verdict or stage approval.
+        """
+        if set(request) != {'project', 'preview'}: raise ValueError('Expected project and preview')
+        return await run_cli(['live-preview', request['project'], '--request', retained_payload(request['preview']),
+                              '--blender', required_blender()], workspace, blender)
 
     @server.tool()
     def harness_info() -> dict:

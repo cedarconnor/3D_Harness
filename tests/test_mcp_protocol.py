@@ -23,6 +23,7 @@ class ProtocolTests(unittest.IsolatedAsyncioTestCase):
                     names = {tool.name for tool in (await session.list_tools()).tools}
                     self.assertIn('harness_command', names)
                     self.assertIn('blender_observe', names)
+                    self.assertTrue({'blender_session', 'blender_inspect', 'blender_execute', 'blender_job', 'blender_preview'} <= names)
                     self.assertNotIn('execute_blender_code', names)
                     info = await session.call_tool('harness_info')
                     self.assertFalse(info.isError)
@@ -43,3 +44,8 @@ class ProtocolTests(unittest.IsolatedAsyncioTestCase):
                     invalid = await session.call_tool('harness_command', {'arguments': ['workflow-template', '--help']})
                     self.assertTrue(invalid.isError)
                     self.assertFalse((await session.call_tool('harness_info')).isError)
+                    discovered = await session.call_tool('blender_session', {'action': 'discover', 'payload': {}})
+                    self.assertFalse(discovered.isError)
+                    for name, args in [('blender_session', {'action': 'approve', 'payload': {}}),
+                                       ('blender_job', {'action': 'approve', 'operation_id': '', 'payload': {}})]:
+                        self.assertTrue((await session.call_tool(name, args)).isError)

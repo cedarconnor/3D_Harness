@@ -183,20 +183,31 @@ def _next(packet, state, events):
     from .execution import configuration, status
     if configuration(packet['project']) is not None:
         managed = status(packet['project'])
+        is_live = managed['run'].get('backend') == 'live'
+        if is_live:
+            from .live import status as live_status
+            managed = live_status(packet['project'])
         project = _q(packet['project'])
         steps = [s for s in steps if s['id'] not in ('begin-edit', 'finish-edit', 'observe', 'stage-submit')]
         steps.insert(0, {'id': 'run-status', 'command': f'{RUN} run-status {project}',
                          'why': f'Managed run: {managed["status"]}; mode {managed["run"]["mode"]}.'})
         for operation in managed['operations']:
             if operation['status'] == 'NEEDS_RECONCILIATION':
-                steps.append({'id': 'run-reconcile', 'operation_id': operation['operation_id'],
-                              'command': f'{RUN} run-reconcile {project} --operation-id {operation["operation_id"]} --reason "<inspection finding>"',
-                              'why': 'Inspect and stop any surviving worker, then reject or explicitly accept its observed candidate. Never replay it.'})
+                command = (f'{RUN} live-reconcile {project} --operation-id {operation["operation_id"]} '
+                           '--decision "<keep-current|restore-precopy>" --fingerprint "<current fingerprint>"' if is_live else
+                           f'{RUN} run-reconcile {project} --operation-id {operation["operation_id"]} --reason "<inspection finding>"')
+                steps.append({'id': 'live-reconcile' if is_live else 'run-reconcile', 'operation_id': operation['operation_id'],
+                              'command': command,
+                              'why': 'Inspect the retained outcome and choose recovery explicitly. Never replay an uncertain edit.'})
+        if is_live and managed['live_state'] != 'READY':
+            steps.append({'id': 'live-status', 'command': f'{RUN} live-status {project}',
+                          'why': 'Live state is ' + managed['live_state'] + '; refresh or reconcile before edits or stage completion.'})
         if managed['status'] in ('READY', 'AWAITING_APPROVAL') and not packet['metadata_lock']:
             for stage in managed['stages']:
                 if stage['state'] in ('ready', 'needs_review', 'awaiting_review'):
                     steps.extend([
-                        {'id': 'run-execute', 'stage_id': stage['id'], 'command': (
+                        {'id': 'live-execute' if is_live else 'run-execute', 'stage_id': stage['id'], 'command': (
+                            f'{RUN} live-execute {project} --request "<operation.json with stable UUID and explicit live recipe>"' if is_live else
                             f'{RUN} run-execute {project} --stage {stage["id"]} --operation-id {uuid.uuid4()} --parent {active["id"]} '
                             '--script "<edit.py>" --contract "<contract.json>" --handoff "<handoff.md>" --blender "<BLENDER>"'),
                          'why': 'Retain this operation ID for retries. Execute, reopen, check and publish through the managed service.'},

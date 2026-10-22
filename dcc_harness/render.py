@@ -174,7 +174,8 @@ def _run(folder, blender, request):
             started_at = now()
             _status(folder, 'running', started_at=started_at)
             started = time.monotonic()
-            run_worker(blender, folder, WORKER, 'render', request)
+            options = {'timeout': 120} if 'preview' in request else {}
+            run_worker(blender, folder, WORKER, 'render', request, **options)
             seconds = round(time.monotonic() - started, 3)
         source = request['source']
         if file_hash(source['path']) != source['sha256']:
@@ -206,8 +207,10 @@ def _run(folder, blender, request):
     return result
 
 
-def render_file(source, out, blender, *, project=None, views=None):
+def render_file(source, out, blender, *, project=None, views=None, preview=None):
     folder, request = _prepare(source, out, project, views)
+    if preview is not None:
+        request['preview'] = preview
     return _run(folder, blender, request)
 
 

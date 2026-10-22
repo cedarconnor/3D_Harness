@@ -1,8 +1,8 @@
 # Combined harness MCP
 
-One installation provides the harness CLI, stdio MCP endpoint, build rules and a pinned Blender observation add-on. Construction uses the [managed execution service](MANAGED_EXECUTION.md) in autonomous or approval-gated mode. The calling agent provides plans, scripts and visual judgment.
+One installation provides the harness CLI, stdio MCP endpoint, build rules and a pinned Blender bridge. Construction uses the [managed execution service](MANAGED_EXECUTION.md) in autonomous or approval-gated mode, with background scripts or [bounded operations in the open scene](LIVE_BLENDER.md). The calling agent provides plans, parameters, scripts and visual judgment.
 
-The live bridge is advisory: saved checkpoint observations remain authoritative. The add-on exposes only scene/object reads, scene item lookup and liveness/version checks. Raw live Python, paid providers and telemetry are not part of this endpoint.
+Live inspection is advisory; saved checkpoint observations remain authoritative. Paired live writes use retained pre-copies, explicit recipes, independent verification and the same stage rules as background execution. Unpaired access remains read-only. Raw live Python, paid providers and telemetry are not part of this endpoint.
 
 ## Install and connect
 
@@ -64,18 +64,18 @@ unknown outcomes and missing evidence remain visible stops. Consult
 semantics. A new package source digest cannot silently replace a project's pinned
 runtime; keep the qualified runtime for existing projects.
 
-## Optional live observation bridge
+## Optional live bridge
 
 The managed build path works without an interactive Blender window. To inspect a
-live scene too, export the bundled add-on:
+live scene or execute bounded recipes in it, export the bundled add-on:
 
 ```powershell
 dcc-harness-mcp --workspace C:/my-projects --export-addon C:/my-projects/dcc_harness_bridge.zip
 ```
 
 Install that zip in Blender's add-on preferences and enable **3D Harness observation
-bridge**. In the 3D View sidebar's **3D Harness** tab, click **Start observation
-bridge**. It binds only to `127.0.0.1`, defaults to port `9878`, and does not auto-start.
+bridge**. In the 3D View sidebar's **3D Harness** tab, click **Start bridge**.
+Set its Workspace to enable paired access. It binds only to `127.0.0.1`, defaults to port `9878`, and does not auto-start.
 Use `--bridge-port` on the MCP server if you choose a different port in Blender.
 An incompatible or original upstream listener is refused with an explicit error.
 Do not use another raw-write MCP endpoint to bypass managed workflow policy.
@@ -84,18 +84,18 @@ Do not use another raw-write MCP endpoint to bypass managed workflow policy.
 `get_object_info` and `list_scene_items`. Both the MCP adapter and the socket
 dispatcher restrict that list. Replies are advisory and are labeled accordingly;
 scene summaries are capped upstream and are not full saved-state observations.
-The socket is a trusted local interface without authentication, not a network
-service. It is deliberately read-only; managed scripts provide construction.
+Those legacy reads remain unauthenticated on loopback. Paired inspection and writes
+require the private session token and current document generation. They use the
+[live execution service](LIVE_BLENDER.md); same-user local access remains a trusted boundary.
 
 The bundled add-on is an observation-only derivative of commit
 `5a3618fccb2d982d0dd61e7a1879912c3100073b` (2.2.2, upstream protocol 14), with its MIT
 license retained. Activity recording, telemetry consent/UI, trajectory capture,
 tracking links and unused provider/account/update code are removed from the source.
 Original and modified source hashes are recorded in `upstream.json`. The adjacent
-adapter registers its own small UI and observation dispatcher. Harness bridge
-protocol 2 requires the new add-on; replace any previously exported 0.21.0 bridge
-with the 0.21.1 export. The client refuses the old protocol rather than connecting
-to a bridge that still contains the removed code.
+adapter registers its own UI and managed dispatcher. Harness bridge protocol 3 adds
+paired sessions and scoped live execution; protocol 2 remains read-only compatibility.
+Replace earlier exports with the current package's add-on before using live writes.
 Paid generation, downloads and arbitrary live Python are outside this integration's
 surface; this is not full upstream tool parity.
 
@@ -111,7 +111,9 @@ MCP command logs live under `WORKSPACE/.harness-mcp/requests/UUID`. Cancellation
 marks the request, asks native workers to stop, and for a managed edit cancels the
 run. Inspect `run-status` and retained results before `run-reconcile`. Closing or
 killing the entire MCP process abruptly may leave a native child alive; inspect
-owned processes before reconciliation. Do not assume a transport error means that
+owned background processes before reconciliation. Live cancellation never kills the
+artist's Blender; inspect `live-status` and choose explicit `live-reconcile` recovery.
+Do not assume a transport error means that
 nothing changed. There is no automatic mutation retry.
 
 Input helpers write exclusively beneath `WORKSPACE/inputs`; evidence reads are

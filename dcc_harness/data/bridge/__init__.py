@@ -18,7 +18,7 @@ bl_info = {'name': '3D Harness observation bridge', 'author': '3D Harness contri
 COMMANDS = ('ping', 'get_addon_info', 'get_scene_info', 'get_object_info', 'list_scene_items')
 PAIRED_COMMANDS = ('session_describe', 'inspect', 'attach_begin', 'attach_apply', 'attach_check', 'attach_acknowledge', 'attach_rebind',
                    'job_prepare', 'job_submit', 'job_status', 'job_cancel', 'job_check', 'job_acknowledge',
-                   'recovery_capture', 'recovery_acknowledge')
+                   'recovery_capture', 'recovery_acknowledge', 'preview_capture')
 FEATURES = ('paired_sessions', 'document_generation', 'scoped_inspection')
 server = None
 
@@ -58,6 +58,8 @@ class ObservationServer(upstream.BlenderMCPServer):
                     result = inspection.inspect(params['payload'])
                 elif name == 'attach_check':
                     result = attachment.check(self.session, params['payload'])
+                elif name == 'preview_capture':
+                    result = attachment.preview_capture(self.session, params['payload'])
                 elif name.startswith('job_'):
                     payload = params['payload']
                     result = getattr(self.jobs, name.removeprefix('job_'))(
@@ -181,6 +183,11 @@ class HARNESS_PT_bridge(bpy.types.Panel):
         self.layout.prop(context.scene, 'dcc_harness_workspace')
         if server and server.session:
             self.layout.label(text='Session: ' + server.session.session_id[:8])
+            active = server.session.active
+            self.layout.label(text='Busy: ' + active[:8] if active else 'Idle; verify alignment before edits')
+            if active and server.jobs:
+                self.layout.label(text='Job: ' + server.jobs.status(active)['state'])
+                self.layout.label(text='Inspect live-status; recover explicitly')
         self.layout.operator('dcc_harness.stop_bridge' if server and server.running else 'dcc_harness.start_bridge')
 
 

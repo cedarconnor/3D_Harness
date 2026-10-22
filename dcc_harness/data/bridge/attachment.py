@@ -210,3 +210,25 @@ def rebind(session, payload):
     write_exclusive(path, json_bytes(current))
     return {**session.describe(), 'fingerprint': fingerprint(current), 'snapshot': str(path),
             'filepath': bpy.data.filepath}
+
+
+def preview_capture(session, payload):
+    import uuid
+    if set(payload) != {'preview_id'} or str(uuid.UUID(payload['preview_id'])) != payload['preview_id']:
+        raise ValueError('Invalid preview identity')
+    if session.project is None or session.active:
+        raise ValueError('BUSY: preview requires an attached scene with no active operation')
+    scene = scene_for(session.scene)
+    if scene != bpy.context.scene or any(o.mode != 'OBJECT' for o in scene.objects):
+        raise ValueError('BUSY: preview requires the paired scene in Object mode')
+    folder = reject_links(session.project / 'live/previews' / payload['preview_id'])
+    if not (folder / 'request.json').is_file():
+        raise ValueError('Preview reservation missing')
+    current = snapshot(scene)
+    source = save_copy(session, folder / 'preview.blend')
+    if not equivalent(current, snapshot(scene)):
+        raise ValueError('Live scene changed during preview capture')
+    write_exclusive(folder / 'snapshot.json', json_bytes(current))
+    result = {'source': source, 'fingerprint': fingerprint(current), 'scene': scene.name}
+    write_exclusive(folder / 'capture.json', json_bytes(result))
+    return result
