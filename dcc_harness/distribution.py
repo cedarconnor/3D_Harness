@@ -17,6 +17,15 @@ BRIDGE_FILES = {
     'session.py': DATA / 'bridge/session.py',
     'inspection.py': DATA / 'bridge/inspection.py',
     'files.py': Path(__file__).with_name('files.py'),
+    'identity.py': Path(__file__).with_name('identity.py'),
+    'adoption_inventory_blender.py': Path(__file__).with_name('adoption_inventory_blender.py'),
+    'attachment.py': DATA / 'bridge/attachment.py',
+    'blender.py': Path(__file__).with_name('blender.py'),
+    'continuity_blender.py': Path(__file__).with_name('continuity_blender.py'),
+    'evidence.py': Path(__file__).with_name('evidence.py'),
+    'observation_storage.py': Path(__file__).with_name('observation_storage.py'),
+    'project.py': Path(__file__).with_name('project.py'),
+    'uv_guard.py': Path(__file__).with_name('uv_guard.py'),
     'upstream.json': DATA / 'upstream.json',
 }
 

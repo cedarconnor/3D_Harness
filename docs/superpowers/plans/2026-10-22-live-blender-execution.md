@@ -23,10 +23,10 @@
 ## Review Focus
 
 1. Unsaved/untitled work and relative dependencies survive attach and save-copy; the artist file is not overwritten (Task 3).
-2. Same-path reload, rename/duplicate names and edits during preparation cannot target an unintended object/session (Tasks 2–4).
+2. Same-path reload, rename/duplicate names and edits during preparation cannot target an unintended object/session (Tasks 2â€“4).
 3. Lost replies or restart after mutation never execute twice; failure is distinguishable from proven cancellation (Tasks 1, 4).
 4. A rejecting verifier or a non-cooperative operator leaves the artist's process and later edits intact (Tasks 4, 6).
-5. Live routing, preview jobs or direct bridge access cannot fabricate owner approval or silently bypass managed admission (Tasks 2, 5–6).
+5. Live routing, preview jobs or direct bridge access cannot fabricate owner approval or silently bypass managed admission (Tasks 2, 5â€“6).
 
 ## File Structure and Contract
 
@@ -50,11 +50,11 @@ Define validated dict schemas in `live_contracts.py` and type them with TypedDic
 
 **Interfaces:** `ExecutionBackend.prepare(request: dict) -> dict`, `submit(request: dict, prepared: dict) -> str`, `status(operation_id: str) -> dict`, `cancel(operation_id: str) -> dict`. `BackgroundBackend` preserves current behavior. `execution.create(..., backend='background')` writes v2 for new runs; readers retain v1 background interpretation. Existing `execution.execute(...)` signature remains a compatibility wrapper. New `execution.execute_operation(root, request: dict) -> dict` performs shared admission/reservation/verification/publication.
 
-- [ ] Write fake-backend regressions `test_background_api_preserved`, `test_duplicate_uuid_dispatches_once`, `test_changed_request_refused`, `test_restart_after_dispatch_needs_reconciliation`, `test_v1_read_does_not_rewrite`. Assert repeated request has `dispatch_count == 1`, changed hash raises, and an absent terminal receipt yields `NEEDS_RECONCILIATION` rather than redispatch. Add tests that live cancellation never calls the background process-kill path.
-- [ ] Run `python -m unittest discover -s tests -p 'test_execution*.py' -v`; verify new tests fail before refactoring.
-- [ ] Extract only dispatch-specific logic into `BackgroundBackend`; leave locks, `_admit`, `_authorized`, budgets, input hashes, `workflow.begin_edit/finish_edit` and owner rules in the shared service. Define explicit backend recovery hooks instead of treating a live failure as an unchanged background input. Reject v1 runtime-pin mismatches as before.
-- [ ] Run the same focused suite and existing `scripts/qualify_execution.py` in a fresh output directory; require no behavior regression in either mode.
-- [ ] Commit only these files with `refactor: share managed execution across backends` after reviewing the diff against the pre-existing uncommitted overhaul.
+- [x] Write fake-backend regressions `test_background_api_preserved`, `test_duplicate_uuid_dispatches_once`, `test_changed_request_refused`, `test_restart_after_dispatch_needs_reconciliation`, `test_v1_read_does_not_rewrite`. Assert repeated request has `dispatch_count == 1`, changed hash raises, and an absent terminal receipt yields `NEEDS_RECONCILIATION` rather than redispatch. Add tests that live cancellation never calls the background process-kill path.
+- [x] Run `python -m unittest discover -s tests -p 'test_execution*.py' -v`; verify new tests fail before refactoring.
+- [x] Extract only dispatch-specific logic into `BackgroundBackend`; leave locks, `_admit`, `_authorized`, budgets, input hashes, `workflow.begin_edit/finish_edit` and owner rules in the shared service. Define explicit backend recovery hooks instead of treating a live failure as an unchanged background input. Reject v1 runtime-pin mismatches as before.
+- [x] Run the same focused suite and existing `scripts/qualify_execution.py` in a fresh output directory; require no behavior regression in either mode.
+- [x] Commit only these files with `refactor: share managed execution across backends` after reviewing the diff against the pre-existing uncommitted overhaul.
 
 ### Task 2: Paired sessions, protocol 3 and explicit inspection coverage
 
@@ -62,11 +62,11 @@ Define validated dict schemas in `live_contracts.py` and type them with TypedDic
 
 **Interfaces:** Blender-side `session.describe() -> dict`, `session.bind(project: str, workspace: str) -> dict`, `session.invalidate(reason: str) -> None`; `inspection.inspect(query: dict) -> dict`, `inspection.fingerprint(scope: dict) -> dict`. Host `blender_bridge.call(command, payload, *, binding, timeout=2) -> dict` authenticates writes and never retries them. `binding` is resolved from a private local descriptor, not an MCP-returned token.
 
-- [ ] Add transport tests for missing/wrong token, two simultaneous clients, replayed preparation token, oversize request, secret redaction and v2 write rejection. Native fixture assertions must establish `generation_after_reload != generation_before_reload` even for the same filepath; object name collisions resolve only by stable ID. An unmeasured requested field must return `UNSUPPORTED_COVERAGE`, not a partial success.
-- [ ] Run `python -m unittest discover -s tests -p 'test_live_protocol.py' -v`; retain initial failures.
-- [ ] Implement session pairing with 256-bit random tokens, one paired project and one active job. Add only load lifecycle invalidation callbacks; all bpy inspection runs in the existing timer queue. Introduce versioned feature negotiation with required feature checks. Inspect paginated objects/materials/modifiers/nodes/assets/operator metadata and annotate measured coverage. Do not load discovered third-party modules just to inspect metadata.
-- [ ] Replace the hard-coded add-on export tuple with an explicit hash manifest, including every required support module and license. Keep reduced `upstream.py` untouched. Extend export tests to inspect all Python members for removed activity/telemetry code; qualify authorized local lifecycle callbacks separately. Run `test_live_protocol.py`, `test_distribution.py` and `test_mcp*.py`; require old observation paths to remain functional.
-- [ ] Commit `feat: pair live Blender sessions and inspect capabilities`.
+- [x] Add transport tests for missing/wrong token, two simultaneous clients, replayed preparation token, oversize request, secret redaction and v2 write rejection. Native fixture assertions must establish `generation_after_reload != generation_before_reload` even for the same filepath; object name collisions resolve only by stable ID. An unmeasured requested field must return `UNSUPPORTED_COVERAGE`, not a partial success.
+- [x] Run `python -m unittest discover -s tests -p 'test_live_protocol.py' -v`; retain initial failures.
+- [x] Implement session pairing with 256-bit random tokens, one paired project and one active job. Add only load lifecycle invalidation callbacks; all bpy inspection runs in the existing timer queue. Introduce versioned feature negotiation with required feature checks. Inspect paginated objects/materials/modifiers/nodes/assets/operator metadata and annotate measured coverage. Do not load discovered third-party modules just to inspect metadata.
+- [x] Replace the hard-coded add-on export tuple with an explicit hash manifest, including every required support module and license. Keep reduced `upstream.py` untouched. Extend export tests to inspect all Python members for removed activity/telemetry code; qualify authorized local lifecycle callbacks separately. Run `test_live_protocol.py`, `test_distribution.py` and `test_mcp*.py`; require old observation paths to remain functional.
+- [x] Commit `feat: pair live Blender sessions and inspect capabilities`.
 
 ### Task 3: Attach the actual live scene with recoverable baselines
 
@@ -118,6 +118,6 @@ Define validated dict schemas in `live_contracts.py` and type them with TypedDic
 
 Use the existing development environment at `runs/overhaul/mcp-dev/Scripts/python.exe` until a fresh one is prepared. Replace `python` in commands with that path where necessary. All native output directories must be fresh. Never test mutations against the user's working scene.
 
-The checkout already contains the uncommitted v0.20–0.21.1 overhaul. Before implementation, record its exact baseline and separate new changes in commits without discarding or accidentally attributing previous work. A branch-only commit is not GitHub delivery. The repo's eventual main-release convention does not authorize a push from this plan-only turn.
+The checkout already contains the uncommitted v0.20â€“0.21.1 overhaul. Before implementation, record its exact baseline and separate new changes in commits without discarding or accidentally attributing previous work. A branch-only commit is not GitHub delivery. The repo's eventual main-release convention does not authorize a push from this plan-only turn.
 
-Self-review mapping: session/inspection Task 2; unsaved adoption Task 3; shared authority Tasks 1/5; scoped concurrency/recovery Task 4; visual evidence Task 5; artifacts/telemetry/compatibility Task 6. This document plans work; its checkboxes are intentionally unchecked and its tests are not claimed as executed.
+Self-review mapping: session/inspection Task 2; unsaved adoption Task 3; shared authority Tasks 1/5; scoped concurrency/recovery Task 4; visual evidence Task 5; artifacts/telemetry/compatibility Task 6. Completed checkboxes reflect the implementation ledger and retained qualification reports; remaining unchecked work is not claimed as complete.

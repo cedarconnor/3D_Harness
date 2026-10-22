@@ -10,7 +10,7 @@ COMMANDS = frozenset(('ping', 'get_addon_info', 'get_scene_info', 'get_object_in
 MAX_RESPONSE = 8 * 1024 * 1024
 MAX_REQUEST = 65536
 FEATURES = frozenset(('paired_sessions', 'document_generation', 'scoped_inspection'))
-PAIRED_COMMANDS = frozenset(('session_describe', 'inspect'))
+PAIRED_COMMANDS = frozenset(('session_describe', 'inspect', 'attach_begin', 'attach_apply', 'attach_check', 'attach_acknowledge'))
 
 
 def _request(port, command, params, timeout):
@@ -70,11 +70,13 @@ def descriptor(path):
     return value
 
 
-def call(command, payload, *, binding, timeout=2):
+def call(command, payload, *, binding, timeout=2, expected=None):
     """Resolve an explicit private descriptor; never expose its pairing token."""
     if command not in PAIRED_COMMANDS or not isinstance(payload, dict) or not 0 < timeout <= 2:
         raise ValueError('Invalid paired bridge command or deadline')
     private = descriptor(binding)
+    if expected is not None and (private['session_id'], private['generation']) != expected:
+        raise ValueError('Session or document generation changed before dispatch')
     meta = upstream()
     info = _request(private['port'], 'get_addon_info', {}, timeout)
     if (not isinstance(info, dict) or info.get('harness_protocol') != 3

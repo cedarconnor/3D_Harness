@@ -9,14 +9,14 @@ import socket
 import threading
 import time
 import bpy
-from . import upstream, inspection
+from . import upstream, inspection, attachment
 from .session import Session
 
 bl_info = {'name': '3D Harness observation bridge', 'author': '3D Harness contributors; Siddharth Ahuja (upstream)',
            'version': (0, 21, 1), 'blender': (5, 1, 0), 'category': 'Interface',
            'location': 'View3D > Sidebar > 3D Harness'}
 COMMANDS = ('ping', 'get_addon_info', 'get_scene_info', 'get_object_info', 'list_scene_items')
-PAIRED_COMMANDS = ('session_describe', 'inspect')
+PAIRED_COMMANDS = ('session_describe', 'inspect', 'attach_begin', 'attach_apply', 'attach_check', 'attach_acknowledge')
 FEATURES = ('paired_sessions', 'document_generation', 'scoped_inspection')
 server = None
 
@@ -51,8 +51,13 @@ class ObservationServer(upstream.BlenderMCPServer):
                 if name == 'session_describe':
                     result = {**self.session.describe(), 'filepath': bpy.data.filepath,
                               'scenes': [s.name for s in bpy.data.scenes]}
-                else:
+                elif name == 'inspect':
                     result = inspection.inspect(params['payload'])
+                elif name == 'attach_check':
+                    result = {'fingerprint': attachment.measured(attachment.scene_for(self.session.scene)),
+                              **self.session.describe()}
+                else:
+                    result = getattr(attachment, name.removeprefix('attach_'))(self.session, params['payload'])
             elif name == 'ping':
                 result = {'pong': True}
             elif name == 'get_addon_info':

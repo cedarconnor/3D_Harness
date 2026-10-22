@@ -102,11 +102,11 @@ def _normalize_packed(item):
             _normalize_packed(child)
 
 
-def enhance(raw):
+def enhance(raw, *, saved=True):
     """Supplement a current raw observation without changing it or the scene."""
     validate_observation(raw)
     source = Path(bpy.data.filepath)
-    if not bpy.data.filepath or not source.is_file():
+    if saved and (not bpy.data.filepath or not source.is_file()):
         raise ValueError("Continuity observation requires a saved native checkpoint")
     obs = copy.deepcopy(raw)
     deps = bpy.context.evaluated_depsgraph_get()
@@ -170,11 +170,11 @@ def enhance(raw):
     }
     _normalize_packed(obs)
     obs["revision"] = digest({k: obs[k] for k in ("objects", "materials", "scene", "coverage", "issues")})
-    obs["checkpoint_sha256"] = file_hash(source)
+    obs["checkpoint_sha256"] = file_hash(source) if saved else None
     # Blender marks a file modified only through undo steps, so edits made from Python or an MCP
     # leave is_dirty false. Only a background process, where nothing but the calling script runs,
     # can rely on it; an interactive session cannot show that memory matches the saved file.
-    obs["native_dirty"] = bool(bpy.data.is_dirty) or not bpy.app.background
+    obs["native_dirty"] = bool(bpy.data.is_dirty) or not bpy.app.background or not saved
     if not bpy.app.background:
         obs["native_dirty_reason"] = INTERACTIVE_REASON
     return obs
@@ -182,3 +182,8 @@ def enhance(raw):
 
 def observe(scene=None):
     return enhance(observe_raw(scene))
+
+
+def measure_live(scene=None):
+    """Use the same measured fields for a live guard, without claiming saved-file evidence."""
+    return enhance(observe_raw(scene), saved=False)

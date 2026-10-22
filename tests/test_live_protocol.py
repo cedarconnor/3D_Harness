@@ -125,6 +125,14 @@ class PairedClientTests(unittest.TestCase):
                 blender_bridge.call('inspect', {}, binding=self.session.descriptor_path)
         self.assertEqual(send.call_count, 1)
 
+    def test_reload_between_host_steps_cannot_retarget_a_write(self):
+        expected = (self.private['session_id'], self.private['generation'])
+        self.session.invalidate('same-path reload')
+        with mock.patch.object(blender_bridge, '_request') as send:
+            with self.assertRaisesRegex(ValueError, 'generation'):
+                blender_bridge.call('attach_begin', {}, binding=self.session.descriptor_path, expected=expected)
+        send.assert_not_called()
+
     def test_lost_reply_is_not_retried_and_error_redacts_secret(self):
         token = self.private['token']
         with mock.patch.object(blender_bridge, '_request', side_effect=[self.info, RuntimeError(token)]) as send:
