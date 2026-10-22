@@ -35,9 +35,17 @@ def main():
         raise ValueError('Saved copy does not match the measured live scene')
     if 'recipe' in request:
         from dcc_harness.data.bridge.operations import verify_live, load_qualification
-        if request['recipe']['recipe'] == 'node.asset':
+        if request['recipe']['recipe'] == 'capability.recipe':
+            from dcc_harness.data.bridge import recipes
+            from dcc_harness.environments import load_profile
+            checked=recipes.verify(*recipes.managed_args(request,load_profile(request['profile']),scene),
+                                   read_json(Path(request['out']) / 'capability-output.json'))
+            write_json(Path(request['out']) / 'capability-verified.json',checked)
+        elif request['recipe']['recipe'] == 'node.asset':
             load_qualification(request['asset_qualification'], request['recipe']['parameters'])
-        verify_live(scene, request['recipe'])
+            verify_live(scene, request['recipe'])
+        else:
+            verify_live(scene, request['recipe'])
     from dcc_harness.continuity_blender import observe
     observation = observe(scene)
     assert_worker_profile(request)

@@ -75,3 +75,30 @@ not an operating-system sandbox for arbitrary third-party Python. Inspect provid
 network behavior before activation; quarantined or unreviewed providers are unavailable
 under the default policy. Source changes, even without a version bump, require a new
 profile and requalification. Preserve older installed runtimes for older projects.
+
+## Select and enforce providers
+
+Bind a versioned capability policy to explicit instance IDs, ID prefixes or object
+types and workflow stages. Each rule names a semantic capability, effect slot,
+parameters, dependencies and retained recipe/profile candidates. `require` permits
+only a qualified named provider. `prefer` permits another provider or manual work
+only when that fallback is explicitly configured. A policy revision invalidates
+the affected stage receipts; it never edits a previous policy event.
+
+`best_qualified` currently compares measured execution time only, on matching fixture
+inputs, parameters, Blender build, engine and invocation context. It returns
+`NO_COMPARABLE_EVIDENCE` when those conditions do not match. It does not rank visual
+quality. Initial qualification proves the MESH fixture and first declared engine;
+a longer compatibility list is not proof that every target/engine combination works.
+
+Managed live use also requires an independent background reopen under the same
+profile. GUI invocation alone cannot qualify the publication verifier. Activation
+happens after the recovery copy and dispatch marker because provider registration
+may itself mutate the scene. Session activation never saves global preferences.
+
+The shared execution service retains the chosen requirement, recipe, profile and
+policy with the operation UUID. A capability receipt is produced only after actual
+invocation, independent output validation and publication. Stage submission and
+completion recheck service-owned evidence; a prose claim or owner approval cannot
+substitute for required technical evidence. Projects with no capability policy
+retain their existing behavior.

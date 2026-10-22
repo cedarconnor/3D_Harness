@@ -23,6 +23,40 @@ def inspect_bundle(root, recipe_id, identity):
     return load(root, recipe_id, identity)
 
 
+def validate_managed(request, project):
+    """Check retained host qualification without running activation or adapter code."""
+    import json
+    cap=request['capability']; selected=cap['resolution']['selected']
+    root=reject_links(cap['root']).resolve()
+    if root!=Path(project).resolve() or request['live']['parameters']['operation_id']!=request['operation_id']:
+        raise ValueError('Capability scope differs from managed project/operation')
+    req=cap['requirement']
+    if req['target_id']!=request['live']['target'] or req['context']!='live': raise ValueError('Capability target/context mismatch')
+    bundle=load(root,selected['recipe_id'],selected['recipe_digest'])
+    reference=cap['resolution']['qualification']; report_path=reject_links(reference['report']).resolve()
+    if not report_path.is_relative_to(root / 'capabilities/qualifications') or file_hash(report_path)!=reference['sha256']:
+        raise ValueError('Qualification reference changed or escaped project')
+    record=reject_links(root / 'capabilities/registered' / (sha(reference['sha256'])+'.json'))
+    if json.loads(record.read_text())!=reference: raise ValueError('Qualification registration changed')
+    report=json.loads(report_path.read_text())
+    if (report['passed'] is not True or report['recipe_digest']!=selected['recipe_digest']
+            or report['profile_digest']!=selected['profile_digest'] or 'live' not in report['contexts']):
+        raise ValueError('Recipe is not qualified for this live profile')
+    profile=addons.provider_sources.load_profile(request['profile'])
+    if request['profile']['digest']!=selected['profile_digest'] or not Path(request['profile']['path']).resolve().is_relative_to(root / 'capabilities/profiles'):
+        raise ValueError('Capability profile mismatch')
+    addons.provider_sources.validate_profile(profile,addons.inventory(addons.roots_for(profile)))
+    validate_parameters(bundle['recipe'],cap['parameters'])
+    sha(cap['effect_id'])
+    return bundle,profile
+
+
+def managed_args(request, profile, scene):
+    cap=request['capability']; selected=cap['resolution']['selected']
+    return [cap['root'],selected['recipe_id'],selected['recipe_digest'],profile,scene,
+            cap['requirement']['target_id'],cap['parameters'],cap['effect_id']]
+
+
 def measurements(scene, target_id, fields):
     obj = inspection.target(scene, target_id)
     current = measure_live(scene); record = current['objects'][target_id]

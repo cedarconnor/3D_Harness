@@ -56,6 +56,9 @@ class Jobs:
         if time.time() >= request['deadline'] or (self.session.project / 'execution/cancel.json').exists():
             raise ValueError('Job cancelled or expired')
         scene = attachment.scene_for(self.session.scene)
+        if request['live']['recipe'] == 'capability.recipe':
+            from . import recipes
+            recipes.validate_managed(request,self.session.project)
         if request['live']['recipe'] == 'node.asset':
             source = reject_links(request['live']['parameters']['path']).resolve()
             reference = request.get('asset_qualification', {})
@@ -125,7 +128,20 @@ class Jobs:
                     or not attachment.equivalent(before, attachment.snapshot(scene))):
                 raise ValueError('STALE_SCENE: queued preparation is no longer current')
             self.write(operation_id, 'RUNNING', mutation_started=True)
-            operations.execute_step(scene, request['live'])
+            if request['live']['recipe']=='capability.recipe':
+                from . import recipes, addons
+                bundle,profile=recipes.validate_managed(request,self.session.project)
+                cap=request['capability']; target=cap['requirement']['target_id']
+                scope=sorted(set(sum(bundle['recipe']['coverage'].values(),[])))
+                measured=recipes.measurements(scene,target,scope)
+                if addons.ACTIVE_PROFILE!=digest(profile): addons.enable_profile(profile)
+                addons.assert_profile(profile)
+                if not attachment.equivalent(before,attachment.snapshot(scene)) or measured!=recipes.measurements(scene,target,scope):
+                    raise ValueError('Provider activation changed the scene; reconcile before invoking the recipe')
+                output=recipes.apply(*recipes.managed_args(request,profile,scene))
+                write_exclusive(folder / 'capability-output.json',json_bytes(output))
+            else:
+                operations.execute_step(scene, request['live'])
             candidate = attachment.save_copy(self.session, request['output'])
             captured = attachment.snapshot(scene)
             write_exclusive(folder / 'live-snapshot.json', json_bytes(captured))
@@ -155,6 +171,12 @@ class Jobs:
             raise ValueError('LIVE_DIVERGED: scene changed after candidate save')
         if file_hash(status['candidate']) != status['sha256']:
             raise ValueError('Candidate changed after save')
+        request=json.loads(reject_links(self.folder(op) / 'live-request.json').read_text())
+        if request['live']['recipe']=='capability.recipe':
+            from . import recipes
+            _,profile=recipes.validate_managed(request,self.session.project)
+            recipes.verify(*recipes.managed_args(request,profile,scene),
+                           json.loads(reject_links(self.folder(op) / 'capability-output.json').read_text()))
         return status
 
     def acknowledge(self, payload):

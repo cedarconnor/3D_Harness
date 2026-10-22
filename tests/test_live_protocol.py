@@ -176,3 +176,10 @@ class PairedClientTests(unittest.TestCase):
         self.assertIs(module.target(types.SimpleNamespace(objects=[obj]), 'object.fixture'), obj)
         with self.assertRaisesRegex(ValueError, 'missing or ambiguous'):
             module.target(types.SimpleNamespace(objects=[obj, dict(obj)]), 'object.fixture')
+
+    def test_capability_live_recipe_only_names_its_managed_operation(self):
+        from dcc_harness.live_recipes import validate
+        value={'recipe':'capability.recipe','target':'fixture','parameters':{'operation_id':str(uuid.uuid4())}}
+        self.assertEqual(validate(value),value)
+        value['parameters']['python']='arbitrary code'
+        with self.assertRaises(ValueError): validate(value)

@@ -18,7 +18,7 @@ from .project import now
 AGENT_MARKERS = ('CLAUDECODE', 'AI_AGENT', 'CODEX_SANDBOX', 'CODEX_THREAD_ID', 'CODEX_SESSION_ID', 'GEMINI_CLI', 'DCC_HARNESS_AGENT')
 # Where each kind names the actor whose authority it rests on. Notes and evidence producers are attributions only.
 AUTHORITY = {'stage.complete': ('review', 'reviewer'), 'feedback.verify': ('reviewer',), 'feedback.decide': ('authority',),
-             'stage.reopen': ('authority',), 'workflow.bind': ('binding', 'authority')}
+             'stage.reopen': ('authority',), 'workflow.bind': ('binding', 'authority'), 'capability.bind': ('authority',)}
 SHOWN = ('stage_id', 'note_id', 'action', 'verdict', 'finding', 'reason', 'answers', 'review_policies',
          'check_id', 'note', 'rationale', 'rule', 'stages')
 

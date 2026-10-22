@@ -13,7 +13,7 @@ from .project import now
 
 
 KINDS = {'feedback.add', 'feedback.respond', 'feedback.verify', 'feedback.decide',
-         'workflow.bind', 'stage.submit', 'stage.complete', 'stage.reopen', 'check.propose'}
+         'workflow.bind', 'stage.submit', 'stage.complete', 'stage.reopen', 'check.propose', 'capability.bind'}
 
 
 def fields(value, required, optional=()):

@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schema": {
+      "const": "dcc.capability.receipt.v1"
+    },
+    "operation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "target_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "capability": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$"
+    },
+    "slot": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$"
+    },
+    "provider": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$"
+    },
+    "request_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "requirement_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "current_requirement_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "effect_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "policy_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "recipe_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "profile_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "parameters_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "input_dependency_fingerprint": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "dependency_fingerprint": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "output_fingerprint": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "checkpoint": {
+      "type": "object",
+      "properties": {
+        "checkpoint_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "checkpoint_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "checkpoint_id",
+        "checkpoint_sha256"
+      ],
+      "additionalProperties": false
+    },
+    "evidence": {
+      "type": "object",
+      "properties": {
+        "capability-output.json": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "capability-verified.json": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "observation.json": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "capability-output.json",
+        "capability-verified.json",
+        "observation.json"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schema",
+    "operation_id",
+    "target_id",
+    "capability",
+    "slot",
+    "provider",
+    "request_sha256",
+    "requirement_digest",
+    "current_requirement_digest",
+    "effect_id",
+    "policy_digest",
+    "recipe_digest",
+    "profile_digest",
+    "parameters_digest",
+    "input_dependency_fingerprint",
+    "dependency_fingerprint",
+    "output_fingerprint",
+    "checkpoint",
+    "evidence"
+  ],
+  "additionalProperties": false
+}

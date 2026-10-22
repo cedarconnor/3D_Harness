@@ -256,6 +256,7 @@ bpy.data.libraries.write(request['output'],{tree})
     single['update']['shared_materials'] = 'single_user_copy'
     single['cases'][1]['failure_contains'] = 'Shared material copy policy'
     values.append(single)
+    values[-2]['compatibility']['engines']=['CYCLES']
     results = []
     for value in values:
         ref = recipes.draft(project,value,str(fixture_root / 'capability_adapter.py'),[str(asset)] if value['invocation']['kind']=='node_asset' else [])
@@ -297,6 +298,7 @@ bpy.data.libraries.write(request['output'],{tree})
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--runtime', required=True); parser.add_argument('--blender', required=True)
-    parser.add_argument('--out', required=True); parser.add_argument('--case', choices=['profiles','onboarding'], default='profiles')
+    parser.add_argument('--out', required=True); parser.add_argument('--case', choices=['profiles','onboarding','routing'], default='profiles')
     args = parser.parse_args()
-    {'profiles':profiles,'onboarding':onboarding}[args.case](args)
+    from qualify_capability_routing import routing
+    {'profiles':profiles,'onboarding':onboarding,'routing':routing}[args.case](args)

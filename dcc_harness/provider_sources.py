@@ -6,12 +6,22 @@ from pathlib import Path
 import re
 import tomllib
 
-from .evidence import digest
+from .evidence import digest, read_json
 from .files import file_hash, reject_links
 
 PROFILE_SCHEMA = 'dcc.environment.profile.v1'
 SECRET = re.compile(r'password|secret|token|api.?key|license.?key|credential', re.I)
 MODULE = re.compile(r'^[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*$')
+
+
+def load_profile(reference):
+    if not isinstance(reference, dict) or set(reference) != {'path','sha256','digest'}:
+        raise ValueError('Explicit profile path and digests required')
+    path = reject_links(reference['path'])
+    if file_hash(path) != reference['sha256']: raise ValueError('Profile file changed')
+    value = read_json(path)
+    if digest(value) != reference['digest']: raise ValueError('Profile digest changed')
+    return value
 
 
 def source_files(path):

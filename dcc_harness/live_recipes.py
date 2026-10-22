@@ -1,6 +1,7 @@
 """Portable, closed schemas for the initially qualified live operations."""
 import json
 import math
+import uuid
 
 MODIFIERS = {'BEVEL': {'width': (float, 0, 100), 'segments': (int, 1, 32), 'profile': (float, 0, 1)},
              'SUBSURF': {'levels': (int, 0, 3), 'render_levels': (int, 0, 4)},
@@ -24,7 +25,10 @@ def validate(value):
     params, recipe = value['parameters'], value['recipe']
     if not isinstance(params, dict):
         raise ValueError('Recipe parameters must be an object')
-    if recipe == 'external.capture':
+    if recipe == 'capability.recipe':
+        if set(params) != {'operation_id'} or str(uuid.UUID(params['operation_id'])) != params['operation_id']:
+            raise ValueError('Capability invocation requires its managed operation UUID')
+    elif recipe == 'external.capture':
         if set(params) != {'snapshot', 'fingerprint'}:
             raise ValueError('External import requires the explicitly inspected snapshot')
         text(params['snapshot']); text(params['fingerprint'])

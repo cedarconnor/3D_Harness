@@ -122,6 +122,15 @@ class RecipeTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'retained|qualification'):
             recipes.register_qualified(self.root, str(report))
 
+    def test_registration_uses_one_full_hash_path_component(self):
+        from unittest.mock import patch
+        from dcc_harness import recipes
+        ref=self.draft(); path=self.root/'report.json'; path.write_text('{}')
+        report={'recipe_digest':ref['digest'],'profile_digest':'a'*64,'contexts':['background']}
+        with patch.object(recipes,'check_report',return_value=report):
+            record=recipes.register_qualified(self.root,path)
+        self.assertTrue((self.root/'capabilities/registered'/(record['sha256']+'.json')).is_file())
+
     def test_context_compatibility_is_explicit_and_not_inferred_from_installation(self):
         from dcc_harness import recipes
         value = recipe()

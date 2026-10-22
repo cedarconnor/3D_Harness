@@ -64,10 +64,16 @@ def qualify(root, recipe_id, recipe_digest, profile_digest, *, blender, out):
                 run_worker(blender,verify_folder,Path(__file__).with_name('_recipe_blender.py'),'recipe_verify',
                            {**params,'applied':applied},profile=ref,gui=case['context']=='live',timeout=120)
                 entry['verified'] = read_json(verify_folder / 'recipe_verify-result.json')
+                if case['context']=='live' and entry['verified']['passed']:
+                    background_folder=case_folder / 'background-verify'; background_folder.mkdir()
+                    run_worker(blender,background_folder,Path(__file__).with_name('_recipe_blender.py'),'recipe_verify',
+                               {**params,'applied':applied},profile=ref,timeout=120)
+                    entry['background_verified']=read_json(background_folder / 'recipe_verify-result.json')
             entry['actual_passed'] = applied['passed'] and entry.get('verified',{}).get('passed',False)
+            if case['context']=='live': entry['actual_passed'] &= entry.get('background_verified',{}).get('passed',False)
         except (ValueError,RuntimeError,TimeoutError) as exc:
             entry.update(actual_passed=False,error=str(exc),error_type=type(exc).__name__)
-        failure = entry.get('verified',entry.get('applied',entry)).get('error',entry.get('error',''))
+        failure = entry.get('background_verified',entry.get('verified',entry.get('applied',entry))).get('error',entry.get('error',''))
         entry['expected_result'] = (entry['actual_passed'] if case['expect']=='pass' else
                                     not entry['actual_passed'] and case['failure_contains'] in failure)
         results.append(entry)
@@ -96,6 +102,11 @@ def check_report(root, report_path):
         raise ValueError('Qualification identity changed')
     if report['contexts'] != qualifiable_contexts(bundle['recipe']): raise ValueError('Qualification context changed')
     if [r['name'] for r in report['results']] != [c['name'] for c in bundle['recipe']['cases']]: raise ValueError('Qualification cases changed')
+    for result,case in zip(report['results'],bundle['recipe']['cases']):
+        if result['context']!=case['context'] or result['expect']!=case['expect']:
+            raise ValueError('Qualification case semantics changed')
+        if case['expect']=='pass' and case['context']=='live' and not result.get('background_verified',{}).get('passed'):
+            raise ValueError('Managed live qualification requires background reopen proof')
     if not all(r['expected_result'] and (r['expect'] == 'fail' or
                 (r['applied']['passed'] and r['verified']['passed'] and r['applied']['repeat']['output']['effect_count']==1))
                for r in report['results']): raise ValueError('Qualification measurements failed')
@@ -111,19 +122,28 @@ def register_qualified(root, report_path):
     report = check_report(root,report_path); path = Path(report_path).resolve(); identity = file_hash(path)
     record = {'schema':'dcc.capability.registration.v1','report':str(path),'sha256':identity,
               'recipe_digest':report['recipe_digest'],'profile_digest':report['profile_digest']}
-    target = reject_links(Path(root) / 'capabilities/registered' / report['recipe_digest'] / (identity + '.json'))
+    target = reject_links(Path(root) / 'capabilities/registered' / (identity + '.json'))
     if target.exists():
         if read_json(target) != record: raise ValueError('Registration changed')
     else: write_json(target,record)
     return {**record,'state':'QUALIFIED','contexts':report['contexts']}
 
 
+def registrations(root, identity):
+    result=[]
+    for path in sorted((Path(root) / 'capabilities/registered').glob('*.json')):
+        record=read_json(reject_links(path))
+        if record.get('recipe_digest')!=identity: continue
+        if path.stem!=sha(record['sha256']): raise ValueError('Registration filename changed')
+        result.append(record)
+    return result
+
+
 def require_qualified(root, recipe_id, identity, *, context=None, profile_digest=None):
     bundle = load(root,recipe_id,identity)
-    records = sorted((Path(root) / 'capabilities/registered' / identity).glob('*.json'))
+    records = registrations(root,identity)
     if not records: raise ValueError('DRAFT recipe has no qualified registration')
-    for path in records:
-        record = read_json(reject_links(path))
+    for record in records:
         if profile_digest is not None and record['profile_digest'] != profile_digest: continue
         if file_hash(reject_links(record['report'])) != record['sha256']: raise ValueError('STALE qualification report')
         report = check_report(root,record['report'])
@@ -135,7 +155,7 @@ def require_qualified(root, recipe_id, identity, *, context=None, profile_digest
 
 def inspect(root, recipe_id, identity):
     bundle = load(root,recipe_id,identity)
-    if any((Path(root) / 'capabilities/registered' / identity).glob('*.json')):
+    if registrations(root,identity):
         try:
             return require_qualified(root,recipe_id,identity)
         except ValueError as exc:

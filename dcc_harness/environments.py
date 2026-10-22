@@ -37,15 +37,7 @@ def create_profile(root, inventory, selected, preferences):
 
 
 def load_profile(reference):
-    if not isinstance(reference, dict) or set(reference) != {'path','sha256','digest'}:
-        raise ValueError('Explicit profile path and digests required')
-    path = reject_links(reference['path'])
-    if file_hash(path) != reference['sha256']:
-        raise ValueError('Profile file changed')
-    value = read_json(path)
-    if digest(value) != reference['digest']:
-        raise ValueError('Profile digest changed')
-    return value
+    return provider_sources.load_profile(reference)
 
 
 validate_profile = provider_sources.validate_profile

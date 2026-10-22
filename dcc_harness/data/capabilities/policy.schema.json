@@ -1,0 +1,237 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schema": {
+      "const": "dcc.capability.policy.v1"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$"
+          },
+          "capability": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$"
+          },
+          "mode": {
+            "enum": [
+              "require",
+              "prefer",
+              "best_qualified"
+            ]
+          },
+          "providers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "fallback_providers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 0,
+            "uniqueItems": true
+          },
+          "allow_manual": {
+            "type": "boolean"
+          },
+          "candidates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "provider": {
+                  "type": "string",
+                  "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$"
+                },
+                "recipe_id": {
+                  "type": "string",
+                  "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$"
+                },
+                "recipe_digest": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "profile_digest": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              },
+              "required": [
+                "provider",
+                "recipe_id",
+                "recipe_digest",
+                "profile_digest"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "selectors": {
+            "type": "object",
+            "properties": {
+              "instance_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 0,
+                "uniqueItems": true
+              },
+              "prefixes": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 0,
+                "uniqueItems": true
+              },
+              "types": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 0,
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "instance_ids",
+              "prefixes",
+              "types"
+            ],
+            "additionalProperties": false
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "slot": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$"
+          },
+          "parameters": {
+            "type": "object"
+          },
+          "dependencies": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "geometry",
+                "transform",
+                "materials",
+                "modifiers",
+                "nodes",
+                "properties"
+              ]
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "benchmark": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "metric": {
+                    "const": "elapsed_seconds"
+                  },
+                  "direction": {
+                    "const": "minimize"
+                  },
+                  "case": {
+                    "type": "string",
+                    "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$"
+                  }
+                },
+                "required": [
+                  "metric",
+                  "direction",
+                  "case"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "capability",
+          "mode",
+          "providers",
+          "fallback_providers",
+          "allow_manual",
+          "candidates",
+          "selectors",
+          "stages",
+          "slot",
+          "parameters",
+          "dependencies",
+          "benchmark"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "mode": {
+                  "const": "require"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "allow_manual": {
+                  "const": false
+                },
+                "fallback_providers": {
+                  "maxItems": 0
+                }
+              }
+            }
+          }
+        ]
+      },
+      "minItems": 0,
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "schema",
+    "id",
+    "version",
+    "rules"
+  ],
+  "additionalProperties": false
+}

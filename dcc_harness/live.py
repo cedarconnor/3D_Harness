@@ -190,7 +190,8 @@ class LiveBackend:
                  {'source': {'path': receipt['candidate'], 'sha256': receipt['sha256']},
                   'out': str(self.folder), 'scene': receipt['scene'], 'inventory': receipt['inventory'],
                   'fingerprint': receipt['fingerprint'], 'snapshot': receipt['snapshot'], 'recipe': self.request['live'],
-                  'asset_qualification': self.request.get('asset_qualification')})
+                  'asset_qualification': self.request.get('asset_qualification'),
+                  **({'capability':self.request['capability']} if 'capability' in self.request else {})})
 
     def before_publish(self, receipt):
         checked = self.call('job_check', {'operation_id': receipt['operation_id']})

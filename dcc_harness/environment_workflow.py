@@ -113,6 +113,9 @@ def stages(events, native=None):
             result[data['stage_id']].update(state='complete', receipt_id=event['id'], submission_id=None, inherited_gaps=[])
         elif event['kind'] == 'stage.reopen':
             invalidate(data['stage_id'])
+        elif event['kind'] == 'capability.bind':
+            for stage in data['affected_stages']:
+                invalidate(stage)
         elif event['kind'] == 'feedback.add':
             note = data['note']; sid = note['stage_id']
             note_stages[note['id']] = sid
@@ -315,6 +318,10 @@ def _submit(ctx, value):
     if value['schema'] != 'dcc.environment.submission.v1':
         raise ValueError('Unsupported stage submission')
     ctx.quiet(); ctx.checkpoint(value['checkpoint'], current=True); c.text(value['note'])
+    from .capabilities import verify_receipts
+    capability_report = verify_receipts(ctx.root,value['stage_id'],value['checkpoint'])
+    if not capability_report['passed']:
+        raise ValueError('Required capability receipts are missing or stale')
     spec, states = _stage(ctx, value['stage_id'])
     if states[value['stage_id']]['state'] == 'complete':
         raise ValueError('Reopen a completed stage before revising it')
@@ -332,6 +339,8 @@ def _submit(ctx, value):
     result = {'stage_id': value['stage_id'], 'submission': value, 'reports': reports, 'missing_evidence': missing,
               'unresolved_notes': blockers(), 'predecessors': {p: states[p]['receipt_id'] for p in spec['after']},
               'review_policy': review_policy(ctx.root, ctx.events, value['stage_id'])}
+    if capability_report['requirements']:
+        result['capabilities'] = capability_report
     ran = checks.run(ctx, value['stage_id'], value['checkpoint'], value.get('check_measurements', {}))
     if ran is not None:
         result.update(checks=ran, failed_checks=[r['id'] for r in ran if not r['passed']])

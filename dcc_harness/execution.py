@@ -264,9 +264,11 @@ def execute_operation(root, value):
     if 'profile' in value:
         from .environments import load_profile
         load_profile(value['profile'])
-        if kind == 'live':
+        if kind == 'live' and 'capability' not in value:
             raise ValueError('Live profiles require a qualified capability recipe')
         request['profile'] = value['profile']
+    if 'capability' in value:
+        request['capability'] = value['capability']
     folder = reject_links(_folder(root) / 'operations' / operation_id)
     with _exclusive(root), _authorized(root, stage):
         if folder.exists():
@@ -275,6 +277,9 @@ def execute_operation(root, value):
                 raise ValueError('Operation ID reused with different content')
             return _outcome(folder)
         active, config = _admit(root, stage, expected_parent)
+        if 'capability' in request:
+            from .capabilities import admit
+            admit(root,value)
         if kind == 'live' and request.get('live', {}).get('recipe') != 'external.capture':
             from .live import ensure_aligned
             ensure_aligned(root)
@@ -349,6 +354,9 @@ def execute_operation(root, value):
                 _publication_guard.reset(guard)
             result = {'operation_id': operation_id, 'status': outcome['status'], 'outcome': outcome}
             result.update(backend.published(result, receipt))
+            if 'capability' in request:
+                from .capabilities import record_operation
+                result['capability_receipt'] = record_operation(root,folder,result,request)
             write_json(folder / 'outcome.json', result)
             return result
         except Exception as exc:

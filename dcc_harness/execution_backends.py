@@ -21,12 +21,16 @@ class BackgroundBackend:
         self.run = run
 
     def prepare(self, request: dict) -> dict:
+        self.request = request
         return {'operation_id': request['operation_id'], 'source': request['source']}
 
     def submit(self, request: dict, prepared: dict) -> str:
         if prepared['operation_id'] != request['operation_id'] or prepared['source'] != request['source']:
             raise ValueError('Prepared background operation changed')
-        self.run(Path(__file__).with_name('_execution_blender.py'), 'execute',
+        if 'capability' in request:
+            self.run(Path(__file__).with_name('_capability_blender.py'),'execute',request)
+        else:
+            self.run(Path(__file__).with_name('_execution_blender.py'), 'execute',
                  {'source': request['source'], 'script': request['script'],
                   'script_sha256': request['script_sha256'], 'output': request['output']})
         write_json(self.folder / 'backend-saved.json',
@@ -51,6 +55,9 @@ class BackgroundBackend:
         self.run(Path(__file__).with_name('_observe_blender.py'), 'observe',
                  {'source': {'path': receipt['candidate'], 'sha256': receipt['sha256']},
                   'out': str(self.folder), 'compact': True})
+        if 'capability' in self.request:
+            self.run(Path(__file__).with_name('_capability_blender.py'),'capability-verify',
+                     {**self.request,'source':{'path':receipt['candidate'],'sha256':receipt['sha256']}})
 
     def before_publish(self, receipt: dict) -> None:
         pass

@@ -21,7 +21,7 @@ class OperationRequest(TypedDict):
 
 def validate_operation(value: dict) -> dict:
     required = set(OperationRequest.__annotations__)
-    if not isinstance(value, dict) or not required <= set(value) or set(value) - required - {'live', 'profile'}:
+    if not isinstance(value, dict) or not required <= set(value) or set(value) - required - {'live', 'profile', 'capability'}:
         raise ValueError('Invalid managed operation fields')
     if value['schema'] != 'dcc.execution.operation.v2' or value['backend'] not in ('background', 'live'):
         raise ValueError('Invalid operation schema or backend')

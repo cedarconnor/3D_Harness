@@ -249,6 +249,7 @@ def requirements(root, stage_id):
                 'evidence': [{'kind': kind, **EVIDENCE[kind][1](before)} for kind in spec['evidence']],
                 'feedback_ids': applicable, 'note': '<what this submission is and what to look at>'}
     pinned = _pinned_checks(events, state, stage_id, skeleton)
+    from . import capabilities
     return {'schema': 'dcc.requirements.v1', 'project': packet['project'], 'stage_id': stage_id,
             'state': states[stage_id]['state'],
             'blocked_by': [p for p in spec['after'] if states[p]['state'] not in ('complete', 'inherited')],
@@ -256,7 +257,8 @@ def requirements(root, stage_id):
             'evidence': [{'kind': kind, 'what': EVIDENCE[kind][0]} for kind in spec['evidence']],
             'feedback_ids': applicable,
             'unresolved_blockers': feedback.unresolved(events, state, None if stage_id == 'delivery' else stage_id),
-            'checks': pinned, 'expected_revision': events[-1]['id'], 'skeleton': skeleton,
+            'checks': pinned, 'capabilities': capabilities.status(root,stage_id,checkpoint),
+            'expected_revision': events[-1]['id'], 'skeleton': skeleton,
             'then': [f'{RUN} fill-hashes "<stage.draft.json>" "<stage.json>"',
                      f'{RUN} stage-submit {project} --submission "<stage.json>" --expected-revision {events[-1]["id"]} '
                      f'--request-id {uuid.uuid4()}'],
