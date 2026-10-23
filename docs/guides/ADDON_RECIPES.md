@@ -62,6 +62,21 @@ manufacture measured output outside that invocation. An unchanged call needs exa
 prior successful invocation proof in the same native process; cross-process reuse
 uses verified host receipts. Source, intent and measured state are checked each time.
 
+Claimed outputs currently require one native modifier on the target, named
+`DCC::` plus the first 48 characters of the effect ID. `coverage.writes` must include
+`modifiers`; standalone geometry, material and shader-node effects are refused at
+draft/load admission. Node assets use their owned geometry-node modifier. Declared
+geometry/material side effects alongside that modifier remain subject to the existing
+coverage and shared-user checks.
+
+The harness independently measures the modifier identity, stack position, native
+settings and supported node-asset data before and after the provider call. Inspector
+JSON is supplementary: changed transform metadata cannot establish modifier work.
+Editor expansion/active flags do not count as effect changes. Saved verification
+requires the same retained native effect evidence; legacy outputs without it must be
+requalified. Whole-scene preservation and unsupported-surrounding-state refusal still
+apply.
+
 Parameter schemas use a strict, portable JSON Schema subset shared with Blender:
 closed objects (`properties`, `required`, `additionalProperties: false`), arrays with
 `items` and length bounds, scalar types, `enum`, numeric bounds and string length bounds.

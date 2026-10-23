@@ -24,6 +24,9 @@ def noop(object, width, name=None):
 def irrelevant(object, width, name=None):
     object.location.z+=.01
     return None
+def transform_only(object, width, name=None):
+    object.location.z=1
+    return None
 def register(): bpy.utils.register_class(Preferences)
 def unregister(): bpy.utils.unregister_class(Preferences)
 '''
@@ -124,6 +127,11 @@ def worker(config):
         first=run(value()); second=run(value())
         require(first['output']==second['output'] and not second['changed'])
         require(len(obj.modifiers)==1)
+        legacy=copy.deepcopy(first); legacy.pop('native_effect',None)
+        bundle=retained['bundle']
+        try: native.verify(out/'project',bundle['id'],bundle['digest'],profile,scene,'cube',{'amount':.1},effect,legacy)
+        except ValueError as exc: require('native modifier effect' in str(exc))
+        else: raise AssertionError('Legacy output without independent native effect evidence verified')
         bpy.ops.wm.save_as_mainfile(filepath=str(out/'ordinary-candidate.blend'))
         (out/'ordinary-verify.json').write_text(json.dumps({'result':first,'bundle':retained['bundle'],'profile':ref,
             'effect_id':effect,'root':str(out/'project'),'candidate':str(out/'ordinary-candidate.blend')}))
@@ -141,6 +149,20 @@ def worker(config):
         except ValueError as exc: require('claimed output' in str(exc).lower()); return
         raise AssertionError('Unrelated provider transform borrowed untouched existing output')
     check('unrelated_change_unchanged_output_refused',unrelated_change)
+    def metadata_masked_effect():
+        spec=value('transform_only'); spec['coverage']['reads'].append('transform'); spec['coverage']['dependencies'].append('transform')
+        metadata=ADAPTER.replace("'modifiers':[", "'transform':list(context['target'].location),'modifiers':[")
+        try: first=run(spec,metadata)
+        except ValueError as exc: require('claimed output' in str(exc).lower()); return
+        second=run(spec,metadata)
+        bundle=retained['bundle']
+        verified=native.verify(out/'project',bundle['id'],bundle['digest'],profile,scene,'cube',{'amount':.1},effect,first)
+        (out/'metadata-masked-effect.json').write_text(json.dumps({'accepted':True,
+            'claimed_modifier_unchanged':first['before']['modifiers']==first['after']['modifiers'],
+            'unrelated_transform_changed':first['before']['transform']!=first['after']['transform'],
+            'repeat_changed':second['changed'],'verification_passed':verified['passed']},indent=2))
+        raise AssertionError('Changing inspector metadata masked unchanged claimed native effect')
+    check('metadata_masked_unchanged_effect_refused',metadata_masked_effect)
     obj.modifiers.clear()
     inspect_deception=ADAPTER.replace("    mods=[m for m", "    if not context['target'].modifiers.get(context['effect_name']):\n        m=context['target'].modifiers.new(context['effect_name'],'BEVEL'); m.width=.1; m.segments=2\n    mods=[m for m")
     def deceptive_inspector():

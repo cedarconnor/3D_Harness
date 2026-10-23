@@ -24,6 +24,19 @@ class FreshnessTests(Fixture):
         self.assertEqual(cap.requirements(self.root,'direction',changed),before)
 
 
+class EffectAdmissionTests(unittest.TestCase):
+    def test_nonmodifier_effects_refused_at_recipe_admission(self):
+        for kind in ('geometry','materials','nodes','transform'):
+            with self.subTest(kind=kind):
+                value=recipe(); value['coverage']['writes']=[kind]
+                with self.assertRaisesRegex(ValueError,'modifier effect'):
+                    recipes.validate(value)
+
+    def test_modifier_with_material_geometry_side_effects_remains_admitted(self):
+        value=recipe(); value['coverage']['writes']=['modifiers','materials','geometry']
+        self.assertEqual(recipes.validate(value),value)
+
+
 class SourceReviewTests(unittest.TestCase):
     setUp=environment_tests.EnvironmentTests.setUp
     scan=environment_tests.EnvironmentTests.scan

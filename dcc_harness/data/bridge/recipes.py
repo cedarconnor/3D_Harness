@@ -180,6 +180,22 @@ def output_record(adapter, context):
     return output
 
 
+def native_effect(measured, target, effect_id, *, required=True):
+    """Resolve the claimed identity from native RNA measurement, never adapter JSON.
+
+    Modifier editor expansion/activation are UI state, not provider output work.
+    They remain in the full preservation measurements checked around the call.
+    """
+    name='DCC::'+effect_id[:48]
+    matches=[(index,row) for index,row in enumerate(measured['modifiers'])
+             if row['settings'].get('name')==name]
+    if not matches and not required: return None
+    if len(matches)!=1: raise ValueError('Claimed output requires exactly one measured owned effect (native modifier)')
+    index,row=matches[0]; state=copy.deepcopy(row)
+    for field in ('show_expanded','is_active'): state['settings'].pop(field,None)
+    return {'kind':'modifier','target_id':target,'name':name,'stack_index':index,'state':state}
+
+
 def other_materials(scene, target):
     current = measure_live(scene)
     return {key:{'bindings':record['material_ids'], 'materials':{
@@ -192,6 +208,7 @@ def apply(root, recipe_id, identity, profile, scene, target, parameters, effect_
     bundle, context = prepare_context(root, recipe_id, identity, profile, scene, target, parameters, effect_id)
     recipe = bundle['recipe']; scope = sorted(set(sum(recipe['coverage'].values(), [])))
     before = measurements(scene, target, scope)
+    prior_effect = native_effect(before,target,effect_id,required=False)
     protected_materials = other_materials(scene,target) if recipe['update']['shared_materials']=='single_user_copy' else None
     shared = [(index,slot.material) for index,slot in enumerate(context['target'].material_slots) if slot.material
               and any(o != context['target'] and any(s.material == slot.material for s in o.material_slots) for o in bpy.data.objects)]
@@ -203,9 +220,9 @@ def apply(root, recipe_id, identity, profile, scene, target, parameters, effect_
         if measurements(scene,target,scope)!=before:
             raise ValueError('Adapter changed measured state before provider invocation')
         try:
-            prior_output=copy.deepcopy(output_record(adapter,context))
+            output_record(adapter,context)
         except ValueError:
-            prior_output=None  # Initial invocation may have no owned effect yet.
+            pass  # Initial invocation may have no owned effect yet.
         if measurements(scene,target,scope)!=before:
             raise ValueError('Output inspector mutated state before provider invocation')
         intent=digest({'declared':proof_key,'arguments':kwargs})
@@ -221,15 +238,17 @@ def apply(root, recipe_id, identity, profile, scene, target, parameters, effect_
             returned.name=context['effect_name']
         bpy.context.view_layer.update()
         after=measurements(scene,target,scope)
+        effect=native_effect(after,target,effect_id)
         output=output_record(adapter,context)
         if measurements(scene,target,scope)!=after:
             raise ValueError('Output inspector mutated state after provider invocation')
-        proven=PROVEN_INVOCATIONS.get(intent)==digest({'after':after,'output':output})
-        if prior_output==output and after!=before:
+        proven=PROVEN_INVOCATIONS.get(intent)==digest({'after':after,'output':output,'native_effect':effect})
+        if prior_effect==effect and after!=before:
             raise ValueError('Provider changed unrelated measured state but not the claimed output')
-        if after==before and not proven:
+        if prior_effect==effect and not proven:
             raise ValueError('Unchanged provider invocation has no prior exact successful proof')
-        called.append({'invocation':recipe['invocation'], 'output':output,'after':after,'intent':intent})
+        called.append({'invocation':recipe['invocation'], 'output':output,'after':after,'intent':intent,
+                       'native_effect_before':prior_effect,'native_effect_after':effect})
         return returned
     context['invoke'] = invoke
     with context_for(scene, context['target']):
@@ -252,9 +271,10 @@ def apply(root, recipe_id, identity, profile, scene, target, parameters, effect_
                 raise ValueError('Shared material copy policy requires isolated copies and unchanged other users')
     addons.assert_profile(profile); load(root,recipe_id,identity)
     after = measurements(scene,target,scope)
-    PROVEN_INVOCATIONS[called[0]['intent']]=digest({'after':after,'output':output})
+    effect=native_effect(after,target,effect_id)
+    PROVEN_INVOCATIONS[called[0]['intent']]=digest({'after':after,'output':output,'native_effect':effect})
     return {'output':output, 'before':before, 'after':after, 'invocations':[row['invocation'] for row in called],
-            'invocation_evidence':called,
+            'invocation_evidence':called,'native_effect':effect,
             'output_fingerprint':digest(output), 'changed':before != after}
 
 
@@ -266,9 +286,11 @@ def verify(root, recipe_id, identity, profile, scene, target, parameters, effect
     before=measurements(scene,target,scope)
     output = output_record(adapter,context)
     observed = measurements(scene,target,scope)
+    effect=native_effect(observed,target,effect_id)
     if observed!=before: raise ValueError('Output inspector mutated saved state')
+    if effect!=expected.get('native_effect'): raise ValueError('Saved native modifier effect differs from applied evidence; requalify legacy output')
     if output != expected['output'] or observed != expected['after']: raise ValueError('Saved output differs from applied measurements')
     validation = adapter.verify_saved(observed,output)
     if not isinstance(validation,dict) or validation.get('passed') is not True: raise ValueError('Saved output validator failed')
     addons.assert_profile(profile); load(root,recipe_id,identity)
-    return {'passed':True,'output':output,'measurements':observed,'output_fingerprint':digest(output)}
+    return {'passed':True,'output':output,'native_effect':effect,'measurements':observed,'output_fingerprint':digest(output)}

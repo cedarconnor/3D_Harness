@@ -118,6 +118,8 @@ def validate(value):
     strings(compat['contexts'], {'background','live'})
     exact(value['coverage'], {'reads','writes','dependencies'})
     for fields in value['coverage'].values(): strings(fields, MEASUREMENTS)
+    if 'modifiers' not in value['coverage']['writes']:
+        raise ValueError('Supported claimed output requires a native modifier effect: include modifiers in coverage.writes and create or update the owned modifier; standalone geometry/material/node effects are unsupported')
     invocation = value['invocation']; exact(invocation, {'kind','entry','completion','cancellation'} | ({'arguments'} if 'arguments' in invocation else set()))
     if 'arguments' in invocation:
         if invocation['kind']!='python_function' or not isinstance(invocation['arguments'],dict):
