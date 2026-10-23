@@ -14,7 +14,7 @@
 
 - **Delivers one package and endpoint:** `dcc-harness-mcp` exposes build rules, managed commands, paired live operations and observations. `new-project` creates an owned background baseline; live attachment adopts an explicitly selected open scene. The bundled bridge derives from upstream MCP for Blender 2.2.2 with telemetry and activity recording removed. Raw live Python is outside this endpoint.
 
-- **Uses qualified local add-ons:** discover providers, pin their environment, qualify reusable recipes and require or prefer them at named workflow stages. Native receipts prove actual use; relevant edits update the same effect while unchanged effects reuse evidence. See [add-on onboarding and limits](docs/guides/ADDON_RECIPES.md).
+- **Uses qualified local add-ons:** discover providers, pin their environment, qualify reusable recipes and require or prefer them at named workflow stages. Native receipts prove actual use. Unchanged inputs and verified effects reuse evidence; refreshing changed dependencies requires a newly measured native contribution. See [add-on onboarding and limits](docs/guides/ADDON_RECIPES.md).
 
 - **Executes through one managed service:** applies bounded operations in the paired open scene or runs scripts in owned background Blender. Both paths retain recovery evidence, independently reopen saved results, check the contract and control publication. Autonomous mode can complete stages with agent review; approval-gated mode requires owner approval before the next stage. Durable operation IDs, cancellation and time/operation budgets bound execution.
 - **Continues from files:** retains the brief, decisions, checkpoint history, handoff notes, and unresolved operations so a fresh context can resume the project.
@@ -93,11 +93,11 @@ Discover an installed provider with `blender_capabilities`, pin its environment,
 - **`prefer`:** use the provider when applicable; substitution or manual work requires an explicitly configured fallback.
 - **`best_qualified`:** timing selection is unavailable; only explicitly configured fallbacks may proceed. Whole-worker timing cannot rank provider performance.
 
-The agent checks capability requirements at stage boundaries and after refresh. Changes to declared dependencies or deletion/change of a claimed effect trigger an update to the same effect; unchanged effects reuse evidence without another job. Another layer requires an explicit new slot. Current effect attribution requires an independently measured native modifier; standalone geometry/material/shader-node outputs are refused. Legacy results lacking that native evidence require requalification. There is no background edit watcher.
+The agent checks capability requirements at stage boundaries and after refresh. Declared dependency changes invalidate prior evidence. Refresh must independently prove a qualifying native modifier contribution; an idempotent provider that leaves its effect unchanged after those inputs change is currently refused. Unchanged inputs and verified effects reuse evidence without another job. Deleting an owned effect permits verified recreation with the same identity. Another layer requires an explicit new slot. Current effect attribution requires an independently measured native modifier; standalone geometry/material/shader-node outputs are refused. Legacy results lacking that native evidence require requalification. There is no background edit watcher.
 
 Once the artist confirms a capability policy, every revision requires owner confirmation. Add-ons are installed and licensed separately, and each real provider needs its own qualification. See the [add-on guide and executable onboarding example](docs/guides/ADDON_RECIPES.md).
 
-Portable [CI](.github/workflows/portable.yml) is configured to install the declared `mcp==1.26.0` dependency and run source/installed package checks on Windows and Linux. Transitive dependencies are not fully locked. Blender qualification remains a separate local Windows gate. The [external-review ledger](docs/archive/releases/EXTERNAL_REVIEW_0_23_RESULTS.md) records the measured follow-up limits, pending integrated gate and unresolved preference incident.
+Portable [CI](.github/workflows/portable.yml) is configured to install the declared `mcp==1.26.0` dependency and run source/installed package checks on Windows and Linux. Transitive dependencies are not fully locked. Blender qualification remains a separate local Windows gate. The [external-review ledger](docs/archive/releases/EXTERNAL_REVIEW_0_23_RESULTS.md) records the completed local integrated gate, measured limits and unresolved preference incident. Independent whole-branch review, hosted CI and delivery remain pending.
 
 ## Everyday workflow
 
@@ -177,18 +177,20 @@ Read [craft capabilities and recipe boundaries](docs/guides/CRAFT_SKILLS.md) bef
 
 ## Validation and current limits
 
-The v0.23.0 release is qualified on Blender 5.1.1 and Python 3.11 on Windows:
+The v0.23.0 follow-up passed its frozen local gate on Blender 5.1.1 and Python 3.11.9 on Windows. Independent whole-branch review, hosted CI and delivery remain pending:
 
 | Verification | Result |
 |---|---|
-| Source and clean-installed test suites | 593 tests each: 591 passed, two existing Windows permission skips |
-| Maintained release gates | All 17 passed |
-| Open-scene execution | All 26 live scenarios passed, plus dirty-image and external-dependency preservation |
-| Add-on capabilities | Discovery/profiles, native recipes, routing, revision freshness and public MCP onboarding passed |
+| Source and clean-installed test suites | 680 tests each: source 678 passed / two skips; installed 677 passed / three skips |
+| Maintained release gates | All 22 passed against the frozen source and installed wheel |
+| Open-scene execution | All 27 live scenarios, dirty-image preservation and populated/textured transport recovery passed |
+| Add-on capabilities | All five groups passed: profiles, nine-recipe onboarding (eight qualified; deliberate poll refusal), routing, revisions and stdio; 16 focused native review checks also passed |
 | Workflow/backend combinations | Autonomous and approval-gated modes passed in background and live Blender |
 | Distribution | Wheel/source-archive parity, installed entry points and standalone bridge parity passed; final documentation package retained identical qualified runtime/bridge bytes |
 
-The final review found three Important issues: artist-policy downgrade, missing owner CLI confirmation and rejected native node-group names. All three were fixed with five failing-before/passing-after regressions and renewed native qualification. Telemetry and activity recording remain absent from the bundled MCP.
+The historical P22 final review found three Important issues: artist-policy downgrade, missing owner CLI confirmation and rejected native node-group names. All three were fixed with five failing-before/passing-after regressions and renewed native qualification. Telemetry and activity recording remain absent from the bundled MCP.
+
+The [follow-up ledger](docs/archive/releases/EXTERNAL_REVIEW_0_23_RESULTS.md) records the current source/installed counts, skip reasons, retained failures, package proof, warnings and unresolved historical preference incident. The two source skips require unavailable Windows symlink privileges; the installed suite additionally skips a source-build regression without the declared build backend. The separate actual-sdist/rebuilt-wheel gate passed. Native logs retain a `Material.use_nodes` deprecation and an accept-loop shutdown `WinError 10038` before normal quit; dependency warnings are also retained.
 
 See [add-on evidence and limits](docs/archive/releases/ADDON_CAPABILITIES_RESULTS.md), [final review and decisions](docs/archive/releases/ADDON_CAPABILITIES_REVIEW.md), and [live qualification](docs/archive/releases/LIVE_EXECUTION_RESULTS.md). These results use owned disposable scenes and synthetic providers; they do not establish compatibility or artistic superiority for arbitrary third-party add-ons. The [changelog](CHANGELOG.md) links historical release evidence, and the [scripts index](scripts/README.md) lists reproducible qualification commands.
 
@@ -207,6 +209,7 @@ The harness's own overhead has improved. On the same one-parameter revision, a f
 Current boundaries:
 
 - Managed execution enforces reservations, verification, publication and stage policy. It is not a native sandbox, an unconditional exactly-once guarantee, an external-write interceptor or an unattended agent scheduler.
+- Windows deep Python evidence and recipe-bundle I/O are qualified at retained paths. Long native Blender `.blend`/asset paths remain unsupported; deep provider discovery/import remains unqualified.
 - Real add-ons require provider-specific qualification. Managed recipes initially cover measured MESH cases and qualified engines/contexts; arbitrary custom properties and GUI-only providers without independent background verification remain unsupported. Provider-dependent preview/recovery beyond the retained fixtures needs additional native proof.
 - Collection instances, local or from linked libraries, are observed since 0.10.0. Vertex, face, particle and Geometry Nodes instancing and library overrides are still reported as issues. External revisions pack their textures since 0.16.0 but still reject linked libraries, because packing one changes its collections' asset identity. Libraries are referenced, not copied into the project store.
 - Blender qualification only; Unreal and other DCC adapters remain planned.

@@ -2,7 +2,7 @@
 
 ## Maintained release verification
 
-Run `python scripts/verify_release.py --out <fresh evidence folder> --blender <Blender executable>` from a development environment with the declared dependencies for source tests, complete wheel/sdist runtime parity, clean-environment installation, installed-runtime tests and native units, adoption, managed execution, MCP and live execution gates. Omit `--blender` for portable checks only. Logs and wheel hashes are retained; user configuration is not changed.
+Run `python scripts/verify_release.py --out <fresh evidence folder> --blender <Blender executable>` from a development environment with the declared dependencies for the complete 22-stage gate: source/installed tests, wheel/sdist parity, clean installation, entry points, bridge exports, exact native CONFIG, evidence/recipe paths, units, adoption, managed execution, MCP, live execution, preservation, transport and both capability qualifiers. Omit `--blender` for portable checks only. Logs and wheel hashes are retained; user configuration is not changed.
 
 The release runner precreates owned native config, scripts, datafiles and extensions directories under its fresh evidence folder and passes them to child processes and descendants. Before native fixtures, a separate read-only Blender preflight records and checks the exact effective CONFIG path; a mismatch aborts the gate. Qualifiers can use their own created directories through explicit environment overrides. This containment describes current launches; the [historical preference incident](../docs/archive/releases/EXTERNAL_REVIEW_0_23_RESULTS.md) remains unresolved.
 
@@ -10,9 +10,11 @@ The MCP native fixture exercises all five live observation commands and both man
 
 `qualify_units.py`, `qualify_adoption.py`, `qualify_execution.py` and `qualify_mcp.py` can run individually with `--runtime`, `--out` and `--blender`. The MCP qualification opens and closes an owned Blender GUI fixture to test real timers/socket dispatch, then drives both managed modes over real stdio. Historical scripts below remain evidence for their original versions.
 
-`qualify_live.py --case all` uses the same runtime/out/blender arguments and runs 26 owned GUI scenarios: protocol/reload, initial attachment, built-in edits, node assets/shared materials, external refresh/reconnect, failure/recovery, cancellation/lost replies, publication races and both MCP modes. `--case protocol|attach|jobs|modes`, `--fixture`, `--mode` and `--recovery` select individual cases. The exported add-on must run without importing the host harness package; outbound sockets, activity handlers and retained pairing-secret leakage are checked. Synthetic owner confirmation is used only inside disposable qualification projects.
+`qualify_live.py --case all` uses the same runtime/out/blender arguments and runs 27 owned GUI scenarios: protocol/reload, initial attachment, built-in edits, node assets/shared materials, external refresh/reconnect, failure/recovery, cancellation/lost replies, publication races and both MCP modes. `--case protocol|attach|jobs|modes`, `--fixture`, `--mode` and `--recovery` select individual cases. The exported add-on must run without importing the host harness package; outbound sockets, activity handlers and retained pairing-secret leakage are checked. Synthetic owner confirmation is used only inside disposable qualification projects.
 
-`qualify_live_preservation.py` additionally proves dirty-image copy/restore refusal without changing the owned artist buffer or files, known busy refusal before mutation, and refusal of unqualified external audio. The maintained release gate runs it against the installed wheel.
+`qualify_live_preservation.py` additionally proves dirty-image copy/restore refusal without changing the owned artist buffer or files, known busy refusal before mutation, and refusal of unqualified external audio. The maintained release gate runs it against the installed wheel. `qualify_live_transport.py` covers delayed copies, durable refusal/lost responses and crash recovery on a 32-object textured fixture. `qualify_review_capabilities.py` covers 16 native attribution/preservation/lifecycle checks with independent reopen and owned preference restart.
+
+`qualify_native_paths.py` and `qualify_recipe_paths.py` retain exact deep evidence/bundle shapes, actual saved verification and strict tamper/reparse negatives. This qualifies Python evidence/recipe metadata I/O; long native Blender `.blend`/asset paths remain unsupported and deep provider discovery/import remains unqualified.
 
 `qualify_capabilities.py --case all` runs profile activation, recipe onboarding,
 provider routing, revision freshness and real stdio onboarding/execution. It uses
@@ -21,10 +23,14 @@ the same runtime/out/blender arguments. Individual cases are `profiles`, `onboar
 onboarding evidence through `--qualification-root`. The full release always creates
 fresh evidence and reuses only its own onboarding phase. Synthetic function/operator/
 node-asset providers exercise real owned GUI and background Blender, both execution
-modes, required-use failures, source drift and repeat updates. These are technical
+modes, required-use failures and source drift. Revision positives use a dedicated
+synthetic scale/finish provider whose measured modifier width responds to declared
+geometry/material inputs; same-input and camera-only reuse does not dispatch. The
+original constant-output provider remains a negative: changed-dependency refresh
+is refused if no qualifying native contribution is proved. These are technical
 fixture checks, not qualification of arbitrary third-party products or visual quality.
 
-Updated October 6, 2026. These scripts qualify releases, benchmark the runtime, and reproduce dated studies. The package does not import them. Scripts tied to finished studies stay here because retained local evidence records their absolute paths; frozen copies also live inside the study packets under `runs/`.
+Updated October 23, 2026. These scripts qualify releases, benchmark the runtime, and reproduce dated studies. The package does not import them. Scripts tied to finished studies stay here because retained local evidence records their absolute paths; frozen copies also live inside the study packets under `runs/`.
 
 **How to run them.** Scripts marked *Blender* run inside a disposable background process:
 
