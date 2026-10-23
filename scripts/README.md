@@ -103,3 +103,5 @@ These scripts are retained so finished studies remain reproducible. Many hardcod
 - `prepare_tool_study.py` prompt text says the frozen runtime is 0.3.1, but the script copies the live package.
 - `fetch_pilot_assets.py` and `make_review.py` do not add the repository to `sys.path`; run them with the package installed.
 - Background-Blender launching, Blender argument parsing and folder hashing are reimplemented in many scripts. A shared helper would suit the orchestrators (`qualify_*`, `run_*`) only; evaluators copied into packets must stay self-contained.
+
+The final8 release gate includes the maintained missing-final-ack capability case in both live routing modes: retained original failure, one native dispatch, unchanged checkpoint count, fresh-controller receipt reads through canonical, relative, parent-component and Windows case aliases, required-capability reuse and stage submission. GUI profile launch precreates its effective extensions override. Directory existence and exact native CONFIG selection are separate checks; neither proves historical preference restoration.

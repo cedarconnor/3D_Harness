@@ -97,7 +97,7 @@ The agent checks capability requirements at stage boundaries and after refresh. 
 
 Once the artist confirms a capability policy, every revision requires owner confirmation. Add-ons are installed and licensed separately, and each real provider needs its own qualification. See the [add-on guide and executable onboarding example](docs/guides/ADDON_RECIPES.md).
 
-Portable [CI](.github/workflows/portable.yml) is configured to install the declared `mcp==1.26.0` dependency and run source/installed package checks on Windows and Linux. Transitive dependencies are not fully locked. Blender qualification remains a separate local Windows gate. The [external-review ledger](docs/archive/releases/EXTERNAL_REVIEW_0_23_RESULTS.md) records the completed local integrated gate, measured limits and unresolved preference incident. Independent whole-branch review, hosted CI and delivery remain pending.
+Portable [CI](.github/workflows/portable.yml) is configured to install the declared `mcp==1.26.0` dependency and run source/installed package checks on Windows and Linux. Transitive dependencies are not fully locked. Blender qualification remains a separate local Windows gate. The [external-review ledger](docs/archive/releases/EXTERNAL_REVIEW_0_23_RESULTS.md) records the completed local integrated gate, measured limits and unresolved preference incident. At this documentation checkpoint, whole-branch review completed and its I1 recovery defect was corrected; scoped rereview, hosted CI and delivery remain pending.
 
 ## Everyday workflow
 
@@ -177,16 +177,18 @@ Read [craft capabilities and recipe boundaries](docs/guides/CRAFT_SKILLS.md) bef
 
 ## Validation and current limits
 
-The v0.23.0 follow-up passed its frozen local gate on Blender 5.1.1 and Python 3.11.9 on Windows. Independent whole-branch review, hosted CI and delivery remain pending:
+The v0.23.0 follow-up passed its frozen local gate on Blender 5.1.1 and Python 3.11.9 on Windows. At this documentation checkpoint, whole-branch review completed and its I1 recovery defect was corrected; scoped rereview, hosted CI and delivery remain pending. The measured results are:
 
 | Verification | Result |
 |---|---|
-| Source and clean-installed test suites | 680 tests each: source 678 passed / two skips; installed 677 passed / three skips |
+| Source and clean-installed test suites | 688 tests each: source 686 passed / two skips; installed 685 passed / three skips |
 | Maintained release gates | All 22 passed against the frozen source and installed wheel |
 | Open-scene execution | All 27 live scenarios, dirty-image preservation and populated/textured transport recovery passed |
-| Add-on capabilities | All five groups passed: profiles, nine-recipe onboarding (eight qualified; deliberate poll refusal), routing, revisions and stdio; 16 focused native review checks also passed |
+| Add-on capabilities | All five groups passed: profiles, nine-recipe onboarding (eight qualified; deliberate poll refusal), routing, revisions and stdio; 16 focused native review checks also passed; both live routing modes now verify missing-ack recovery, fresh-controller receipts, reuse and required submission |
 | Workflow/backend combinations | Autonomous and approval-gated modes passed in background and live Blender |
 | Distribution | Wheel/source-archive parity, installed entry points and standalone bridge parity passed; final documentation package retained identical qualified runtime/bridge bytes |
+
+The final8 gate also verifies durable capability recovery after a caught final-acknowledgment failure. An atomic recovery record preserves the original failure while fresh controllers validate the recovered receipt without redispatch or checkpoint republication. Checked relative, parent-component and Windows case path aliases identify the same receipt; wrong locations, hashes and reparse points still refuse.
 
 The historical P22 final review found three Important issues: artist-policy downgrade, missing owner CLI confirmation and rejected native node-group names. All three were fixed with five failing-before/passing-after regressions and renewed native qualification. Telemetry and activity recording remain absent from the bundled MCP.
 

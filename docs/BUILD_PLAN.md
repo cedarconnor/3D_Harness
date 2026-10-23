@@ -15,7 +15,7 @@ The owner authorized fixing all six findings in the [adversarial review](referen
 | P21 Direct open-scene Blender execution | Codex | done | [Implementation plan](superpowers/plans/2026-10-22-live-blender-execution.md): paired sessions, live edits, inspection/previews, recovery and both modes. Five final-review issues fixed. Source/installed suites: 536 tests each; 26 live native scenarios and preservation gate passed. [Evidence](archive/releases/LIVE_EXECUTION_RESULTS.md). |
 | P22 Reusable add-on capabilities | Codex | done | [Implementation plan](superpowers/plans/2026-10-22-addon-capabilities.md): discovery, profiles, recipes, provider policy, revision freshness and public routes qualified. All 17 release gates passed; source/installed suites: 593 tests each. [Evidence](archive/releases/ADDON_CAPABILITIES_RESULTS.md). Product-specific qualification remains separate. |
 
-The P19–P22 counts above describe their historical release states. The [external-review follow-up](archive/releases/EXTERNAL_REVIEW_0_23_RESULTS.md) tracks subsequent authority, recovery and capability fixes. The frozen follow-up gate passed all 22 stages, with 680 tests each in source and clean-installed suites (two/three skips), all 27 live scenarios and every maintained native group. Independent whole-branch review, hosted CI and delivery remain pending. Portable CI is now defined separately from local Blender qualification.
+The P19–P22 counts above describe their historical release states. The [external-review follow-up](archive/releases/EXTERNAL_REVIEW_0_23_RESULTS.md) tracks subsequent authority, recovery and capability fixes. The frozen follow-up gate passed all 22 stages, with 688 tests each in source and clean-installed suites (two/three skips), all 27 live scenarios and every maintained native group. At this documentation checkpoint, whole-branch review completed and its I1 recovery defect was corrected; scoped rereview, hosted CI and delivery remain pending. Portable CI is now defined separately from local Blender qualification.
 
 The owner approved implementation and selected direct editing in the open scene. The [design](superpowers/specs/2026-10-22-live-blender-capabilities-design.md) records that choice and the engineering defaults. P22 uses P21's qualified shared execution service.
 
@@ -31,9 +31,9 @@ The owner approved implementation and selected direct editing in the open scene.
 
 | | |
 |---|---|
-| Version | 0.23.0 follow-up on `codex/managed-execution-overhaul`; historical release evidence retained, local integrated gate passed; independent review/delivery pending; `main` unchanged at this record |
-| Active | External branch-review follow-up: authority, durable live outcomes, capability attribution and packaging/docs corrections implemented; full source/installed/native proof retained. Independent whole-branch review and delivery pending. P16/P18 remain open from the [Scenario review](reference/SCENARIO_BLENDER_PLUGIN_REVIEW_2026-10-15.md). |
-| Next | Complete independent Task 5/whole-branch review and authorized GitHub delivery after the final documentation-package parity proof. Real-project adoption and the separate artist-quality comparison remain open. |
+| Version | 0.23.0 follow-up on `codex/managed-execution-overhaul`; historical release evidence retained, local integrated gate passed; scoped rereview/CI/delivery pending; `main` unchanged at this record |
+| Active | External branch-review follow-up: authority, durable live outcomes, capability attribution and packaging/docs corrections implemented; full source/installed/native proof retained. At this documentation checkpoint, broad review completed; I1 corrected and final8 qualified; scoped rereview/CI/delivery pending. P16/P18 remain open from the [Scenario review](reference/SCENARIO_BLENDER_PLUGIN_REVIEW_2026-10-15.md). |
+| Next | Complete scoped I1/M2/M3 rereview, hosted CI and authorized GitHub delivery after final8 and the final documentation-package parity proof. Real-project adoption and the separate artist-quality comparison remain open. |
 | Waiting on the user | E1–E3 artist review session; E4 decision on the realistic comparison; E5 artist repair time |
 | Investment gate | Open |
 
@@ -252,7 +252,9 @@ Capture fixed views at blockout, surface and lighting completion, pre-revision a
 
 ## Log
 
-- **October 23, 2026:** External-review follow-up frozen at `2cebdb1`: source 680 tests (678 passed, two skips), installed 680 (677 passed, three skips), all 22 release stages and all 27 live scenarios passed, including both native path stages and every capability group. Final docs-only package parity is recorded in the [release ledger](archive/releases/EXTERNAL_REVIEW_0_23_RESULTS.md). Independent whole-branch review/hosted CI/delivery remain separate; no artistic-quality gate is closed. The owner authorized eventual commit/push/merge after completion and instructed leaving real preferences untouched.
+- **October 23, 2026, final correction:** Complete whole-branch review identified I1; the corrected durable recovery and checked path-equivalence runtime passed fresh final8 with 688 source/installed tests and all 22 stages. At this documentation checkpoint, scoped correction rereview, hosted CI and delivery remain pending; historical final6/final7 evidence remains retained.
+
+- **October 23, 2026:** External-review follow-up frozen at `2cebdb1`: source 680 tests (678 passed, two skips), installed 680 (677 passed, three skips), all 22 release stages and all 27 live scenarios passed, including both native path stages and every capability group. Final docs-only package parity is recorded in the [release ledger](archive/releases/EXTERNAL_REVIEW_0_23_RESULTS.md). At this historical final6 checkpoint, whole-branch review/hosted CI/delivery remained pending; no artistic-quality gate is closed. The owner authorized eventual commit/push/merge after completion and instructed leaving real preferences untouched.
 
 - October 22, 2026: planned P21/P22 from the owner's approved capability-discovery direction and explicit open-scene choice. Added design and separate execution/add-on plans. Builder check identified the verification/publication race; the design now requires pre/post-publication and next-operation alignment checks. No runtime changes or new qualification claims in this planning increment.
 

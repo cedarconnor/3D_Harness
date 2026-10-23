@@ -86,5 +86,6 @@ Completed task checkboxes record the implemented/evidence-backed dispositions, i
 **Interfaces:** All corrected source, wheel, sdist and standalone bridge bytes must agree; final doc-only rebuild may differ only in the rules bundle.
 
 - [x] Run the full source/clean-installed release gate, all maintained native checks and new focused fixtures against the installed runtime. Preserve each failed run before starting a fresh output directory.
-- [ ] Run fresh whole-branch review under the development skill, adjudicate material findings and verify each fix. Do not claim approval for untested commercial products or artist scenes.
+- [x] Complete whole-branch review and its consolidated correction wave: I1 durable recovery, M2 effective GUI directory precreation/claim precision and M3 notice. Final8 qualifies the corrected runtime; M1 diagnostics and historical preferences incident remain disclosed.
+- [ ] Obtain scoped correction rereview, hosted CI and authorized GitHub delivery. Do not claim approval for untested commercial products or artist scenes.
 - [x] Refresh documentation counts/evidence, build final package and prove runtime/bridge equality. Commit, verify clean tree and report remaining explicit limitations. Preserve all evidence; do not retry previously blocked deletion of an unrelated workspace.
