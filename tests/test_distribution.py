@@ -1,4 +1,8 @@
 import tempfile
+import importlib.metadata
+import subprocess
+import sys
+import tarfile
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -8,6 +12,34 @@ from dcc_harness import distribution
 
 
 class DistributionTests(unittest.TestCase):
+    def test_actual_sdist_retains_referenced_workflow_and_complete_rules_closure(self):
+        """Dropping a referenced workflow from sdist must fail before publication."""
+        try:
+            backend_major = int(importlib.metadata.version('setuptools').split('.')[0])
+        except importlib.metadata.PackageNotFoundError:
+            backend_major = 0
+        if backend_major < 77:
+            self.skipTest('Source-build regression requires declared setuptools>=77 backend; '
+                          'release sdist/rebuilt-wheel gate runs separately in the build environment')
+        root = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            built = subprocess.run([sys.executable, '-c',
+                f'from setuptools.build_meta import build_sdist; build_sdist({str(out)!r})'],
+                cwd=root, capture_output=True, text=True)
+            self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
+            archive_path, = out.glob('*.tar.gz')
+            with tarfile.open(archive_path) as archive:
+                prefix = archive.getnames()[0].split('/')[0]
+                workflow = prefix + '/.github/workflows/portable.yml'
+                self.assertIn(workflow, archive.getnames(),
+                              'Referenced CI workflow is absent from the actual source distribution')
+                self.assertEqual(archive.extractfile(workflow).read(),
+                                 (root / '.github/workflows/portable.yml').read_bytes())
+                archive.extractall(out / 'unpacked', filter='data')
+            self.assertEqual(distribution.source_rules(out / 'unpacked' / prefix),
+                             distribution.source_rules(root))
+
     def test_referenced_executable_rules_are_pinned_in_installed_archive(self):
         """Executable examples stay usable; checkout edits cannot mutate installed rules."""
         with tempfile.TemporaryDirectory() as tmp:

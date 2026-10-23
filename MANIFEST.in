@@ -1,5 +1,6 @@
 include build_support.py
 include CHANGELOG.md
+include .github/workflows/portable.yml
 recursive-include .agents/skills *
 recursive-include docs *.md *.json *.png *.txt
 recursive-include examples *.md *.json *.py *.txt
