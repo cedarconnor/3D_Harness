@@ -36,13 +36,11 @@ def _validate(folder, record, original, request):
             or native.get('sha256') != committed['active']['checkpoint_sha256']):
         raise ValueError('Recovered outcome native checkpoint changed')
     if 'capability' in request:
-        from .capabilities import validate_receipt
+        from .capabilities import validate_receipt, _receipt_reference_matches
         from .coordination import checkpoint_ref
         receipt = validate_receipt(read_json(folder / 'capability-receipt.json'))
-        expected = {'path': str(folder / 'capability-receipt.json'),
-                    'sha256': bindings['capability-receipt.json']}
         publication = read_json(folder / 'capability-publication.json')
-        if (result.get('capability_receipt') != expected or receipt['operation_id'] != folder.name
+        if (not _receipt_reference_matches(folder, result.get('capability_receipt')) or receipt['operation_id'] != folder.name
                 or receipt['request_sha256'] != digest(request)
                 or receipt != {**publication, 'checkpoint': checkpoint_ref(committed['active'])}):
             raise ValueError('Recovered outcome capability receipt linkage changed')

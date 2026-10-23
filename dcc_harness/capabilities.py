@@ -231,6 +231,22 @@ def verify_receipts(root,stage_id,checkpoint):
     return {'passed':all(r['passed'] for r in rows),'requirements':rows}
 
 
+def _receipt_reference_matches(folder, reference):
+    """Bind the exact receipt file, allowing ordinary equivalent path spellings."""
+    if (not isinstance(reference, dict) or set(reference) != {'path', 'sha256'}
+            or not isinstance(reference.get('path'), str)):
+        return False
+    expected = reject_links(folder / 'capability-receipt.json')
+    if reference.get('sha256') != file_hash(expected):
+        return False
+    # Inspect every original component before resolving parent/case aliases.
+    actual = reject_links(reference['path'])
+    try:
+        return actual.resolve(strict=True) == expected.resolve(strict=True)
+    except FileNotFoundError:
+        return False
+
+
 def verify_operation_receipt(root,folder,requirement,checkpoint):
     from .execution import _outcome
     folder=reject_links(folder).absolute()
@@ -244,10 +260,9 @@ def verify_operation_receipt(root,folder,requirement,checkpoint):
     if checkpoint!=c.checkpoint_ref(native['active']) or receipt['checkpoint'] not in [c.checkpoint_ref(h) for h in native['task_history']]:
         return False
     reference=outcome.get('capability_receipt')
-    if (not isinstance(reference,dict) or reference.get('path')!=str(folder / 'capability-receipt.json')
+    if (not _receipt_reference_matches(folder,reference)
             or receipt['operation_id']!=folder.name or receipt['request_sha256']!=digest(request)
-            or receipt['checkpoint']!=c.checkpoint_ref(outcome['outcome']['active'])
-            or reference.get('sha256')!=file_hash(folder / 'capability-receipt.json')):
+            or receipt['checkpoint']!=c.checkpoint_ref(outcome['outcome']['active'])):
         raise ValueError('Capability receipt does not match service publication')
     cap=request['capability']; selected=cap['resolution']['selected']
     if receipt['requirement_digest']!=digest(cap['requirement']) or receipt['effect_id']!=cap['effect_id']:

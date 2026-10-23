@@ -170,17 +170,27 @@ def project_case(args,out,root,central,mode,backend):
         assert len(workflow.Continuity(root).status()['task_history'])==history
         # A new host process must consume the effective durable result and required receipt.
         import sys
-        code=("import json,sys; from pathlib import Path; from dcc_harness import execution,capabilities,workflow,coordination as c; "
-              "root=Path(sys.argv[1]); folder=root/'execution/operations'/sys.argv[2]; "
-              "result=execution._outcome(folder); assert result['live_state']=='READY'; "
-              "assert capabilities.verify_receipts(root,'direction',c.checkpoint_ref(workflow.resume(root)['active']))['passed']; "
-              "print(json.dumps(result))")
+        code="""import json,os,sys
+from pathlib import Path
+from dcc_harness import execution,capabilities,workflow,coordination as c
+root=Path(sys.argv[1]); folder=root/'execution/operations'/sys.argv[2]
+result=execution._outcome(folder); assert result['live_state']=='READY'
+roots=[root,Path(os.path.relpath(root)),root/'..'/root.name]
+if os.name=='nt': roots.append(Path(str(root).swapcase()))
+for alias in roots:
+    outcomes=execution.status(alias)['operations']
+    assert next(o for o in outcomes if o['operation_id']==sys.argv[2])['live_state']=='READY'
+    assert capabilities.verify_receipts(alias,'direction',c.checkpoint_ref(workflow.resume(alias)['active']))['passed']
+print(json.dumps({'outcome':result,'checked_project_aliases':[str(p) for p in roots]}))
+"""
         fresh=subprocess.run([sys.executable,'-c',code,str(root),operation_id],cwd=out,
                              env={**os.environ,'PYTHONPATH':str(Path(args.runtime).resolve())},capture_output=True,text=True)
         (out/'recovery-reload.log').write_text(fresh.stdout+fresh.stderr)
         assert fresh.returncode==0,fresh.stderr
-        assert json.loads(fresh.stdout)['capability_receipt']==result['capability_receipt']
+        reload_proof=json.loads(fresh.stdout)
+        assert reload_proof['outcome']['capability_receipt']==result['capability_receipt']
         recovery_proof={'original_failure_retained':True,'fresh_controller_receipt_verified':True,
+                        'checked_project_aliases':reload_proof['checked_project_aliases'],
                         'dispatches':counts['job_submit'],'checkpoint_count_before':history,'checkpoint_count_after':history,
                         'receipt':result['capability_receipt'],'recovery_sha256':file_hash(folder/'recovered-outcome.json')}
     else:

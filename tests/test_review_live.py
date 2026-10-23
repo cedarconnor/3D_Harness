@@ -545,16 +545,71 @@ class HostRefusalTests(Fixture):
         with self.assertRaisesRegex(ValueError,'publication linkage'):
             execution._outcome(folder)
 
-    def test_recovered_receipt_is_usable_from_relative_project_path(self):
+    def test_recovered_receipt_and_public_status_accept_equivalent_project_paths(self):
         import os
         from dcc_harness import capabilities
+        import dcc_harness
         folder,req,cp=self.ack_failure_recovery()
+        relative=self.root.relative_to(self.base)
+        aliases=[relative,relative/'..'/relative.name]
+        if os.name=='nt': aliases.append(Path(str(self.root).swapcase()))
         previous=Path.cwd()
+        env={**os.environ,'PYTHONPATH':str(Path(dcc_harness.__file__).parent.parent)}
         try:
             os.chdir(self.base)
-            with mock.patch('dcc_harness.recipes.require_qualified',return_value={'recipe':{'coverage':{'reads':['geometry','materials'],'writes':[],'dependencies':[]}}}):
-                self.assertTrue(capabilities.verify_operation_receipt(self.root.relative_to(self.base),folder.relative_to(self.base),req,cp))
+            for root in aliases:
+                with self.subTest(root=str(root)):
+                    result=subprocess.run([sys.executable,'-m','dcc_harness','run-status',str(root)],
+                                          env=env,capture_output=True,text=True)
+                    self.assertEqual(result.returncode,0,result.stderr+result.stdout)
+                    self.assertEqual(json.loads(result.stdout)['operations'][0]['live_state'],'READY')
+                    with mock.patch('dcc_harness.recipes.require_qualified',return_value={'recipe':{'coverage':{'reads':['geometry','materials'],'writes':[],'dependencies':[]}}}):
+                        self.assertTrue(capabilities.verify_operation_receipt(root,root/'execution/operations'/folder.name,req,cp))
         finally: os.chdir(previous)
+
+    def test_receipt_reference_requires_same_checked_file_and_hash(self):
+        from dcc_harness import execution, capabilities
+        folder,req,cp=self.ack_failure_recovery()
+        path=folder/'recovered-outcome.json'; original=read_json(path)
+        receipt=folder/'capability-receipt.json'
+        copied=self.base/'same-receipt.json'; copied.write_bytes(receipt.read_bytes())
+        refs=[{**original['outcome']['capability_receipt'],'path':str(copied)},
+              {**original['outcome']['capability_receipt'],'sha256':'a'*64},
+              {**original['outcome']['capability_receipt'],'extra':'not a reference field'},
+              {**original['outcome']['capability_receipt'],'path':None}]
+        for ref in refs:
+            changed=copy.deepcopy(original); changed['outcome']['capability_receipt']=ref
+            path.write_text(json.dumps(changed))
+            with self.assertRaisesRegex(ValueError,'receipt linkage'):
+                execution._outcome(folder)
+            with mock.patch.object(execution,'_outcome',return_value=changed['outcome']):
+                with self.assertRaisesRegex(ValueError,'service publication'):
+                    capabilities.verify_operation_receipt(self.root,folder,req,cp)
+        # The stored reference can itself use an equivalent spelling.
+        changed=copy.deepcopy(original)
+        changed['outcome']['capability_receipt']['path']=str(folder/'..'/folder.name/receipt.name)
+        path.write_text(json.dumps(changed))
+        self.assertEqual(execution._outcome(folder)['live_state'],'READY')
+        with mock.patch('dcc_harness.recipes.require_qualified',return_value={'recipe':{'coverage':{'reads':['geometry','materials'],'writes':[],'dependencies':[]}}}):
+            self.assertTrue(capabilities.verify_operation_receipt(self.root,folder,req,cp))
+
+    @unittest.skipUnless(sys.platform=='win32','Directory junctions are a Windows feature')
+    def test_receipt_reference_rejects_reparse_alias_before_resolution(self):
+        import os, _winapi
+        from dcc_harness import execution, capabilities
+        folder,req,cp=self.ack_failure_recovery()
+        link=self.base/'receipt-junction'
+        _winapi.CreateJunction(str(folder),str(link))
+        try:
+            path=folder/'recovered-outcome.json'; changed=read_json(path)
+            changed['outcome']['capability_receipt']['path']=str(link/'capability-receipt.json')
+            path.write_text(json.dumps(changed))
+            with self.assertRaisesRegex(ValueError,'Links/reparse points'):
+                execution._outcome(folder)
+            with mock.patch.object(execution,'_outcome',return_value=changed['outcome']):
+                with self.assertRaisesRegex(ValueError,'Links/reparse points'):
+                    capabilities.verify_operation_receipt(self.root,folder,req,cp)
+        finally: os.rmdir(link)
 
     def cross_session_publication(self):
         from dcc_harness.live_snapshot import fingerprint
