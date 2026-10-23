@@ -76,6 +76,9 @@ def attach(root, binding, *, scene=None, expected_parent=None, brief_file=None, 
     # The receipt is retained by Blender before the response, and cannot be rewritten by a replay.
     if saved != read_json(destination / 'attach-saved.json') or saved['operation_id'] != operation_id:
         raise ValueError('Attachment receipt mismatch')
+    # Reserve exclusively before attach_check retains snapshots under live/observations.
+    # An unexpected existing directory still requires inspection, never adoption.
+    live_folder = reject_links(project / 'live'); live_folder.mkdir(parents=True, exist_ok=False)
     observed = destination / 'observation'; observed.mkdir()
     run_worker(blender, observed, Path(__file__).with_name('_live_verify_blender.py'), 'verify',
                {'source': saved['baseline'], 'out': str(observed), 'scene': scene,
@@ -89,7 +92,6 @@ def attach(root, binding, *, scene=None, expected_parent=None, brief_file=None, 
                    {'provenance': 'live_metadata_adoption'}, handoff)
     bootstrap.bind_rules(str(project), destination, 'none', str(uuid.uuid4()))
     result = execution.create(project, mode, backend='live', max_operations=max_operations, seconds=seconds)
-    live_folder = project / 'live'; live_folder.mkdir()
     active = workflow.resume(project)['active']
     bind = {'schema': 'dcc.live.binding.v1', 'descriptor': str(Path(binding).resolve()),
             'session_id': saved['session_id'], 'generation': saved['generation'], 'scene': scene,
