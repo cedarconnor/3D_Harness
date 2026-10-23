@@ -30,21 +30,22 @@ def capture(jobs, payload):
         current = attachment.snapshot(scene)
         if attachment.fingerprint(current) != payload['expected_fingerprint']:
             raise ValueError('STALE_SCENE: later edits must be inspected before recovery')
-    except ValueError as exc:
+        if decision == 'restore-precopy':
+            prepared = json.loads(reject_links(folder / 'live-prepared.json').read_text())
+            pre = prepared['precopy']
+            if file_hash(pre['path']) != pre['sha256']:
+                raise ValueError('Pre-operation copy changed; restore refused')
+        archived_inventory = inventory(scene)
+    except (ValueError, OSError, KeyError) as exc:
         return {'state': 'REFUSED_BEFORE_MUTATION', 'request': payload, 'reason': str(exc)}
     destination = reject_links(folder / 'recovery'); destination.mkdir(exist_ok=False)
     write_exclusive(destination / 'request.json', json_bytes(payload))
     write_exclusive(destination / 'archive-snapshot.json', json_bytes(current))
-    archived_inventory = inventory(scene)
     archive = attachment.save_copy(session, destination / 'archive.blend')
     if not attachment.equivalent(current, attachment.snapshot(scene)):
         raise ValueError('STALE_SCENE: changed while archiving; nothing restored')
     target = archive
     if decision == 'restore-precopy':
-        prepared = json.loads(reject_links(folder / 'live-prepared.json').read_text())
-        pre = prepared['precopy']
-        if file_hash(pre['path']) != pre['sha256']:
-            raise ValueError('Pre-operation copy changed; restore refused')
         working = destination / 'restored-working.blend'
         copy_verified(pre['path'], working, pre['sha256'], 'Restore copy changed')
         write_exclusive(destination / 'restore-dispatched.json', json_bytes({'source': pre, 'working': str(working)}))

@@ -26,6 +26,7 @@ def attach(root, binding, *, scene=None, expected_parent=None, brief_file=None, 
     request = {'session_id': private['session_id'], 'generation': private['generation'],
                'scene': scene, 'mode': mode, 'brief_sha256': digest(brief), 'blender': str(blender),
                'max_operations': max_operations, 'seconds': seconds}
+    retry = False
     if destination.exists():
         if (destination / 'created.json').is_file():
             if read_json(destination / 'attach-request.json') != request:
@@ -34,8 +35,18 @@ def attach(root, binding, *, scene=None, expected_parent=None, brief_file=None, 
             ensure_aligned(result['project'])
             return result
         if (destination / 'attach-request.json').exists():
-            raise RuntimeError('Incomplete attachment: inspect retained state; identity assignment will not be replayed')
-        raise ValueError('Existing projects require explicit parent and refresh; new attachment requires a fresh destination')
+            attempts = destination / 'attach-attempts'
+            previous = sorted(attempts.glob('*.json')) if attempts.exists() else []
+            if read_json(destination / 'attach-request.json') != request or not previous:
+                raise RuntimeError('Incomplete attachment: inspect retained state; identity assignment will not be replayed')
+            for path in previous:
+                intent = read_json(reject_links(path))
+                retained = blender_bridge.retained_outcome('attach_begin', intent, private)
+                if not _is_refusal(retained, intent):
+                    raise RuntimeError('Incomplete attachment: inspect retained state; identity assignment will not be replayed')
+            retry = True
+        else:
+            raise ValueError('Existing projects require explicit parent and refresh; new attachment requires a fresh destination')
     if expected_parent is not None:
         raise ValueError('New attachment has no expected parent')
     if type(max_operations) is not int or max_operations < 1 or not isinstance(seconds, (int, float)) or seconds <= 0:
@@ -47,13 +58,19 @@ def attach(root, binding, *, scene=None, expected_parent=None, brief_file=None, 
     info = call('session_describe', {})
     if scene not in info['scenes'] or info['generation'] != private['generation']:
         raise ValueError('Session scene or generation changed')
-    destination.mkdir(parents=True, exist_ok=False)
-    write_json(destination / 'attach-request.json', request)
-    write_exclusive(destination / 'brief.md', brief.encode('utf-8'))
+    if not retry:
+        destination.mkdir(parents=True, exist_ok=False)
+        write_json(destination / 'attach-request.json', request)
+        write_exclusive(destination / 'brief.md', brief.encode('utf-8'))
     project = destination / 'state'
     operation_id = str(uuid.uuid4())
     payload = {'project': str(project), 'operation_id': operation_id, 'request_hash': digest(request)}
-    prepared = call('attach_begin', {**payload, 'scene': scene})
+    intent = {**payload, 'scene': scene}
+    attempts = reject_links(destination / 'attach-attempts'); attempts.mkdir(exist_ok=True)
+    write_json(attempts / (operation_id + '.json'), intent)
+    prepared = call('attach_begin', intent)
+    if _is_refusal(prepared, intent):
+        raise RuntimeError(prepared['reason'])
     write_json(destination / 'attach-response.json', prepared)
     saved = call('attach_apply', payload)
     # The receipt is retained by Blender before the response, and cannot be rewritten by a replay.
@@ -102,6 +119,12 @@ def ensure_aligned(root):
             or not state['matches'] or state['scene'] != binding['scene']):
         raise ValueError('LIVE_DIVERGED: preserve current edits and refresh or reconcile explicitly')
     return state
+
+
+def _is_refusal(result, payload):
+    return (isinstance(result, dict) and set(result) == {'state', 'request', 'reason'}
+            and result['state'] == 'REFUSED_BEFORE_MUTATION' and result['request'] == payload
+            and isinstance(result['reason'], str))
 
 
 def read_binding(root):
@@ -164,7 +187,127 @@ class LiveBackend:
             report = self.folder / 'asset-qualification.json'
             request['asset_qualification'] = {'path': str(report), 'sha256': file_hash(report)}
         write_binding(self.root, {**self.binding, 'state': 'BUSY', 'operation_id': request['operation_id']})
-        return self.call('job_prepare', {'request': request, 'fingerprint': expected['fingerprint'], 'snapshot': expected['snapshot']})
+        payload = {'request': request, 'fingerprint': expected['fingerprint'], 'snapshot': expected['snapshot']}
+        private = blender_bridge.descriptor(self.binding['descriptor'])
+        write_json(self.folder / 'live-transport.json', {'payload': payload,
+                   'private': {k: private[k] for k in ('workspace', 'session_id', 'generation')}})
+        prepared = self.call('job_prepare', payload)
+        if _is_refusal(prepared, payload):
+            write_json(self.folder / 'live-refusal.json', prepared)
+            raise RuntimeError(prepared['reason'])
+        return prepared
+
+    def recover_failure(self):
+        """Close only proven pre-mutation refusals; never dispatch native work."""
+        transport = self.folder / 'live-transport.json'
+        if not transport.exists() or (self.folder / 'dispatched.json').exists():
+            return None
+        retained = read_json(transport)
+        payload = retained['payload']
+        path = self.folder / 'live-refusal.json'
+        refusal = (read_json(path) if path.exists() else
+                   blender_bridge.retained_outcome('job_prepare', payload, retained['private']))
+        if not _is_refusal(refusal, payload):
+            return None
+        if not path.exists():
+            write_json(path, refusal)
+        request = read_json(self.folder / 'request.json')
+        if any(payload['request'].get(k) != v for k, v in request.items()):
+            raise ValueError('Refusal request differs from managed reservation')
+        active = workflow.resume(self.root)['active']
+        reserved = read_json(self.folder / 'reservation.json')
+        edit = self.root / 'edits' / reserved['edit']
+        outcome = (read_json(edit / 'outcome.json') if (edit / 'outcome.json').exists() else
+                   workflow.finish_edit(self.root, reserved['edit'], active['checkpoint'], active['observation'],
+                                        self.folder / 'handoff.md', {}, reconciled=True,
+                                        reject_reason='Native preparation refused before mutation: ' + refusal['reason']))
+        current = {**self.binding, 'state': 'LIVE_DIVERGED'}
+        try:
+            state = self.call('attach_check', {'fingerprint': self.binding['fingerprint'], 'snapshot': self.binding['snapshot']})
+            if (state.get('matches') and state.get('session_id') == self.binding['session_id']
+                    and state.get('generation') == self.binding['generation'] and state.get('scene') == self.binding['scene']):
+                current['state'] = 'READY'
+        except Exception:
+            current['state'] = 'LIVE_STATE_UNAVAILABLE'
+        write_binding(self.root, current)
+        result = {'operation_id': self.folder.name, 'status': 'REJECTED', 'outcome': outcome,
+                  'reason': refusal['reason'], 'mutation_started': False, 'live_state': current['state']}
+        write_json(self.folder / 'outcome.json', result)
+        return result
+
+    def recover_published(self):
+        """Finish alignment/receipt persistence for an already committed checkpoint."""
+        reserved = self.folder / 'reservation.json'
+        if not reserved.exists():
+            return None
+        edit = self.root / 'edits' / read_json(reserved)['edit']
+        path = edit / 'outcome.json'
+        if not path.exists() or read_json(path).get('status') != 'PUBLISHED':
+            return None
+        outcome = read_json(path)
+        active = workflow.resume(self.root)['active']
+        if active['id'] != outcome['active']['id']:
+            raise ValueError('Published live checkpoint is no longer active; inspect retained evidence')
+        receipt = read_json(self.folder / 'live-status.json')
+        if receipt['operation_id'] != self.folder.name:
+            raise ValueError('Live receipt operation identity changed')
+        if receipt['sha256'] != active['checkpoint_sha256'] or file_hash(receipt['candidate']) != receipt['sha256']:
+            raise ValueError('Live receipt does not identify the published checkpoint bytes')
+        result = {'operation_id': self.folder.name, 'status': 'PUBLISHED', 'outcome': outcome}
+        if self.binding['session_id'] != receipt['session_id']:
+            result.update(self.realign_published(receipt, active))
+        else:
+            self.before_publish(receipt)  # Same-session checking/acknowledgement remains mandatory.
+            result.update(self.published(result, receipt))
+        request = read_json(self.folder / 'request.json')
+        if 'capability' in request:
+            from .capabilities import record_operation
+            result['capability_receipt'] = record_operation(self.root, self.folder, result, request)
+        if not (self.folder / 'outcome.json').exists():
+            write_json(self.folder / 'outcome.json', result)
+        return result
+
+    def realign_published(self, receipt, active):
+        """An explicitly refreshed replacement may prove the already published state."""
+        from .live_snapshot import fingerprint
+        reference = self.binding.get('refresh_admission')
+        if not isinstance(reference, dict):
+            raise ValueError('Explicit refresh admission is required for published-state alignment')
+        admission_path = reject_links(reference['path']).resolve(strict=True)
+        if not admission_path.is_relative_to((self.root / 'live/refreshes').resolve()) or file_hash(admission_path) != reference['sha256']:
+            raise ValueError('Explicit refresh admission changed')
+        admission = read_json(admission_path)
+        if (admission.get('from_session_id') != receipt['session_id']
+                or admission.get('session_id') != self.binding['session_id']
+                or admission.get('generation') != self.binding['generation']
+                or admission.get('descriptor') != self.binding['descriptor']
+                or admission.get('checkpoint') != active['id'] or admission.get('scene') != receipt['scene']):
+            raise ValueError('Explicit refresh does not admit this published operation')
+        snapshot_path = reject_links(receipt['snapshot']).resolve(strict=True)
+        if not snapshot_path.is_relative_to(self.folder.resolve()) or fingerprint(read_json(snapshot_path)) != receipt['fingerprint']:
+            raise ValueError('Published live snapshot changed')
+        state = self.call('attach_check', {'fingerprint': receipt['fingerprint'], 'snapshot': str(snapshot_path)})
+        if 'active_operation' not in state or state['active_operation'] is not None:
+            raise ValueError('BUSY: replacement session has an active native operation')
+        if (state.get('matches') is not True or state.get('session_id') != self.binding['session_id']
+                or state.get('generation') != self.binding['generation'] or state.get('scene') != receipt['scene']):
+            raise ValueError('Published live state does not match the refreshed replacement')
+        aligned = {'schema': 'dcc.live.publication-alignment.v1', 'operation_id': self.folder.name,
+                   'checkpoint': active['id'], 'candidate_sha256': receipt['sha256'],
+                   'snapshot': {'path': str(snapshot_path), 'sha256': file_hash(snapshot_path), 'fingerprint': receipt['fingerprint']},
+                   'session_id': self.binding['session_id'], 'generation': self.binding['generation'],
+                   'refresh_admission': reference, 'native_mutation': False, 'stage_approval': False}
+        history = reject_links(self.folder / 'live-alignments'); history.mkdir(exist_ok=True)
+        path = reject_links(history / (self.binding['session_id'] + '-' + self.binding['generation'] + '.json'))
+        if path.exists():
+            if read_json(path) != aligned:
+                raise ValueError('Published live alignment evidence changed')
+        else:
+            write_json(path, aligned)
+        current = {k: v for k, v in self.binding.items() if k != 'operation_id'}
+        write_binding(self.root, {**current, 'state': 'READY', 'checkpoint': active['id'],
+                                 'snapshot': str(snapshot_path), 'fingerprint': receipt['fingerprint']})
+        return {'live_state': 'READY', 'live_alignment': {'path': str(path), 'sha256': file_hash(path)}}
 
     def submit(self, request, prepared):
         return self.call('job_submit', {'operation_id': request['operation_id'], 'prepared': prepared})
@@ -233,12 +376,24 @@ def refresh(root, binding, *, expected_parent):
             raise ValueError('Expected parent is stale')
         saved = read_binding(root)
         unresolved = [p for p in execution._operations(root) if not (p / 'outcome.json').exists()]
+        replacement_proof = 'previous_descriptor_absent'
         if private['session_id'] != saved['session_id'] and Path(saved['descriptor']).exists():
-            raise ValueError('Previous paired session is still present; stop it before replacing the binding')
+            presence = blender_bridge.session_presence(saved['descriptor'])
+            if presence != 'DEAD':
+                raise ValueError('Previous paired session is present or unknown; wait or stop it before replacing the binding')
+            replacement_proof = 'recorded_process_dead'
         state = blender_bridge.call('attach_rebind', {'project': str(root.resolve()), 'scene': saved['scene'],
             'allow_unresolved': bool(unresolved)}, binding=binding, expected=(private['session_id'], private['generation']))
         new = {**saved, 'descriptor': str(Path(binding).resolve()), 'generation': state['generation'],
                'session_id': state['session_id']}
+        if private['session_id'] != saved['session_id']:
+            admissions = reject_links(root / 'live/refreshes'); admissions.mkdir(exist_ok=True)
+            path = admissions / (str(uuid.uuid4()) + '.json')
+            write_json(path, {'schema': 'dcc.live.refresh-admission.v1', 'from_session_id': saved['session_id'],
+                       'from_generation': saved['generation'], 'session_id': state['session_id'],
+                       'generation': state['generation'], 'scene': saved['scene'], 'checkpoint': active['id'],
+                       'descriptor': new['descriptor'], 'replacement_proof': replacement_proof})
+            new['refresh_admission'] = {'path': str(path), 'sha256': file_hash(path)}
         if unresolved:
             write_binding(root, {**new, 'state': 'NEEDS_RECONCILIATION'})
             return {'state': 'NEEDS_RECONCILIATION', 'fingerprint': state['fingerprint'],

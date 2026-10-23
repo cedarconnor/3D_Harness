@@ -1,10 +1,12 @@
 """Bounded local bridge client; no automatic retry, including after lost replies."""
 import json
+import hashlib
+import os
 import socket
 import time
 
 from .distribution import upstream, bridge_manifest
-from .files import reject_links
+from .files import reject_links, json_bytes
 
 COMMANDS = frozenset(('ping', 'get_addon_info', 'get_scene_info', 'get_object_info', 'list_scene_items'))
 MAX_RESPONSE = 8 * 1024 * 1024
@@ -13,6 +15,72 @@ FEATURES = frozenset(('paired_sessions', 'document_generation', 'scoped_inspecti
 PAIRED_COMMANDS = frozenset(('session_describe', 'inspect', 'attach_begin', 'attach_apply', 'attach_check', 'attach_acknowledge', 'attach_rebind',
                             'job_prepare', 'job_submit', 'job_status', 'job_cancel', 'job_check', 'job_acknowledge',
                             'recovery_capture', 'recovery_acknowledge', 'preview_capture', 'addons_inventory'))
+COPY_COMMANDS = frozenset(('attach_begin', 'attach_apply', 'job_prepare', 'recovery_capture', 'preview_capture'))
+DURABLE_COMMANDS = COPY_COMMANDS | {'job_submit', 'attach_acknowledge', 'job_acknowledge', 'recovery_acknowledge'}
+
+
+class BridgeTransportError(RuntimeError):
+    """No response; native outcome remains unknown unless durable evidence resolves it."""
+    def __init__(self, message, *, unavailable=False):
+        super().__init__(message)
+        self.unavailable = unavailable
+
+
+def retained_outcome(command, payload, private):
+    if command not in DURABLE_COMMANDS:
+        return None
+    identity = {'command': command, 'payload': payload, 'session_id': private['session_id'],
+                'generation': private['generation']}
+    name = hashlib.sha256(json_bytes(identity)).hexdigest() + '.json'
+    path = reject_links(os.path.join(private['workspace'], '.harness-mcp', 'outcomes', private['session_id'], name))
+    if not path.exists():
+        return None
+    record = json.loads(path.read_text(encoding='utf-8'))
+    if not isinstance(record, dict) or set(record) != set(identity) | {'result'} or any(record[k] != v for k, v in identity.items()):
+        raise ValueError('Retained bridge request identity changed')
+    if private.get('token') and private['token'] in json.dumps(record['result']):
+        raise ValueError('Bridge returned sensitive session material')
+    return record['result']
+
+
+def _process_alive(pid):
+    if type(pid) is not int or pid <= 0:
+        return None
+    if os.name == 'nt':
+        import ctypes
+        kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+        kernel.OpenProcess.restype = ctypes.c_void_p
+        handle = kernel.OpenProcess(0x1000, False, pid)
+        if not handle:
+            return False if ctypes.get_last_error() == 87 else None
+        try:
+            code = ctypes.c_ulong()
+            return code.value == 259 if kernel.GetExitCodeProcess(ctypes.c_void_p(handle), ctypes.byref(code)) else None
+        finally:
+            kernel.CloseHandle(ctypes.c_void_p(handle))
+    try:
+        os.kill(pid, 0)
+        return True
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return None
+
+
+def session_presence(binding):
+    """Timeouts never establish death; keep stale descriptors as evidence."""
+    private = descriptor(binding)
+    if _process_alive(private.get('pid')) is False:
+        return 'DEAD'
+    try:
+        call('session_describe', {}, binding=binding)
+        return 'PRESENT'
+    except ConnectionRefusedError:
+        return 'UNAVAILABLE'
+    except BridgeTransportError as exc:
+        return 'UNAVAILABLE' if exc.unavailable else 'UNKNOWN'
+    except Exception:
+        return 'UNKNOWN'
 
 
 def _request(port, command, params, timeout):
@@ -72,18 +140,23 @@ def descriptor(path):
     return value
 
 
-def call(command, payload, *, binding, timeout=2, expected=None):
+def call(command, payload, *, binding, timeout=None, expected=None):
     """Resolve an explicit private descriptor; never expose its pairing token."""
-    if command not in PAIRED_COMMANDS or not isinstance(payload, dict) or not 0 < timeout <= 2:
+    timeout = (180 if command in COPY_COMMANDS else 10) if timeout is None else timeout
+    if command not in PAIRED_COMMANDS or not isinstance(payload, dict) or not 0 < timeout <= 180:
         raise ValueError('Invalid paired bridge command or deadline')
     private = descriptor(binding)
     if expected is not None and (private['session_id'], private['generation']) != expected:
         raise ValueError('Session or document generation changed before dispatch')
+    retained = retained_outcome(command, payload, private)
+    if retained is not None:
+        return retained
     meta = upstream()
     try:
-        info = _request(private['port'], 'get_addon_info', {}, timeout)
+        info = _request(private['port'], 'get_addon_info', {}, min(timeout, 10))
     except Exception as exc:
-        raise RuntimeError(str(exc).replace(private['token'], '[redacted]')) from None
+        raise BridgeTransportError(str(exc).replace(private['token'], '[redacted]'),
+                                   unavailable=isinstance(exc, ConnectionRefusedError)) from None
     if (not isinstance(info, dict) or info.get('harness_protocol') != 3
             or info.get('protocol_version') != meta['protocol'] or info.get('upstream_commit') != meta['commit']
             or not FEATURES <= set(info.get('features', [])) or command not in info.get('paired_commands', [])):
@@ -95,7 +168,11 @@ def call(command, payload, *, binding, timeout=2, expected=None):
         result = _request(private['port'], command, {'auth': auth, 'payload': payload}, timeout)
     except Exception as exc:
         # Error replies are untrusted; do not reflect authentication material.
-        raise RuntimeError(str(exc).replace(private['token'], '[redacted]')) from None
+        retained = retained_outcome(command, payload, private)
+        if retained is not None:
+            return retained
+        raise BridgeTransportError(str(exc).replace(private['token'], '[redacted]'),
+                                   unavailable=isinstance(exc, ConnectionRefusedError)) from None
     if private['token'] in json.dumps(result):
         raise ValueError('Bridge returned sensitive session material')
     return result

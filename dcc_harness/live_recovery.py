@@ -24,43 +24,72 @@ def reconcile(root, operation_id, decision, expected_fingerprint):
         raise ValueError('This is not a live operation')
     intent = {'operation_id': operation_id, 'decision': decision, 'expected_fingerprint': expected_fingerprint}
     with execution._exclusive(root), execution._authorized(root, request['stage']):
+        from .live import LiveBackend
+        backend = LiveBackend(root, folder, None)
+        recovered = backend.recover_failure() if not (folder / 'outcome.json').exists() else None
+        if recovered is not None:
+            return recovered
+        recovered = backend.recover_published()
+        if recovered is not None:
+            return recovered
+        receipt = None
         if (folder / 'reconcile-request.json').exists():
             if read_json(folder / 'reconcile-request.json') != intent:
                 raise ValueError('Recovery intent changed; inspect the retained recovery')
             if (folder / 'reconciled.json').exists():
                 return read_json(folder / 'reconciled.json')
-            raise RuntimeError('Recovery outcome is incomplete; inspect retained evidence, never repeat the restore')
+            receipt = read_json(reject_links(folder / 'recovery/receipt.json'))
         attempts = reject_links(folder / 'reconcile-attempts')
         if attempts.exists():
             for previous in attempts.iterdir():
                 # Missing/ambiguous replies are never evidence that a restore did not happen.
                 refusal = reject_links(previous / 'refusal.json')
                 if not refusal.is_file():
-                    raise RuntimeError('Recovery outcome is incomplete; inspect retained evidence, never repeat the restore')
+                    identity = previous / 'bridge.json'
+                    outcome = (blender_bridge.retained_outcome('recovery_capture', read_json(previous / 'request.json'),
+                               read_json(identity)) if identity.exists() else None)
+                    if (isinstance(outcome, dict) and outcome.get('state') == 'REFUSED_BEFORE_MUTATION'):
+                        write_json(refusal, outcome)
+                    elif (outcome is not None and read_json(previous / 'request.json') == intent
+                          and outcome == read_json(reject_links(folder / 'recovery/receipt.json'))):
+                        receipt = outcome
+                        continue
+                    else:
+                        raise RuntimeError('Recovery outcome is incomplete; inspect retained evidence, never repeat the restore')
                 value = read_json(refusal)
                 if (value.get('state') != 'REFUSED_BEFORE_MUTATION'
                         or value.get('request') != read_json(previous / 'request.json')):
                     raise ValueError('Recovery refusal evidence changed')
         binding = read_binding(root)
-        current = blender_bridge.call('attach_check', {}, binding=binding['descriptor'],
-                                      expected=(binding['session_id'], binding['generation']))
-        if current['fingerprint'] != expected_fingerprint:
-            raise ValueError('STALE_SCENE: inspect later edits before choosing recovery')
-        attempt = attempts / str(uuid.uuid4()); attempt.mkdir(parents=True)
-        write_json(attempt / 'request.json', intent)
-        receipt = blender_bridge.call('recovery_capture', intent, binding=binding['descriptor'],
-                                       expected=(binding['session_id'], binding['generation']))
-        if (isinstance(receipt, dict) and set(receipt) == {'state', 'request', 'reason'}
-                and receipt['state'] == 'REFUSED_BEFORE_MUTATION' and receipt['request'] == intent
-                and isinstance(receipt['reason'], str)):
-            write_json(attempt / 'refusal.json', receipt)
-            raise RuntimeError(receipt['reason'])
-        write_json(folder / 'reconcile-request.json', intent)
+        if receipt is None:
+            current = blender_bridge.call('attach_check', {}, binding=binding['descriptor'],
+                                          expected=(binding['session_id'], binding['generation']))
+            if current['fingerprint'] != expected_fingerprint:
+                raise ValueError('STALE_SCENE: inspect later edits before choosing recovery')
+            attempt = attempts / str(uuid.uuid4()); attempt.mkdir(parents=True)
+            write_json(attempt / 'request.json', intent)
+            descriptor = Path(binding['descriptor'])
+            if descriptor.exists():
+                private = blender_bridge.descriptor(descriptor)
+                write_json(attempt / 'bridge.json', {k: private[k] for k in ('workspace', 'session_id', 'generation')})
+            receipt = blender_bridge.call('recovery_capture', intent, binding=binding['descriptor'],
+                                           expected=(binding['session_id'], binding['generation']))
+            if (isinstance(receipt, dict) and set(receipt) == {'state', 'request', 'reason'}
+                    and receipt['state'] == 'REFUSED_BEFORE_MUTATION' and receipt['request'] == intent
+                    and isinstance(receipt['reason'], str)):
+                write_json(attempt / 'refusal.json', receipt)
+                raise RuntimeError(receipt['reason'])
+        if not (folder / 'reconcile-request.json').exists():
+            write_json(folder / 'reconcile-request.json', intent)
         if receipt != read_json(folder / 'recovery/receipt.json'):
             raise ValueError('Recovery receipt differs from durable evidence')
+        if receipt['operation_id'] != operation_id or receipt['decision'] != decision:
+            raise ValueError('Recovery result request identity differs')
         recovery = folder / 'recovery'
         def verify(label, source, snapshot_path, inventory):
-            out = recovery / label; out.mkdir()
+            # Verification uses a fresh owned worker directory on resume. It never
+            # re-enters the live capture/restore or overwrites prior evidence.
+            out = recovery / (label + '-' + str(uuid.uuid4())); out.mkdir()
             run_worker(request['blender'], out, Path(__file__).with_name('_live_verify_blender.py'), 'verify',
                 {'source': source, 'out': str(out), 'scene': receipt['scene'], 'inventory': inventory,
                  'snapshot': snapshot_path, 'fingerprint': fingerprint(read_json(snapshot_path))}, timeout=60)
@@ -88,30 +117,43 @@ def reconcile(root, operation_id, decision, expected_fingerprint):
             raise ValueError('LIVE_DIVERGED during recovery verification')
         active = Continuity(root).status()['active']
         accepted_snapshot = read_json(binding['snapshot'])
-        if binding['checkpoint'] != active['id']:
+        external_step = 'external-recovery-' + operation_id
+        committed = active['step_id'] == external_step and active['checkpoint_sha256'] == receipt['source']['sha256']
+        if binding['checkpoint'] != active['id'] and not committed:
             raise ValueError('Binding does not identify the current accepted parent; inspect recovery evidence')
-        if not equivalent(accepted_snapshot, read_json(receipt['snapshot'])):
+        if committed or not equivalent(accepted_snapshot, read_json(receipt['snapshot'])):
             observed = read_json(observation)
             if observed['issues'] or not observed['objects']:
                 raise ValueError('External state has unsupported observations; archived but not published')
             check = evaluate(observed, {'schema': 'dcc.spec.v1', 'required': {key: {} for key in observed['objects']}})
             check['live_external_revision'] = {'decision': decision, 'operation_id': operation_id,
                                                'source': receipt['source'], 'artistic_acceptance': 'not_assessed'}
-            check_path = recovery / 'external-check.json'; write_json(check_path, check)
-            with workflow.writer_guard(root):
-                latest = blender_bridge.call('attach_check', {'fingerprint': receipt['fingerprint'], 'snapshot': receipt['snapshot']},
-                                              binding=binding['descriptor'], expected=(receipt['session_id'], receipt['generation']))
-                if not latest['matches']:
-                    raise ValueError('LIVE_DIVERGED before external-state publication')
-                active = Continuity(root).publish('external-recovery-' + operation_id, active['id'], receipt['source']['path'],
-                    observation, folder / 'handoff.md', {'live_external_revision': decision}, check_path)['active']
+            check_path = recovery / 'external-check.json'
+            if check_path.exists():
+                if read_json(check_path) != check:
+                    raise ValueError('External recovery check changed')
+            else:
+                write_json(check_path, check)
+            if not committed:
+                with workflow.writer_guard(root):
+                    latest = blender_bridge.call('attach_check', {'fingerprint': receipt['fingerprint'], 'snapshot': receipt['snapshot']},
+                                                  binding=binding['descriptor'], expected=(receipt['session_id'], receipt['generation']))
+                    if not latest['matches']:
+                        raise ValueError('LIVE_DIVERGED before external-state publication')
+                    token = execution._recovery.set(True)
+                    try:
+                        execution.check_publication(root)
+                    finally:
+                        execution._recovery.reset(token)
+                    active = Continuity(root).publish(external_step, active['id'], receipt['source']['path'],
+                        observation, folder / 'handoff.md', {'live_external_revision': decision}, check_path)['active']
             # A technical external-state checkpoint invalidates every prior stage decision.
             events = c.read(root)
             first = ew._binding(c.Context(root, Continuity(root).status(), events, root))['result']['manifest']['stages'][0]['id']
             ew.apply(root, 'stage.reopen', {'schema': 'dcc.environment.reopen.v1', 'stage_id': first,
                 'reason': 'External live state imported by explicit recovery',
                 'authority': {'role': 'agent', 'author': 'live recovery', 'reference': decision}},
-                events[-1]['id'], str(uuid.uuid4()), root)
+                events[-1]['id'], str(uuid.uuid5(uuid.UUID(operation_id), 'external-recovery-reopen')), root)
         new = {**binding, 'generation': receipt['generation'], 'checkpoint': active['id'], 'fingerprint': receipt['fingerprint'],
                'snapshot': receipt['snapshot'], 'state': 'LIVE_DIVERGED'}
         write_binding(root, new)

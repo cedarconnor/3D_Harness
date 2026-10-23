@@ -64,10 +64,13 @@ def check(session, payload):
         matches = equivalent(expected, current)
     diagnostic = None
     if payload.get('fingerprint') is not None and not matches:
-        import uuid
         folder = reject_links(session.project / 'live/divergence'); folder.mkdir(parents=True, exist_ok=True)
-        diagnostic = str(folder / (str(uuid.uuid4()) + '.json'))
-        write_exclusive(diagnostic, json_bytes(current))
+        diagnostic = str(reject_links(folder / (observed + '.json')))
+        if Path(diagnostic).exists():
+            if json.loads(Path(diagnostic).read_text()) != current:
+                raise ValueError('Divergence evidence changed')
+        else:
+            write_exclusive(diagnostic, json_bytes(current))
     return {'fingerprint': observed, 'matches': matches, 'diagnostic': diagnostic, **session.describe()}
 
 
@@ -93,17 +96,17 @@ def save_copy(session, path):
     disk_sha = file_hash(original) if original and Path(original).is_file() else None
     # Checkpoint storage may copy these bytes again. Freeze measured dependency paths
     # as absolute in the copy while restoring the exact artist-side path strings.
-    paths = [(image, image.filepath, bpy.path.abspath(image.filepath, library=image.library))
+    paths = [(image, 'filepath_raw', image.filepath, bpy.path.abspath(image.filepath, library=image.library))
              for image in bpy.data.images if image.filepath and not image.packed_file and not image.library]
-    paths += [(library, library.filepath, bpy.path.abspath(library.filepath)) for library in bpy.data.libraries]
+    paths += [(library, 'filepath', library.filepath, bpy.path.abspath(library.filepath)) for library in bpy.data.libraries]
     try:
-        for item, _, absolute in paths:
-            item.filepath = absolute
+        for item, attribute, _, absolute in paths:
+            setattr(item, attribute, absolute)
         result = bpy.ops.wm.save_as_mainfile(filepath=str(target), copy=True, relative_remap=False,
                                             check_existing=False)
     finally:
-        for item, original_path, _ in paths:
-            item.filepath = original_path
+        for item, attribute, original_path, _ in paths:
+            setattr(item, attribute, original_path)
     if result != {'FINISHED'} or not target.is_file():
         raise RuntimeError('Native save-copy did not finish')
     if bpy.data.filepath != original or (disk_sha and file_hash(original) != disk_sha):
@@ -115,13 +118,23 @@ def save_copy(session, path):
 def begin(session, payload):
     if set(payload) != {'project', 'scene', 'operation_id', 'request_hash'}:
         raise ValueError('Invalid attachment preparation')
-    scene = scene_for(payload['scene'])
+    # Only the read-only preflight may establish a no-mutation refusal. No binding
+    # or reservation is held when a dirty image or blocked identity plan is found.
+    try:
+        scene = scene_for(payload['scene'])
+        initial = snapshot(scene); before = fingerprint(initial)
+        info = inventory(scene)
+        if list(scene.objects):
+            probe = plan_identities(info, {'path': str(Path(payload['project']).parent / 'pre-adoption.blend'), 'sha256': '0' * 64})
+            if probe['status'] != 'READY':
+                raise ValueError('Identity plan is blocked: ' + '; '.join(probe['issues']))
+    except (ValueError, OSError) as exc:
+        return {'state': 'REFUSED_BEFORE_MUTATION', 'request': payload, 'reason': str(exc)}
     session.bind(payload['project'], scene.name)
     session.acquire(payload['operation_id'])
     folder = session.project.parent
     # A crash or retry cannot repeat identity writes: pre-copy and dispatch are immutable.
     try:
-        initial = snapshot(scene); before = fingerprint(initial)
         write_exclusive(folder / 'attach-before.json', json_bytes(initial))
         source = save_copy(session, folder / 'pre-adoption.blend')
         if not equivalent(initial, snapshot(scene)):

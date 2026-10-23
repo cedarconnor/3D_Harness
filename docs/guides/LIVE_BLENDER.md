@@ -47,9 +47,19 @@ CLI equivalents: `live-execute PROJECT --request OPERATION_JSON`, `live-status P
 
 A lost response, stale preparation, reload, or mutation error does not authorize another dispatch. An identical UUID is status-only. Before the next operation, the service checks alignment against the accepted checkpoint.
 
+The bridge allows up to 180 seconds for copy/capture commands and 10 seconds for its separate handshake and read/control commands. A timeout leaves the native outcome unknown. Exact command, payload, session and document-generation results are retained under the paired workspace's `.harness-mcp/outcomes/`; a lost response can be resolved from that record without redispatching. These explicit-command records are retained with the workspace and have no automatic expiry. Identical results share one immutable record, and identical divergence measurements share one diagnostic snapshot.
+
+Attachment preflight refusals retain the destination and permit another explicit attachment attempt only when every prior attempt has exact durable proof of refusal before mutation. A confirmed job preparation refusal closes its reservation without publication; the live binding returns to READY only after an aligned scene check. A refusal caused by divergence requires refresh. Missing evidence remains unresolved.
+
 For external manual edits or a restarted bridge, call `blender_session(action="refresh", payload={"project":PROJECT,"binding":DESCRIPTOR,"expected_parent":CHECKPOINT_ID})`. Equivalent state reconnects without a new checkpoint. Measured external changes are imported through managed execution and invalidate prior stage decisions. Unknown IDs/dependencies need explicit repair first.
 
+A descriptor left by a crash may be replaced after its recorded process is definitively dead. A slow request, refused TCP connection, inaccessible process, or a reused process ID does not establish that the old session has stopped. Such uncertain sessions still require an explicit stop or further inspection; stale private descriptors are retained as evidence.
+
 For an unresolved operation, inspect the current scene fingerprint through session refresh/status, then call `blender_job(action="reconcile", operation_id=UUID, payload={"project":PROJECT,"decision":"keep-current","expected_fingerprint":FINGERPRINT})`. `restore-precopy` is the other explicit choice. Recovery archives current state first and refuses if the fingerprint is stale. Restore opens a separate working copy, preserving the original artist file and immutable recovery source. An interrupted recovery is retained for inspection and is never automatically repeated.
+
+Repeating the exact recovery intent can continue verification/publication from a matching durable capture result; it never captures/restores again. A matching durable pre-mutation refusal permits another explicit recovery decision. If the checkpoint was already published, reconciliation checks that saved/live state and completes alignment and frozen capability receipt persistence without entering capture/restore.
+
+After an explicitly admitted replacement session, a published operation can realign from its saved snapshot and candidate bytes. The checkpoint must still be active, the snapshot fingerprint must be intact, and a fresh check must match the current session/document with no active native operation. The service retains an explicit refresh admission and alignment receipt, then finishes the frozen capability receipt. This neither invokes the old session's acknowledgement nor publishes another checkpoint or approves a stage. Same-session recovery continues to require its original job check and acknowledgement.
 
 CLI equivalents are `live-refresh PROJECT --binding DESCRIPTOR --parent CHECKPOINT_ID`, `live-cancel PROJECT --operation-id UUID`, and `live-reconcile PROJECT --operation-id UUID --decision keep-current --fingerprint FINGERPRINT`.
 
@@ -62,3 +72,7 @@ These are **saved-copy geometry renders**, not a beauty-render or viewport-quali
 Preview never changes stage approval or the artist's render settings. `live-preview PROJECT --request PREVIEW_JSON --blender BLENDER` provides the same behavior from the CLI.
 
 No external services, telemetry or background user-activity recording are introduced. Logs and artifacts are local records of explicit managed commands.
+
+Pairing and bridge identity checks assume a trusted local user and workspace. The bridge reports its own integrity hash; this is a compatibility pin, not remote attestation. Session discovery sends a descriptor's pairing token to its loopback port. The command whitelist excludes a raw Python endpoint, but qualified recipe adapters are project-resident Python executed inside Blender, with integrity records in that same project. These controls do not sandbox hostile code or another process running as the same user.
+
+Save-copy path remapping uses `Image.filepath_raw` to avoid reloading live external image pixels. Owned tests cover unchanged live cached pixels, path strings and dirty flags. They do not establish preservation of arbitrary stale clean image caches when reopening saved copies; dirty image buffers and the existing unsupported dependency/scene classes remain refused.

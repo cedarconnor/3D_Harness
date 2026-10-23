@@ -29,6 +29,8 @@ PAIRED_COMMANDS = ('session_describe', 'inspect', 'attach_begin', 'attach_apply'
                    'job_prepare', 'job_submit', 'job_status', 'job_cancel', 'job_check', 'job_acknowledge',
                    'recovery_capture', 'recovery_acknowledge', 'preview_capture', 'addons_inventory')
 FEATURES = ('paired_sessions', 'document_generation', 'scoped_inspection', 'addon_profiles_v1', 'qualified_recipes_v1')
+DURABLE_COMMANDS = ('attach_begin', 'attach_apply', 'job_prepare', 'job_submit', 'recovery_capture',
+                    'preview_capture', 'attach_acknowledge', 'job_acknowledge', 'recovery_acknowledge')
 server = None
 
 
@@ -96,6 +98,14 @@ class ObservationServer(upstream.BlenderMCPServer):
                 result = getattr(self, name)(**params)
             if isinstance(result, dict) and 'error' in result:
                 raise ValueError(result['error'])
+            try:
+                encoded = json.dumps({'status': 'success', 'result': result}, allow_nan=False).encode('utf-8')
+            except (TypeError, ValueError) as exc:
+                raise ValueError('Result serialization failed: ' + str(exc)) from None
+            if len(encoded) > 8 * 1024 * 1024:
+                raise ValueError('Response exceeds byte limit; narrow query')
+            if name in DURABLE_COMMANDS:
+                self.session.retain_outcome(name, params['payload'], result, generation=params['auth']['generation'])
             return {'status': 'success', 'result': result}
         except Exception as exc:
             message = str(exc)
@@ -127,8 +137,12 @@ class ObservationServer(upstream.BlenderMCPServer):
                     command = json.loads(data.decode('utf-8'))
                 except (UnicodeDecodeError, json.JSONDecodeError):
                     continue
-                self.command_queue.put((command, client, done, deadline))
-                done.wait(max(0, deadline - time.monotonic()))
+                # Read/queue admission is short; an admitted main-thread save can take longer.
+                # A disconnected caller does not cancel native work or erase its durable result.
+                command_deadline = time.monotonic() + (180 if isinstance(command, dict) and command.get('type') in (
+                    'attach_begin', 'attach_apply', 'job_prepare', 'recovery_capture', 'preview_capture') else 10)
+                self.command_queue.put((command, client, done, command_deadline))
+                done.wait(max(0, command_deadline - time.monotonic()))
                 return
         except OSError:
             pass

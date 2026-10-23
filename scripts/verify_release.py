@@ -70,6 +70,9 @@ def main():
         run('native-live-preservation', [python, str(repo / 'scripts/qualify_live_preservation.py'),
             '--blender', str(Path(args.blender).resolve()), '--runtime', str(target),
             '--out', str(out / 'native-live-preservation')], cwd=out, env=env)
+        run('native-live-transport', [python, str(repo / 'scripts/qualify_live_transport.py'),
+            '--blender', str(Path(args.blender).resolve()), '--runtime', str(target),
+            '--out', str(out / 'native-live-transport')], cwd=out, env=env)
         run('native-capabilities',[python,str(repo/'scripts/qualify_capabilities.py'),'--blender',str(Path(args.blender).resolve()),
             '--runtime',str(target),'--out',str(out/'native-capabilities'),'--case','all'],cwd=out,env=env)
     with zipfile.ZipFile(wheel) as archive:

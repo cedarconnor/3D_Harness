@@ -1,5 +1,7 @@
 """Local pairing and document lifetime; contains no Blender API calls."""
 import hmac
+import hashlib
+import json
 import os
 from pathlib import Path
 import secrets
@@ -30,11 +32,27 @@ class Session:
         self._write_descriptor()
 
     def _write_descriptor(self):
-        value = {**self.describe(), 'token': self._token, 'workspace': str(self.workspace)}
+        value = {**self.describe(), 'token': self._token, 'workspace': str(self.workspace), 'pid': os.getpid()}
         temporary = reject_links(self.descriptor_path.with_suffix('.' + uuid.uuid4().hex + '.tmp'))
         write_exclusive(temporary, json_bytes(value))
         os.chmod(temporary, 0o600)
         os.replace(temporary, reject_links(self.descriptor_path))
+
+    def retain_outcome(self, command, payload, result, *, generation=None):
+        """Freeze an exact request result before replying; absence proves nothing."""
+        identity = {'command': command, 'payload': payload, 'session_id': self.session_id,
+                    'generation': self.generation if generation is None else generation}
+        name = hashlib.sha256(json_bytes(identity)).hexdigest() + '.json'
+        folder = reject_links(self.workspace / '.harness-mcp/outcomes' / self.session_id)
+        folder.mkdir(parents=True, exist_ok=True)
+        record = {**identity, 'result': result}
+        path = reject_links(folder / name)
+        if path.exists():
+            if json.loads(path.read_text()) != record:
+                raise ValueError('Retained bridge outcome changed')
+        else:
+            write_exclusive(path, json_bytes(record))
+        return result
 
     def describe(self):
         with self._lock:

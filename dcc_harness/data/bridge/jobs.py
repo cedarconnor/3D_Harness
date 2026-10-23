@@ -45,6 +45,26 @@ class Jobs:
         return result
 
     def prepare(self, payload):
+        # Failure before acquire/copy is definitive; after that point keep uncertainty.
+        try:
+            scene, current, before = self.preflight(payload)
+        except (ValueError, OSError, RuntimeError) as exc:
+            return {'state': 'REFUSED_BEFORE_MUTATION', 'request': payload, 'reason': str(exc)}
+        request = payload['request']; op = request['operation_id']; folder = self.folder(op)
+        self.session.acquire(op)
+        write_exclusive(folder / 'live-request.json', json_bytes(request))
+        write_exclusive(folder / 'live-before.json', json_bytes(current))
+        self.write(op, 'PREPARING', session_id=self.session.session_id, generation=self.session.generation)
+        pre = attachment.save_copy(self.session, folder / 'pre-operation.blend')
+        if not attachment.equivalent(current, attachment.snapshot(scene)):
+            raise ValueError('STALE_SCENE during pre-copy')
+        prepared = self.session.prepare(op, digest(request), before)
+        prepared.update(precopy=pre, scene=self.session.scene)
+        write_exclusive(folder / 'live-prepared.json', json_bytes(prepared))
+        self.write(op, 'PREPARED', precopy=pre)
+        return prepared
+
+    def preflight(self, payload):
         if set(payload) != {'request', 'fingerprint', 'snapshot'}:
             raise ValueError('Invalid job preparation')
         request = payload['request']; op = request['operation_id']; folder = self.folder(op)
@@ -53,7 +73,7 @@ class Jobs:
             raise ValueError('Job differs from managed reservation')
         if not (folder / 'reservation.json').is_file() or Path(request['output']).resolve() != (folder / 'candidate.blend').resolve():
             raise ValueError('Managed reservation or candidate path mismatch')
-        if time.time() >= request['deadline'] or (self.session.project / 'execution/cancel.json').exists():
+        if self.cancelled(op, request):
             raise ValueError('Job cancelled or expired')
         scene = attachment.scene_for(self.session.scene)
         if request['live']['recipe'] == 'capability.recipe':
@@ -69,20 +89,9 @@ class Jobs:
         if not attachment.check(self.session, payload)['matches']:
             raise ValueError('LIVE_DIVERGED: current scene is not the accepted checkpoint')
         current = attachment.snapshot(scene); before = attachment.fingerprint(current)
-        self.session.acquire(op)
-        # Immutable reservation before any save or edit; an interrupted prepare is never replayed.
-        write_exclusive(folder / 'live-request.json', json_bytes(request))
-        write_exclusive(folder / 'live-before.json', json_bytes(current))
-        self.write(op, 'PREPARING', session_id=self.session.session_id, generation=self.session.generation)
-        pre = attachment.save_copy(self.session, folder / 'pre-operation.blend')
-        if not attachment.equivalent(current, attachment.snapshot(scene)):
-            raise ValueError('STALE_SCENE during pre-copy')
-        prepared = self.session.prepare(op, digest(request), before)
-        prepared.update(precopy=pre, scene=self.session.scene)
-        # Token payload retained by Session remains separate from this artifact metadata.
-        write_exclusive(folder / 'live-prepared.json', json_bytes(prepared))
-        self.write(op, 'PREPARED', precopy=pre)
-        return prepared
+        if self.session.active is not None:
+            raise ValueError('BUSY: reconcile the active operation first')
+        return scene, current, before
 
     def submit(self, payload):
         if set(payload) != {'operation_id', 'prepared'}:
@@ -111,6 +120,7 @@ class Jobs:
 
     def cancelled(self, operation_id, request):
         return ((self.folder(operation_id) / 'live-cancel.json').exists()
+                or (self.session.project / 'execution/cancellations' / (operation_id + '.json')).exists()
                 or (self.session.project / 'execution/cancel.json').exists() or time.time() >= request['deadline'])
 
     def run(self, operation_id):
@@ -183,5 +193,8 @@ class Jobs:
         status = self.check(payload)
         op = payload['operation_id']
         self.write(op, 'PUBLISHED', checkpoint=payload['checkpoint'])
-        self.session.release(op)
+        if self.session.active == op:
+            self.session.release(op)
+        elif self.session.active is not None:
+            raise ValueError('Another operation is active')
         return {'state': 'READY', 'fingerprint': status['fingerprint'], 'generation': self.session.generation}

@@ -306,6 +306,12 @@ def execute_operation(root, value):
             retained = read_json(reject_links(folder / 'request.json'))
             if retained != request:
                 raise ValueError('Operation ID reused with different content')
+            if kind == 'live' and not (folder / 'outcome.json').exists():
+                backend = make_backend(kind, root=root, folder=folder, run=None)
+                recover = getattr(backend, 'recover_failure', None)
+                recovered = recover() if recover is not None else None
+                if recovered is not None:
+                    return recovered
             return _outcome(folder)
         if 'capability' in request:
             from .capabilities import admit, reuse
@@ -334,6 +340,7 @@ def execute_operation(root, value):
         except Exception as exc:
             write_json(staged / 'failure.json', {'operation_id': operation_id, 'error': str(exc), 'type': type(exc).__name__})
             raise
+        backend = None
         try:
             reserved = workflow.begin_edit(root, expected_parent, active['checkpoint'], active['observation'],
                                            folder / 'script.py', folder / 'contract.json', 'managed-' + operation_id)
@@ -406,6 +413,11 @@ def execute_operation(root, value):
             write_json(folder / 'outcome.json', result)
             return result
         except Exception as exc:
+            recover = getattr(backend, 'recover_failure', None)
+            if recover is not None:
+                recovered = recover()
+                if recovered is not None:
+                    return recovered
             # No outcome receipt: this remains unresolved even if a candidate exists.
             write_json(folder / 'failure.json', {'error': str(exc), 'type': type(exc).__name__})
             return {**_outcome(folder), 'reason': str(exc)}
