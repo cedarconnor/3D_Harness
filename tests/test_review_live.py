@@ -56,6 +56,35 @@ class TransportTests(unittest.TestCase):
         changed = {'request': {'operation_id': str(uuid.uuid4())}}
         self.assertIsNone(blender_bridge.retained_outcome('job_prepare', changed, self.private))
 
+    def test_lost_submit_success_uses_durable_result_without_redispatch(self):
+        operation = str(uuid.uuid4())
+        payload = {'operation_id': operation, 'prepared': {'proof': 'owned'}}
+        dispatches = []
+        def send(port, command, params, timeout):
+            if command == 'get_addon_info': return self.info
+            dispatches.append(command)
+            self.session.retain_outcome(command, params['payload'], operation)
+            raise ConnectionError('response lost after durable success')
+        with mock.patch.object(blender_bridge, '_request', side_effect=send):
+            self.assertEqual(blender_bridge.call('job_submit', payload, binding=self.session.descriptor_path), operation)
+            self.assertEqual(blender_bridge.call('job_submit', payload, binding=self.session.descriptor_path), operation)
+        self.assertEqual(dispatches, ['job_submit'])
+        changed = {**payload, 'operation_id': str(uuid.uuid4())}
+        self.assertIsNone(blender_bridge.retained_outcome('job_submit', changed, self.private))
+
+    def test_lost_submit_without_durable_result_remains_unknown(self):
+        payload = {'operation_id': str(uuid.uuid4()), 'prepared': {'proof': 'owned'}}
+        dispatches = []
+        def send(port, command, params, timeout):
+            if command == 'get_addon_info': return self.info
+            dispatches.append(command)
+            raise ConnectionError('response lost with no durable evidence')
+        with mock.patch.object(blender_bridge, '_request', side_effect=send):
+            with self.assertRaises(blender_bridge.BridgeTransportError):
+                blender_bridge.call('job_submit', payload, binding=self.session.descriptor_path)
+        self.assertEqual(dispatches, ['job_submit'])
+        self.assertIsNone(blender_bridge.retained_outcome('job_submit', payload, self.private))
+
     def test_dead_session_is_only_definite_process_or_connection_evidence(self):
         with mock.patch.object(blender_bridge, 'call', side_effect=RuntimeError('deadline exceeded')):
             self.assertEqual(blender_bridge.session_presence(self.session.descriptor_path), 'UNKNOWN')

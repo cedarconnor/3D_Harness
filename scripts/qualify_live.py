@@ -102,6 +102,14 @@ if CONFIG['case'] == 'jobs' and CONFIG['fixture'] == 'nodes':
 bridge.register()
 bridge.server = bridge.ObservationServer(CONFIG['port'], out)
 bridge.server.start()
+if CONFIG['case'] == 'jobs' and CONFIG['fixture'] == 'lost-reply-unknown':
+    original_retention = bridge.server.session.retain_outcome
+    def withhold_submit_outcome(command, payload, result, **kwargs):
+        if command == 'job_submit':
+            (out / 'submit-retention-withheld.json').write_text(json.dumps({'operation_id': payload['operation_id']}))
+            return result
+        return original_retention(command, payload, result, **kwargs)
+    bridge.server.session.retain_outcome = withhold_submit_outcome
 if CONFIG['case'] == 'jobs' and CONFIG['fixture'] in ('fail', 'stale-recovery'):
     original_step = bridge.jobs.operations.execute_step
     def fail_after_mutation(scene, value):
@@ -271,7 +279,7 @@ def all_cases(args):
     cases += [('attach', fixture, 'autonomous', 'restore-precopy') for fixture in
               ('untitled', 'dirty', 'relative', 'empty', 'duplicate', 'linked', 'interrupted', 'stale')]
     cases += [('jobs', fixture, 'autonomous', 'restore-precopy') for fixture in
-              ('untitled', 'fail', 'stale-recovery', 'cancel', 'lost-reply', 'external', 'reconnect', 'nodes',
+              ('untitled', 'fail', 'stale-recovery', 'cancel', 'lost-reply', 'lost-reply-unknown', 'external', 'reconnect', 'nodes',
                'shared', 'pre-publication', 'post-publication', 'queued-cancel', 'queued-reload', 'context')]
     cases += [('jobs', 'fail', 'autonomous', 'keep-current')]
     cases += [('modes', 'untitled', mode, 'restore-precopy') for mode in ('autonomous', 'approval_gated')]
@@ -339,12 +347,22 @@ def jobs_case(args, out, binding, before, process):
                 return original_method(self, *arguments)
             with mock.patch.object(live.LiveBackend, method, edit_at_barrier):
                 result = execution.execute_operation(root, request)
-        elif args.fixture == 'lost-reply':
+        elif args.fixture in ('lost-reply', 'lost-reply-unknown'):
             from unittest import mock
             actual_request = blender_bridge._request
+            lost_submissions = []
+            dropped_submit_replies = []
             def lost_response(port, command, params, timeout):
+                if command == 'job_submit':
+                    lost_submissions.append(params['payload'])
                 result = actual_request(port, command, params, timeout)
                 if command == 'job_submit':
+                    if args.fixture == 'lost-reply-unknown':
+                        status_path = root / 'execution/operations' / request['operation_id'] / 'live-status.json'
+                        # Lose the acknowledgement after this owned mutation has finished,
+                        # without racing the controller's conservative cancellation path.
+                        wait_for(lambda: read_json(status_path)['state'] == 'SAVED', process, seconds=15)
+                    dropped_submit_replies.append(result)
                     raise ConnectionError('Synthetic lost mutation acknowledgement')
                 return result
             with mock.patch.object(blender_bridge, '_request', side_effect=lost_response):
@@ -376,20 +394,58 @@ def jobs_case(args, out, binding, before, process):
                 'publication_matches_outcome': True, 'artist_edit_preserved': raced,
                 'native_state': native['state'], 'next_operation_refused': True}, indent=2))
             return
-        if args.fixture in ('cancel', 'lost-reply'):
-            assert result['status'] == 'NEEDS_RECONCILIATION', result
-            assert execution.execute_operation(root, request)['status'] == 'NEEDS_RECONCILIATION'
+        if args.fixture == 'lost-reply':
+            assert len(lost_submissions) == 1, 'Lost-response injection must fire exactly once'
+            assert dropped_submit_replies == [request['operation_id']], 'A real submit acknowledgement must be dropped'
+            assert result['status'] == 'PUBLISHED' and result['live_state'] == 'READY', result
             operation = root / 'execution/operations' / request['operation_id']
+            private = blender_bridge.descriptor(binding)
+            assert blender_bridge.retained_outcome('job_submit', lost_submissions[0], private) == request['operation_id']
+            with mock.patch.object(blender_bridge, '_request', side_effect=lost_response):
+                assert execution.execute_operation(root, request) == result
+            assert len(lost_submissions) == 1
+            status = read_json(operation / 'live-status.json')
+            assert process.poll() is None and status['mutation_started'] is True and status['state'] == 'PUBLISHED'
+            assert sum(read_json(p)['state'] == 'RUNNING' for p in (operation / 'live-history').glob('*.json')) == 1
+            verified = read_json(operation / 'verified.json')
+            assert verified['saved_inventory_matches'] and verified['saved_fingerprint_matches']
+            assert not (operation / 'recovery').exists()
+            live.ensure_aligned(root)
+            (out / 'result.json').write_text(json.dumps({'case': 'jobs', 'fixture': args.fixture, 'passed': True,
+                'lost_response_injected': True, 'submit_dispatch_count': len(lost_submissions), 'native_running_count': 1,
+                'matching_durable_submit': True, 'published_and_aligned': True,
+                'saved_output_independently_verified': True, 'repeated_call_did_not_redispatch': True,
+                'recovery_not_entered': True, 'native_process_survived': True}, indent=2))
+            return
+        if args.fixture in ('cancel', 'lost-reply-unknown'):
+            assert result['status'] == 'NEEDS_RECONCILIATION', result
+            if args.fixture == 'lost-reply-unknown':
+                with mock.patch.object(blender_bridge, '_request', side_effect=lost_response):
+                    assert execution.execute_operation(root, request)['status'] == 'NEEDS_RECONCILIATION'
+            else:
+                assert execution.execute_operation(root, request)['status'] == 'NEEDS_RECONCILIATION'
+            operation = root / 'execution/operations' / request['operation_id']
+            if args.fixture == 'lost-reply-unknown':
+                assert len(lost_submissions) == 1, 'Unknown lost-response injection must fire exactly once'
+                assert dropped_submit_replies == [request['operation_id']], 'A real submit acknowledgement must be dropped'
+                assert read_json(out / 'submit-retention-withheld.json')['operation_id'] == request['operation_id']
+                assert blender_bridge.retained_outcome('job_submit', lost_submissions[0], blender_bridge.descriptor(binding)) is None
             wait_for(lambda: read_json(operation / 'live-status.json')['state'] in ('SAVED', 'NEEDS_RECONCILIATION'), process, seconds=15)
             status = read_json(operation / 'live-status.json')
             assert process.poll() is None and status.get('mutation_started') is True
             assert sum(read_json(p)['state'] == 'RUNNING' for p in (operation / 'live-history').glob('*.json')) == 1
+            if args.fixture == 'lost-reply-unknown':
+                assert not (operation / 'recovery').exists(), 'Unknown acknowledgement must not trigger implicit restore'
             current = blender_bridge.call('attach_check', {}, binding=binding)
             recovered = live.reconcile(root, request['operation_id'], 'restore-precopy', current['fingerprint'])
             assert recovered['live_state'] == 'READY'
             (out / 'result.json').write_text(json.dumps({'case': 'jobs', 'fixture': args.fixture, 'passed': True,
                 'dispatch_count': 1, 'native_process_survived': True, 'eventual_outcome_recorded': True,
-                'explicit_recovery_verified': True}, indent=2))
+                'explicit_recovery_verified': True,
+                **({'lost_response_injected': True, 'matching_durable_submit': False,
+                    'initial_status': result['status'], 'native_running_count': 1,
+                    'recovery_only_after_explicit_request': True,
+                    'repeated_call_did_not_redispatch': True} if args.fixture == 'lost-reply-unknown' else {})}, indent=2))
             return
         if args.fixture in ('fail', 'stale-recovery'):
             assert result['status'] == 'NEEDS_RECONCILIATION', result
@@ -540,7 +596,7 @@ if __name__ == '__main__':
     parser.add_argument('--case', choices=['protocol', 'attach', 'jobs', 'modes', 'all'], default='protocol')
     parser.add_argument('--mode', choices=['autonomous', 'approval_gated'], default='autonomous')
     parser.add_argument('--fixture', choices=['untitled', 'dirty', 'relative', 'empty', 'duplicate', 'linked',
-                                              'interrupted', 'stale', 'fail', 'stale-recovery', 'cancel', 'lost-reply',
+                                              'interrupted', 'stale', 'fail', 'stale-recovery', 'cancel', 'lost-reply', 'lost-reply-unknown',
                                               'external', 'reconnect', 'nodes', 'shared', 'pre-publication', 'post-publication',
                                               'queued-cancel', 'queued-reload', 'context'], default='untitled')
     parser.add_argument('--recovery', choices=['keep-current', 'restore-precopy'], default='restore-precopy')
