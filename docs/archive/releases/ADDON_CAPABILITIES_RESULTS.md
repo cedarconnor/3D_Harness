@@ -2,8 +2,8 @@
 
 Qualified: 0.23.0, Python 3.11, MCP SDK 1.26.0 and Blender 5.1.1 on Windows. All
 17 maintained release checks passed. Source and clean-installed suites each ran
-588 tests: 586 passed and two existing Windows symlink-permission cases skipped.
-The source suite took 271.768 seconds; the installed suite took 238.060 seconds.
+593 tests: 591 passed and two existing Windows symlink-permission cases skipped.
+The source suite took 268.405 seconds; the installed suite took 246.423 seconds.
 
 ## Delivered behavior
 
@@ -27,10 +27,15 @@ See [the capability guide](../../guides/ADDON_RECIPES.md) for payloads, limitati
 an executable example, and [the implementation plan](../../superpowers/plans/2026-10-22-addon-capabilities.md)
 for the task breakdown.
 
+The [final review and decisions](ADDON_CAPABILITIES_REVIEW.md) records three Important
+findings, their regression-backed fixes, and the deferred formatting minor. Artist-bound
+policies now retain owner authority on every revision, owner CLI binding confirms the
+actual policy, and node-asset entries accept bounded native names with spaces/Unicode.
+
 ## Retained release evidence
 
-The machine-readable report is `runs/p22-release/VERIFICATION.json`. Its native-qualified
-wheel SHA-256 is `b9488d87e049f700206f1bc29066acd600898249c2abea38841e755a7c372b45`.
+The machine-readable report is `runs/p22-final/VERIFICATION.json`. Its native-qualified
+wheel SHA-256 is `34b092c2225b11b0f03641824db2934f5acc48fc23a249c01b06e3c6e0e50084`.
 The final documentation artifact is rebuilt separately and must retain identical runtime
 and bridge bytes; its report is `runs/p22-delivery/VERIFICATION.json`. Local run artifacts
 are excluded from Git and the rules distribution.
@@ -48,10 +53,10 @@ handlers, standalone imports and private pairing cleanup.
 | Group | Evidence |
 |---|---|
 | Profiles | Static legacy/extension discovery, explicit activation, source identity, worker/observer propagation, unavailable dependencies and loaded-source refusals |
-| Onboarding | Eight recipes: seven qualified and one expected poll failure refused; function/operator/node asset, actual viewport, shared material/copy, repeat/reopen, no-op, mutation-before-error, modal and network failures, source drift |
+| Onboarding | Eight recipes: seven qualified and one expected poll failure refused; function/operator/node asset with spaces/Unicode in its name, actual viewport, shared material/copy, repeat/reopen, no-op, mutation-before-error, modal and network failures, source drift |
 | Routing | Background/live × autonomous/gated; primary/secondary engine selection, required-use and stale-source stops, stable UUID publication |
 | Revisions | Both backends; eight scenarios and nine published operations each, with two shared material users preserved: zero-job reuse, unrelated checkpoint, geometry, material, deletion, reload, second slot and source drift |
-| Stdio | Four backend/mode combinations using public inventory/profile/draft/qualify/register/bind/resolve/prepare/execute/submit tools; missing/stale receipts and agent approval refused, identical UUID retry and zero-job reuse proven |
+| Stdio | Four backend/mode combinations using public inventory/profile/draft/qualify/register/bind/resolve/prepare/execute/submit tools; missing/stale receipts and agent approval, artist impersonation and artist-policy downgrade refused, identical UUID retry and zero-job reuse proven |
 
 ## Corrections established during development
 
@@ -75,6 +80,10 @@ fixtures and qualified engines/contexts. Custom-property coverage and GUI-only p
 without independent background verification are refused. Broad overlapping output scopes
 can conservatively require another update. `best_qualified` compares fixture execution
 time only on comparable inputs; it does not score visual quality.
+
+Provider-dependent preview/recovery beyond the retained fixtures remains unqualified.
+Products requiring active registration during those paths need additional native proof;
+successful managed execution alone does not establish that support.
 
 Qualification binds the harness runtime as well as provider/recipe/profile/build bytes;
 upgrades require new proof. Existing projects keep their pinned installed runtime. The

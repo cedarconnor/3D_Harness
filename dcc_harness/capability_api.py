@@ -6,7 +6,7 @@ CAPABILITY_ACTIONS=('inventory','profile','bind','resolve','requirements','prepa
 RECIPE_ACTIONS=('scaffold','draft','inspect','qualify','register')
 
 
-def capability_action(action,payload,*,blender=None):
+def capability_action(action,payload,*,blender=None,approval=None):
     if action=='inventory':
         c.fields(payload,set(),{'binding','roots','out'})
         if not payload.get('binding') and not blender: raise ValueError('Configure Blender for background discovery')
@@ -17,7 +17,7 @@ def capability_action(action,payload,*,blender=None):
     if action=='bind':
         c.fields(payload,{'project','policy','expected_revision','request_id','authority'})
         return capabilities.bind_policy(payload['project'],payload['policy'],expected_revision=payload['expected_revision'],
-            request_id=payload['request_id'],authority=payload['authority'])
+            request_id=payload['request_id'],authority=payload['authority'],approval=approval)
     if action=='resolve':
         c.fields(payload,{'project','requirement'})
         return capabilities.resolve(payload['project'],payload['requirement'],

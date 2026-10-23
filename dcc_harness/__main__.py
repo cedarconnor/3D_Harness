@@ -198,7 +198,14 @@ def main():
     if args.command.startswith(('capability-','recipe-')):
         from .capability_api import capability_action, recipe_action
         family,action=args.command.split('-',1)
-        result=(capability_action if family=='capability' else recipe_action)(action,read_json(args.request),blender=args.blender)
+        payload=read_json(args.request)
+        if family=='capability' and action=='bind':
+            from . import owner
+            approval=owner.authorize(payload['project'],'capability.bind',
+                {'policy':payload['policy'],'authority':payload['authority']},payload['request_id'])
+            result=capability_action(action,payload,blender=args.blender,approval=approval)
+        else:
+            result=(capability_action if family=='capability' else recipe_action)(action,payload,blender=args.blender)
     elif args.command=='run-operation':
         from .execution import execute_operation
         result=execute_operation(args.project,read_json(args.request))

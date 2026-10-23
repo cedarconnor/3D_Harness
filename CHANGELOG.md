@@ -9,7 +9,9 @@ Each version is a bounded increment with its own qualification report. Test coun
 - Added preferred/required provider policies and measured timing comparisons. Stage gates require service-owned receipts for actual verified effects; prose and owner approval cannot override missing technical evidence.
 - Added dependency-aware reuse and updates under stable effect IDs. Geometry/material changes and deleted effects become stale; unrelated revisions preserve valid receipts, and new explicit slots permit layers.
 - Added `blender_capabilities`, `blender_recipe` and generic `blender_execute` routes for both managed backends, matching CLI actions, recursive standalone bridge manifests and executable synthetic onboarding examples.
-- All 17 release gates passed, with 588 tests each in source and installed packages (two existing skips), baseline native checks, 26 live scenarios and the full capability matrix. Real third-party products and visual superiority require separate qualification; see the [qualification report](docs/archive/releases/ADDON_CAPABILITIES_RESULTS.md).
+- All 17 release gates passed, with 593 tests each in source and installed packages (two existing skips), baseline native checks, 26 live scenarios and the full capability matrix. Real third-party products and visual superiority require separate qualification; see the [qualification report](docs/archive/releases/ADDON_CAPABILITIES_RESULTS.md).
+
+- Fixed three final-review findings: artist-bound policies require owner authority for every revision, the owner CLI confirms the actual binding, and node-asset names support spaces/Unicode. Five focused regressions failed before the fixes and pass afterward; renewed installed native qualification passed.
 
 ## 0.22.0 — October 22, 2026
 

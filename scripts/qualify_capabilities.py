@@ -221,14 +221,14 @@ def onboarding(args):
 import bpy, json, sys
 from pathlib import Path
 _, path = sys.argv[sys.argv.index('--')+1:]; request = json.loads(Path(path).read_text())
-tree = bpy.data.node_groups.new('FixtureGroup','GeometryNodeTree')
+tree = bpy.data.node_groups.new('Fixture Geometry 模型','GeometryNodeTree')
 tree.interface.new_socket(name='Geometry',in_out='INPUT',socket_type='NodeSocketGeometry')
 tree.interface.new_socket(name='Geometry',in_out='OUTPUT',socket_type='NodeSocketGeometry')
 entry = tree.nodes.new('NodeGroupInput'); output = tree.nodes.new('NodeGroupOutput')
 transform = tree.nodes.new('GeometryNodeTransform'); transform.inputs['Translation'].default_value = (.1,0,0)
 tree.links.new(entry.outputs['Geometry'],transform.inputs['Geometry']); tree.links.new(transform.outputs['Geometry'],output.inputs['Geometry'])
 bpy.data.libraries.write(request['output'],{tree})
-''')
+''',encoding='utf-8')
     setup = out / 'setup'; setup.mkdir()
     asset = out / 'providers/capability_fixture/fixture.blend'
     run_worker(args.blender,setup,asset_script,'asset',{'output':str(asset)},timeout=60)
@@ -248,7 +248,7 @@ bpy.data.libraries.write(request['output'],{tree})
             fixture_case('poll_failure')],name='fixture.never'),
         fixture_recipe(providers['capability_fixture'],'python_function','capability_fixture.mark',[
             fixture_case('shared_valid'),fixture_case('shared_invalid',behavior='shared_bad',expect='fail')],name='fixture.shared',shared=True),
-        fixture_recipe(providers['capability_fixture'],'node_asset','FixtureGroup',both),
+        fixture_recipe(providers['capability_fixture'],'node_asset','Fixture Geometry 模型',both),
         fixture_recipe(providers['capability_second'],'python_function','capability_second.mark',both),
     ]
     single = fixture_recipe(providers['capability_fixture'],'python_function','capability_fixture.mark',[

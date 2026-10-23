@@ -122,7 +122,16 @@ def validate(value):
     if (invocation['kind'] not in ('python_function','operator','node_asset') or invocation['completion'] != 'synchronous'
             or invocation['cancellation'] != 'between_calls'):
         raise ValueError('Unsupported invocation or completion protocol')
-    identifier(invocation['entry'])
+    entry=invocation['entry']
+    if invocation['kind']=='node_asset':
+        if not isinstance(entry,str) or not 1<=len(entry)<=255 or any(ord(ch)<32 or ord(ch)==127 for ch in entry):
+            raise ValueError('Node asset entry must be bounded native text without control characters')
+    else:
+        segments=1 if invocation['kind']=='operator' else None
+        if (not isinstance(entry,str) or len(entry)>128
+                or re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+',entry) is None
+                or (segments is not None and entry.count('.')!=segments)):
+            raise ValueError('Invalid callable or operator entry syntax')
     exact(value['update'], {'identity','shared_materials'})
     if value['update']['identity'] != 'effect_key' or value['update']['shared_materials'] not in ('none','all_users','single_user_copy'):
         raise ValueError('Explicit effect identity and material scope required')

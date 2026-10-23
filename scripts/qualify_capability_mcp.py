@@ -34,7 +34,7 @@ def mcp_cases(args):
 async def project_case(args,folder,central,source,backend,mode,binding=None):
     from mcp import ClientSession,StdioServerParameters
     from mcp.client.stdio import stdio_client
-    from dcc_harness import coordination as c,workflow,environment_workflow as ew,owner,execution
+    from dcc_harness import coordination as c,workflow,environment_workflow as ew,owner,execution,capabilities
     from dcc_harness.evidence import read_json,write_json
     from dcc_harness.continuity_checks import OBJECT_FIELDS
     from qualify_capabilities import fixture_recipe,fixture_case
@@ -90,6 +90,15 @@ async def project_case(args,folder,central,source,backend,mode,binding=None):
                     'parameters':{'amount':.15,'behavior':'normal'},'dependencies':['geometry','materials'],'benchmark':None}]}
                 await cap('bind',{'project':str(root),'policy':policy,'expected_revision':c.read(root)[-1]['id'],
                                  'request_id':str(uuid.uuid4()),'authority':actor})
+                # Only the owned fixture's synthetic owner may establish/change artist authority.
+                policy={**policy,'version':2}; artist={**actor,'role':'artist'}
+                approval=owner.confirm('capability.bind',{'policy':policy,'authority':artist},SyntheticOwnerConsole())
+                capabilities.bind_policy(root,policy,expected_revision=c.read(root)[-1]['id'],
+                    request_id=str(uuid.uuid4()),authority=artist,approval=approval)
+                for authority in (actor,artist):
+                    await call('blender_capabilities',{'action':'bind','payload':{'project':str(root),
+                        'policy':{**policy,'version':3,'rules':[]},'expected_revision':c.read(root)[-1]['id'],
+                        'request_id':str(uuid.uuid4()),'authority':authority}},True)
                 handoff=await input_file('handoff.md','Synthetic capability evidence only.')
                 contract=await input_file('contract.json',json.dumps({'schema':'dcc.continuity.contract.v1',
                     'spec':{'schema':'dcc.spec.v1','required':{target:{}}},'allowed_object_prefixes':{target:sorted(OBJECT_FIELDS)}}))
@@ -129,4 +138,4 @@ async def project_case(args,folder,central,source,backend,mode,binding=None):
                     ew.apply(root,'stage.complete',payload,c.read(root)[-1]['id'],str(uuid.uuid4()),folder,approval)
                 else: assert completed['status']=='COMPLETE'
                 return {'passed':True,'backend':backend,'mode':mode,'stdio_onboarding':True,'missing_and_stale_blocked':True,
-                        'stable_uuid_replay':True,'reuse_zero_jobs':True,'agent_approval_refused':True}
+                        'stable_uuid_replay':True,'reuse_zero_jobs':True,'agent_approval_refused':True,'artist_policy_downgrade_refused':True}

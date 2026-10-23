@@ -71,6 +71,9 @@ def bind_policy(root, value, *, expected_revision, request_id, authority, approv
         if wanted-stages: raise ValueError('Capability policy names unknown stages')
         previous=bound_policy(ctx.events)
         if previous:
+            if previous['authority']['role']=='artist' and authority['role']!='artist':
+                from .owner import OwnerRequired
+                raise OwnerRequired('Owner approval required to revise an artist-bound capability policy; use artist authority in the owner terminal')
             old=previous['policy']
             if old['id']!=value['id'] or value['version']<=old['version']: raise ValueError('Policy changes require a new version')
             wanted.update(s for r in old['rules'] for s in r['stages'])

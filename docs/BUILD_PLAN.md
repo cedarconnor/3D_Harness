@@ -13,7 +13,7 @@ The owner authorized fixing all six findings in the [adversarial review](referen
 | P19 Adversarial fixes and managed execution | Codex | done | Six findings and five independent-review issues fixed. Source and installed suites: 467 tests each; native units/adoption/two-mode execution, timeout/cancel passed. [Verification](reference/MANAGED_EXECUTION_VERIFICATION_2026-10-22.md). |
 | P20 Combined harness/MCP distribution | Codex | done | Pinned observation adapter, bundled rules/add-on, one endpoint, 0.21.1 removes telemetry code; source and installed suites (481 tests each), clean install and native MCP qualification passed. [Verification](reference/TELEMETRY_REMOVAL_VERIFICATION_2026-10-22.md). |
 | P21 Direct open-scene Blender execution | Codex | done | [Implementation plan](superpowers/plans/2026-10-22-live-blender-execution.md): paired sessions, live edits, inspection/previews, recovery and both modes. Five final-review issues fixed. Source/installed suites: 536 tests each; 26 live native scenarios and preservation gate passed. [Evidence](archive/releases/LIVE_EXECUTION_RESULTS.md). |
-| P22 Reusable add-on capabilities | Codex | done | [Implementation plan](superpowers/plans/2026-10-22-addon-capabilities.md): discovery, profiles, recipes, provider policy, revision freshness and public routes qualified. All 17 release gates passed; source/installed suites: 588 tests each. [Evidence](archive/releases/ADDON_CAPABILITIES_RESULTS.md). Product-specific qualification remains separate. |
+| P22 Reusable add-on capabilities | Codex | done | [Implementation plan](superpowers/plans/2026-10-22-addon-capabilities.md): discovery, profiles, recipes, provider policy, revision freshness and public routes qualified. All 17 release gates passed; source/installed suites: 593 tests each. [Evidence](archive/releases/ADDON_CAPABILITIES_RESULTS.md). Product-specific qualification remains separate. |
 
 The owner approved implementation and selected direct editing in the open scene. The [design](superpowers/specs/2026-10-22-live-blender-capabilities-design.md) records that choice and the engineering defaults. P22 uses P21's qualified shared execution service.
 
@@ -30,7 +30,7 @@ The owner approved implementation and selected direct editing in the open scene.
 | | |
 |---|---|
 | Version | 0.23.0 verified locally on `codex/managed-execution-overhaul`; `main` unchanged |
-| Active | P19–P22 are verified; final branch review follows. P16 and P18 remain open from the [Scenario review](reference/SCENARIO_BLENDER_PLUGIN_REVIEW_2026-10-15.md) |
+| Active | P19–P22 are verified; final branch review completed, three Important findings fixed and renewed qualification passed. P16 and P18 remain open from the [Scenario review](reference/SCENARIO_BLENDER_PLUGIN_REVIEW_2026-10-15.md) |
 | Next | Final branch review and delivery packaging. Real-project adoption and the separate artist-quality comparison remain open. |
 | Waiting on the user | E1Ã¢â‚¬â€œE3 artist review session; E4 decision on the realistic comparison; E5 artist repair time |
 | Investment gate | Open |
@@ -300,3 +300,5 @@ Newest first. One line per status change.
 - **2026-10-06:** Plan rewritten from the October 3 week-one plan; previous text archived.
 
 - October 22, 2026: P22 qualification passed all 17 release gates. Added source-pinned profiles, reusable recipes, provider policies, revision freshness and public MCP/CLI onboarding. Product-specific artistic qualification remains separate.
+
+- October 22, 2026: final P22 review fixes passed five RED-to-GREEN regressions, 593 tests in each source/installed suite (two existing skips), and all 17 renewed release gates. See [review and decisions](archive/releases/ADDON_CAPABILITIES_REVIEW.md).

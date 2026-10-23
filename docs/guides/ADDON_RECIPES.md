@@ -84,12 +84,21 @@ parameters, dependencies and retained recipe/profile candidates. `require` permi
 only a qualified named provider. `prefer` permits another provider or manual work
 only when that fallback is explicitly configured. A policy revision invalidates
 the affected stage receipts; it never edits a previous policy event.
+Once an artist confirms a policy, later revisions also require artist authority and
+owner confirmation. This conservative guard covers all changes, including additions;
+agent-authored policies remain revisable by the agent. The owner runs
+`capability-bind --request binding.json` in their own interactive terminal with
+`authority.role` set to `artist`. The CLI displays the policy and asks for confirmation;
+identical committed request IDs do not prompt again. MCP cannot supply that approval.
 
 `best_qualified` currently compares measured execution time only, on matching fixture
 inputs, parameters, Blender build, engine and invocation context. It returns
 `NO_COMPARABLE_EVIDENCE` when those conditions do not match. It does not rank visual
 quality. Initial qualification proves the MESH fixture and first declared engine;
 a longer compatibility list is not proof that every target/engine combination works.
+Node-asset entry points are native group names, including spaces and Unicode (up to
+255 characters, without control characters). Function entries use a dotted Python
+callable path; operator entries use exactly `category.operator`.
 
 Managed live use also requires an independent background reopen under the same
 profile. GUI invocation alone cannot qualify the publication verifier. Activation
@@ -120,6 +129,11 @@ Initial managed support refuses recipes whose coverage includes custom propertie
 which P21 does not measure, and refuses policies that omit declared recipe inputs.
 The isolated qualifier can inspect broader recipe properties, but that does not make
 them eligible for managed use. Existing projects keep their pinned runtime and rules.
+
+Provider-dependent preview and recovery beyond the retained synthetic fixtures are
+not yet qualified. An add-on whose saved result needs active provider registration
+during those paths needs additional native proof; do not infer that support from
+successful execution and publication alone.
 
 ## MCP and CLI onboarding
 
