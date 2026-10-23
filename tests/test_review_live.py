@@ -425,6 +425,137 @@ class HostRefusalTests(Fixture):
             self.assertEqual(aligned['capability_receipt']['sha256'],frozen_sha)
             self.assertEqual(len(live.workflow.Continuity(self.root).status()['task_history']),2)
 
+    def ack_failure_recovery(self, cross_session=False, interrupted=False):
+        from dcc_harness import capabilities, execution
+        from dcc_harness.evidence import digest, file_hash
+        import test_review_execution as review_execution
+        request=review_execution.ReviewExecutionTests.capability_request(self)
+        request.update(backend='live',live={'recipe':'capability.recipe','target':'ext.table.top',
+                                         'parameters':{'operation_id':request['operation_id']}})
+        self.binding(); backend=self.backend(); original_submit=backend.submit; original_verify=backend.verify
+        def submit(request,prepared):
+            result=original_submit(request,prepared); folder=Path(request['output']).parent
+            measured=capabilities.observed_scope(self.obs,'ext.table.top',['geometry','materials'])
+            output={'effect_id':request['capability']['effect_id'],'effect_count':1,'measurements':measured}
+            write_json(folder/'capability-output.json',{'after':measured,'output':output,'output_fingerprint':digest(output)})
+            return result
+        def verify(receipt):
+            original_verify(receipt); folder=Path(receipt['candidate']).parent
+            value=json.loads((folder/'capability-output.json').read_text())
+            write_json(folder/'capability-verified.json',{'passed':True,'output':value['output'],
+                'measurements':value['after'],'output_fingerprint':value['output_fingerprint']})
+        backend.submit=submit; backend.verify=verify
+        def published(result, receipt):
+            folder=Path(receipt['candidate']).parent
+            snapshot=folder/'live-snapshot.json'; write_json(snapshot,{'objects':{}})
+            from dcc_harness.live_snapshot import fingerprint
+            binding=live.read_binding(self.root)
+            receipt.update(fingerprint=fingerprint({'objects':{}}), snapshot=str(snapshot),
+                           session_id=binding['session_id'],generation=binding['generation'],scene='Scene')
+            write_json(folder/'live-status.json',receipt)
+            with mock.patch.object(blender_bridge,'call',side_effect=OSError('lost final acknowledgement')):
+                return live.LiveBackend(self.root,folder,None).published(result,receipt)
+        backend.published=published
+        config=execution.configuration(self.root)
+        with mock.patch.object(execution,'configuration',return_value={**config,'backend':'live'}), \
+             mock.patch.object(capabilities,'admit'), \
+             mock.patch('dcc_harness.live.ensure_aligned',return_value={}), \
+             mock.patch('dcc_harness.recipes.require_qualified',return_value={'recipe':{'coverage':{'reads':['geometry','materials'],'writes':[],'dependencies':[]}}}):
+            with mock.patch('dcc_harness.execution.make_backend',return_value=backend), \
+                 mock.patch.object(capabilities,'reuse',return_value=None):
+                result=live.execute(self.root,request)
+            self.assertEqual(result['status'],'PUBLISHED')
+            self.assertEqual(result['live_state'],'LIVE_DIVERGED')
+            self.assertIsNone(result['capability_receipt'])
+            folder=self.root/'execution/operations'/request['operation_id']
+            self.assertTrue((folder/'capability-publication.json').exists())
+            original=(folder/'outcome.json').read_bytes()
+            receipt=read_json(folder/'live-status.json')
+            if cross_session:
+                replacement=bridge_leaf('session').Session(self.base,9879)
+                fresh={**replacement.describe(),'scene':'Scene','snapshot':receipt['snapshot'],
+                       'fingerprint':receipt['fingerprint'],'matches':True}
+                with mock.patch.object(blender_bridge,'session_presence',return_value='DEAD'), \
+                     mock.patch.object(blender_bridge,'call',return_value=fresh):
+                    live.refresh(self.root,replacement.descriptor_path,expected_parent=result['outcome']['active']['id'])
+            def call(command,payload,**kwargs):
+                if cross_session and command=='attach_check': return fresh
+                if command=='job_check': return receipt
+                if command=='job_acknowledge': return {'state':'READY'}
+                raise AssertionError('Never dispatch or recapture: '+command)
+            if interrupted:
+                rename=Path.rename
+                def interrupt(path,target):
+                    if Path(target).name=='recovered-outcome.json': raise OSError('interrupted recovery commit')
+                    return rename(path,target)
+                with mock.patch.object(blender_bridge,'call',side_effect=call), mock.patch.object(Path,'rename',interrupt):
+                    with self.assertRaisesRegex(OSError,'interrupted recovery commit'):
+                        live_recovery.reconcile(self.root,request['operation_id'],'keep-current','b'*64)
+                self.assertEqual(execution._outcome(folder)['live_state'],'LIVE_DIVERGED')
+                self.assertTrue(list(folder.glob('recovered-outcome-*.tmp')))
+                self.assertTrue((folder/'capability-receipt.json').exists())
+            with mock.patch.object(blender_bridge,'call',side_effect=call):
+                result=live_recovery.reconcile(self.root,request['operation_id'],'keep-current','b'*64)
+            self.assertEqual(result['status'],'PUBLISHED')
+            self.assertEqual(result['capability_receipt']['sha256'],file_hash(folder/'capability-receipt.json'))
+            self.assertEqual(len(live.workflow.Continuity(self.root).status()['task_history']),2)
+            self.assertEqual((folder/'outcome.json').read_bytes(),original)
+            self.assertEqual(read_json(folder/'outcome.json')['live_error'],'lost final acknowledgement')
+            effective=execution._outcome(folder)
+            self.assertEqual(effective['live_state'],'READY')
+            self.assertEqual(effective['capability_receipt'],result['capability_receipt'])
+            self.assertEqual(execution.status(self.root)['operations'][0],effective)
+            self.assertEqual(live.execute(self.root,request),effective)
+            from dcc_harness import coordination as c
+            req=capabilities.requirements(self.root,'direction',read_json(result['outcome']['active']['observation']))[0]
+            cp=c.checkpoint_ref(result['outcome']['active'])
+            self.assertTrue(capabilities.verify_operation_receipt(self.root,folder,req,cp))
+            self.assertTrue(capabilities.verify_receipts(self.root,'direction',cp)['passed'])
+            with mock.patch.object(capabilities,'resolve',return_value=request['capability']['resolution']), \
+                 mock.patch.object(capabilities,'inventory_for_requirement',return_value={}):
+                self.assertEqual(capabilities.reuse(self.root,req,request['capability']['resolution'],req['rule']['parameters'])['status'],'REUSED')
+            self.assertEqual(backend.dispatches,1)
+            return folder,req,cp
+
+    def test_existing_ack_failure_same_session_has_durable_usable_receipt(self):
+        self.ack_failure_recovery()
+
+    def test_existing_ack_failure_cross_session_has_durable_usable_receipt(self):
+        self.ack_failure_recovery(cross_session=True)
+
+    def test_recovery_commit_interruption_retains_original_and_retries_without_replay(self):
+        self.ack_failure_recovery(interrupted=True)
+
+    def test_recovered_receipt_linkage_rejects_none_malformed_or_changed_evidence(self):
+        from dcc_harness import execution, capabilities
+        folder,req,cp=self.ack_failure_recovery()
+        path=folder/'recovered-outcome.json'; original=read_json(path)
+        for ref in (None, [], {'path':'wrong','sha256':'a'*64}):
+            changed=copy.deepcopy(original); changed['outcome']['capability_receipt']=ref
+            path.write_text(json.dumps(changed))
+            with self.assertRaisesRegex(ValueError,'receipt linkage'):
+                execution._outcome(folder)
+        path.write_text(json.dumps(original))
+        incomplete=read_json(folder/'outcome.json')
+        for ref in (None, [], {'path':'wrong','sha256':'a'*64}):
+            with mock.patch.object(execution,'_outcome',return_value={**incomplete,'capability_receipt':ref}):
+                with self.assertRaisesRegex(ValueError,'service publication'):
+                    capabilities.verify_operation_receipt(self.root,folder,req,cp)
+        with (folder/'capability-publication.json').open('a') as stream: stream.write(' ')
+        with self.assertRaisesRegex(ValueError,'publication linkage'):
+            execution._outcome(folder)
+
+    def test_recovered_receipt_is_usable_from_relative_project_path(self):
+        import os
+        from dcc_harness import capabilities
+        folder,req,cp=self.ack_failure_recovery()
+        previous=Path.cwd()
+        try:
+            os.chdir(self.base)
+            with mock.patch('dcc_harness.recipes.require_qualified',return_value={'recipe':{'coverage':{'reads':['geometry','materials'],'writes':[],'dependencies':[]}}}):
+                self.assertTrue(capabilities.verify_operation_receipt(self.root.relative_to(self.base),folder.relative_to(self.base),req,cp))
+        finally: os.chdir(previous)
+
     def cross_session_publication(self):
         from dcc_harness.live_snapshot import fingerprint
         self.start(); old=self.binding(); request=self.request(); backend=self.backend()

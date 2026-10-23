@@ -67,6 +67,7 @@ bpy.app.timers.register(control)
         startup = subprocess.STARTUPINFO(); startup.dwFlags |= subprocess.STARTF_USESHOWWINDOW; startup.wShowWindow = 0
     config_dir = out / 'gui-config'; config_dir.mkdir()
     temporary = out / 'gui-temporary'; temporary.mkdir()
+    (out / 'gui-extensions').mkdir()
     with (out / 'gui.log').open('x') as log:
         process = subprocess.Popen([args.blender, '--offline-mode', '--factory-startup', '--disable-autoexec',
             '--python-exit-code', '1', '--python', str(script)], stdin=subprocess.DEVNULL, stdout=log,

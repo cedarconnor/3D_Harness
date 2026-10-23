@@ -143,14 +143,63 @@ def project_case(args,out,root,central,mode,backend):
     write_json(contract,{'schema':'dcc.continuity.contract.v1','spec':{'schema':'dcc.spec.v1','required':{target:{}}},
                         'allowed_new_prefixes':[],'allowed_object_prefixes':{target:sorted(OBJECT_FIELDS)}})
     operation_id=str(uuid.uuid4())
-    result=capabilities.execute(root,req,resolution,req['rule']['parameters'],operation_id,
-                               blender=args.blender,contract=contract,handoff=handoff,timeout=120)
+    recovery_proof=None
+    if backend=='live':
+        from dcc_harness import blender_bridge,live_recovery
+        from unittest import mock
+        original_call=blender_bridge.call
+        counts={'job_submit':0,'job_acknowledge':0}
+        def lose_ack(command,payload,**kwargs):
+            if command in counts: counts[command]+=1
+            if command=='job_acknowledge': raise ConnectionError('Owned missing final acknowledgement')
+            return original_call(command,payload,**kwargs)
+        with mock.patch.object(blender_bridge,'call',side_effect=lose_ack):
+            result=capabilities.execute(root,req,resolution,req['rule']['parameters'],operation_id,
+                                       blender=args.blender,contract=contract,handoff=handoff,timeout=120)
+        assert result['status']=='PUBLISHED' and result['live_state']=='LIVE_DIVERGED' and result['capability_receipt'] is None,result
+        folder=root/'execution/operations'/operation_id
+        original=(folder/'outcome.json').read_bytes()
+        history=len(workflow.Continuity(root).status()['task_history'])
+        def only_alignment(command,payload,**kwargs):
+            assert command in ('job_check','job_acknowledge'),command
+            return original_call(command,payload,**kwargs)
+        with mock.patch.object(blender_bridge,'call',side_effect=only_alignment):
+            result=live_recovery.reconcile(root,operation_id,'keep-current',read_json(folder/'live-status.json')['fingerprint'])
+        assert (folder/'outcome.json').read_bytes()==original
+        assert counts=={'job_submit':1,'job_acknowledge':1}
+        assert len(workflow.Continuity(root).status()['task_history'])==history
+        # A new host process must consume the effective durable result and required receipt.
+        import sys
+        code=("import json,sys; from pathlib import Path; from dcc_harness import execution,capabilities,workflow,coordination as c; "
+              "root=Path(sys.argv[1]); folder=root/'execution/operations'/sys.argv[2]; "
+              "result=execution._outcome(folder); assert result['live_state']=='READY'; "
+              "assert capabilities.verify_receipts(root,'direction',c.checkpoint_ref(workflow.resume(root)['active']))['passed']; "
+              "print(json.dumps(result))")
+        fresh=subprocess.run([sys.executable,'-c',code,str(root),operation_id],cwd=out,
+                             env={**os.environ,'PYTHONPATH':str(Path(args.runtime).resolve())},capture_output=True,text=True)
+        (out/'recovery-reload.log').write_text(fresh.stdout+fresh.stderr)
+        assert fresh.returncode==0,fresh.stderr
+        assert json.loads(fresh.stdout)['capability_receipt']==result['capability_receipt']
+        recovery_proof={'original_failure_retained':True,'fresh_controller_receipt_verified':True,
+                        'dispatches':counts['job_submit'],'checkpoint_count_before':history,'checkpoint_count_after':history,
+                        'receipt':result['capability_receipt'],'recovery_sha256':file_hash(folder/'recovered-outcome.json')}
+    else:
+        result=capabilities.execute(root,req,resolution,req['rule']['parameters'],operation_id,
+                                   blender=args.blender,contract=contract,handoff=handoff,timeout=120)
     assert result['status']=='PUBLISHED' and result.get('live_state','READY')=='READY',result
     assert capabilities.execute(root,req,resolution,req['rule']['parameters'],operation_id,
                                blender=args.blender,contract=contract,handoff=handoff,timeout=120)==result
     assert len(execution._operations(root))==1
     current=workflow.resume(root)['active']; cp=c.checkpoint_ref(current)
     assert capabilities.verify_receipts(root,'direction',cp)['passed']
+    if recovery_proof:
+        current_req=capabilities.requirements(root,'direction',read_json(current['observation']))[0]
+        current_resolution=capabilities.resolve(root,current_req,capabilities.inventory_for_requirement(root,current_req))
+        reused=capabilities.execute(root,current_req,current_resolution,current_req['rule']['parameters'],str(uuid.uuid4()),
+                                   blender=args.blender,contract=contract,handoff=handoff,timeout=120)
+        assert reused['status']=='REUSED' and len(execution._operations(root))==1,reused
+        recovery_proof['required_capability_reused']=True
+
     try: capabilities.verify_receipts(root,'direction',c.checkpoint_ref(active))
     except ValueError: pass
     else: raise AssertionError('Stale checkpoint receipt accepted')
@@ -175,7 +224,7 @@ def project_case(args,out,root,central,mode,backend):
     finally: entry.write_bytes(original)
     ew.apply(root,'stage.complete',review,submitted['revision'],str(uuid.uuid4()),out,approval=approval)
     return {'backend':backend,'mode':mode,'provider':expected,'operation_id':operation_id,'passed':True,
-            'replay_safe':True,'required_failure_blocks':True,'owner_gate_preserved':True}
+            'replay_safe':True,'required_failure_blocks':True,'owner_gate_preserved':True,'ack_failure_recovery':recovery_proof}
 
 
 def routing(args):

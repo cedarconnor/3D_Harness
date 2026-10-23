@@ -153,13 +153,15 @@ def _operations(root):
 
 
 def _outcome(folder):
+    folder = reject_links(folder).absolute()
     request = read_json(reject_links(folder / 'request.json'))
     for name, sha in request['files'].items():
         if file_hash(reject_links(folder / name)) != sha:
             raise ValueError('Retained execution input changed: ' + name)
     path = reject_links(folder / 'outcome.json')
     if path.exists():
-        return read_json(path)
+        from .execution_outcomes import effective_outcome
+        return effective_outcome(folder, read_json(path), request)
     return {'operation_id': folder.name, 'status': 'NEEDS_RECONCILIATION',
             'reason': 'In flight or interrupted. Inspect; never redispatch this operation ID.'}
 

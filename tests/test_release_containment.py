@@ -60,3 +60,23 @@ class ReleaseContainmentTests(unittest.TestCase):
             result = subprocess.run([sys.executable, str(probe)], capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue(json.loads(record.read_text())['matched'])
+
+    def test_gui_profile_effective_directories_exist_before_launch(self):
+        from unittest import mock
+        from types import SimpleNamespace
+        sys.path.insert(0,str(SCRIPT.parent))
+        self.addCleanup(lambda:sys.path.remove(str(SCRIPT.parent)))
+        import qualify_capabilities
+        class ObservedLaunch(Exception): pass
+        with tempfile.TemporaryDirectory() as tmp:
+            out=Path(tmp)
+            def launch(*args,**kwargs):
+                for name in ('CONFIG','SCRIPTS','DATAFILES','EXTENSIONS'):
+                    directory=Path(kwargs['env']['BLENDER_USER_'+name])
+                    self.assertTrue(directory.is_dir(),str(directory))
+                    self.assertTrue(directory.is_relative_to(out),str(directory))
+                raise ObservedLaunch()
+            env=release.release_environment(out)
+            with mock.patch.dict(os.environ,env,clear=True), mock.patch.object(qualify_capabilities.subprocess,'Popen',side_effect=launch):
+                with self.assertRaises(ObservedLaunch):
+                    qualify_capabilities.gui_profile(SimpleNamespace(blender='owned'),out,{})

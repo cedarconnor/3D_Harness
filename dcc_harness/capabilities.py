@@ -233,6 +233,7 @@ def verify_receipts(root,stage_id,checkpoint):
 
 def verify_operation_receipt(root,folder,requirement,checkpoint):
     from .execution import _outcome
+    folder=reject_links(folder).absolute()
     receipt=validate_receipt(read_json(reject_links(folder / 'capability-receipt.json')))
     outcome=_outcome(folder)
     request=read_json(reject_links(folder / 'request.json'))
@@ -242,9 +243,11 @@ def verify_operation_receipt(root,folder,requirement,checkpoint):
     native=c.Continuity(root).status()
     if checkpoint!=c.checkpoint_ref(native['active']) or receipt['checkpoint'] not in [c.checkpoint_ref(h) for h in native['task_history']]:
         return False
-    if (receipt['operation_id']!=folder.name or receipt['request_sha256']!=digest(request)
+    reference=outcome.get('capability_receipt')
+    if (not isinstance(reference,dict) or reference.get('path')!=str(folder / 'capability-receipt.json')
+            or receipt['operation_id']!=folder.name or receipt['request_sha256']!=digest(request)
             or receipt['checkpoint']!=c.checkpoint_ref(outcome['outcome']['active'])
-            or outcome.get('capability_receipt',{}).get('sha256')!=file_hash(folder / 'capability-receipt.json')):
+            or reference.get('sha256')!=file_hash(folder / 'capability-receipt.json')):
         raise ValueError('Capability receipt does not match service publication')
     cap=request['capability']; selected=cap['resolution']['selected']
     if receipt['requirement_digest']!=digest(cap['requirement']) or receipt['effect_id']!=cap['effect_id']:

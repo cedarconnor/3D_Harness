@@ -267,6 +267,9 @@ class LiveBackend:
             result['capability_receipt'] = record_operation(self.root, self.folder, result, request)
         if not (self.folder / 'outcome.json').exists():
             write_json(self.folder / 'outcome.json', result)
+        elif result.get('live_state') == 'READY':
+            from .execution_outcomes import recover_outcome
+            recover_outcome(self.folder, result)
         return result
 
     def realign_published(self, receipt, active):
