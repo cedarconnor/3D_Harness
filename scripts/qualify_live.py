@@ -18,6 +18,35 @@ def wait_for(predicate, process, seconds=60):
         time.sleep(.1)
 
 
+def cancel_after_native_mutation(root, operation_id, out, process, stop, *, seconds=60):
+    """Fixture worker: request public cancellation after actual running mutation."""
+    from dcc_harness import execution
+    from dcc_harness.evidence import read_json, write_json
+    end = time.monotonic() + seconds
+    marker = out / 'mutation-barrier.json'
+    while not marker.exists():
+        if stop.is_set() or process.poll() is not None:
+            raise RuntimeError('Controller exited before native mutation barrier')
+        if time.monotonic() >= end:
+            raise TimeoutError('Timed out awaiting native mutation barrier')
+        stop.wait(.05)
+    mutation = read_json(marker)
+    status = read_json(root / 'execution/operations' / operation_id / 'live-status.json')
+    if (mutation['operation_id'] != operation_id or mutation['before'] == mutation['after']
+            or status['operation_id'] != operation_id or status['state'] != 'RUNNING'
+            or status.get('mutation_started') is not True):
+        raise ValueError('Cancellation requires measured mutation and actual RUNNING state')
+    # This public API writes a durable local marker; it does not await a bridge
+    # command behind the native main-thread barrier.
+    result = execution.cancel_operation(root, operation_id)
+    durable = read_json(root / 'execution/cancellations' / (operation_id + '.json'))
+    assert durable['operation_id'] == operation_id and durable['requested_at'] >= mutation['mutated_at']
+    proof = {'api_result': result, 'durable_request': durable, 'native_mutation': mutation, 'running_status': status}
+    staged = out / 'cancel-requested-writing.json'; write_json(staged, proof)
+    staged.rename(out / 'cancel-requested.json')
+    return proof
+
+
 def protocol(args):
     sys.path.insert(0, str(Path(args.runtime).resolve()))
     from dcc_harness import blender_bridge, distribution
@@ -118,10 +147,28 @@ if CONFIG['case'] == 'jobs' and CONFIG['fixture'] in ('fail', 'stale-recovery'):
     bridge.jobs.operations.execute_step = fail_after_mutation
 if CONFIG['case'] == 'jobs' and CONFIG['fixture'] == 'cancel':
     original_step = bridge.jobs.operations.execute_step
-    def slow_step(scene, value):
+    def cancel_barrier_step(scene, value):
+        intent = json.loads((out / 'cancel-intent.json').read_text())
+        target = bridge.jobs.operations.inspection.target(scene, value['target'])
+        before_location = list(target.location)
         original_step(scene, value)
-        time.sleep(5)
-    bridge.jobs.operations.execute_step = slow_step
+        mutation = {'operation_id': intent['operation_id'], 'before': before_location,
+                    'after': list(target.location), 'mutated_at': time.time()}
+        assert mutation['before'] != mutation['after']
+        staged = out / 'mutation-barrier-writing.json'; staged.write_text(json.dumps(mutation))
+        staged.rename(out / 'mutation-barrier.json')
+        end = time.monotonic() + 60
+        proof_path = out / 'cancel-requested.json'
+        while not proof_path.exists():
+            if time.monotonic() >= end: raise TimeoutError('Public cancellation barrier expired')
+            time.sleep(.05)
+        proof = json.loads(proof_path.read_text())
+        cancellation = json.loads((bridge.server.session.project / 'execution/cancellations' /
+                                   (intent['operation_id'] + '.json')).read_text())
+        assert proof['durable_request'] == cancellation and cancellation['operation_id'] == intent['operation_id']
+        assert cancellation['requested_at'] >= mutation['mutated_at']
+        (out / 'cancellation-observed.json').write_text(json.dumps({'mutation': mutation, 'cancellation': cancellation}))
+    bridge.jobs.operations.execute_step = cancel_barrier_step
 if CONFIG['case'] == 'jobs' and CONFIG['fixture'] in ('queued-cancel', 'queued-reload', 'context'):
     original_run = bridge.jobs.Jobs.run
     def interrupted_run(self, operation_id):
@@ -335,8 +382,6 @@ def jobs_case(args, out, binding, before, process):
                    'stage': 'direction', 'script': str(script), 'contract': str(contract), 'handoff': str(handoff),
                    'blender': args.blender, 'expected_parent': workflow.resume(root)['active']['id'],
                    'timeout': 90, 'live': recipe}
-        if args.fixture == 'cancel':
-            request['timeout'] = 2
         if args.fixture in ('pre-publication', 'post-publication'):
             from unittest import mock
             method = 'before_publish' if args.fixture == 'pre-publication' else 'published'
@@ -347,6 +392,27 @@ def jobs_case(args, out, binding, before, process):
                 return original_method(self, *arguments)
             with mock.patch.object(live.LiveBackend, method, edit_at_barrier):
                 result = execution.execute_operation(root, request)
+        elif args.fixture == 'cancel':
+            from threading import Event, Thread
+            from unittest import mock
+            stop = Event(); cancellation_errors = []; cancellation_proofs = []; cancel_submissions = []
+            write_json(out / 'cancel-intent.json', {'operation_id': request['operation_id']})
+            actual_request = blender_bridge._request
+            def counted_cancel_request(port, command, params, timeout):
+                if command == 'job_submit': cancel_submissions.append(params['payload']['operation_id'])
+                return actual_request(port, command, params, timeout)
+            def cancel_worker():
+                try: cancellation_proofs.append(cancel_after_native_mutation(root, request['operation_id'], out, process, stop))
+                except Exception as exc: cancellation_errors.append(exc)
+            thread = Thread(target=cancel_worker, name='owned-fixture-cancel', daemon=True)
+            with mock.patch.object(blender_bridge, '_request', side_effect=counted_cancel_request):
+                thread.start()
+                try: result = execution.execute_operation(root, request)
+                finally:
+                    stop.set(); thread.join(timeout=5)
+            assert not thread.is_alive(), 'Cancellation fixture worker did not close'
+            if cancellation_errors: raise cancellation_errors[0]
+            assert len(cancellation_proofs) == 1 and cancel_submissions == [request['operation_id']]
         elif args.fixture in ('lost-reply', 'lost-reply-unknown'):
             from unittest import mock
             actual_request = blender_bridge._request
@@ -423,25 +489,46 @@ def jobs_case(args, out, binding, before, process):
                 with mock.patch.object(blender_bridge, '_request', side_effect=lost_response):
                     assert execution.execute_operation(root, request)['status'] == 'NEEDS_RECONCILIATION'
             else:
-                assert execution.execute_operation(root, request)['status'] == 'NEEDS_RECONCILIATION'
+                with mock.patch.object(blender_bridge, '_request', side_effect=counted_cancel_request):
+                    assert execution.execute_operation(root, request)['status'] == 'NEEDS_RECONCILIATION'
+                assert cancel_submissions == [request['operation_id']]
             operation = root / 'execution/operations' / request['operation_id']
             if args.fixture == 'lost-reply-unknown':
                 assert len(lost_submissions) == 1, 'Unknown lost-response injection must fire exactly once'
                 assert dropped_submit_replies == [request['operation_id']], 'A real submit acknowledgement must be dropped'
                 assert read_json(out / 'submit-retention-withheld.json')['operation_id'] == request['operation_id']
                 assert blender_bridge.retained_outcome('job_submit', lost_submissions[0], blender_bridge.descriptor(binding)) is None
-            wait_for(lambda: read_json(operation / 'live-status.json')['state'] in ('SAVED', 'NEEDS_RECONCILIATION'), process, seconds=15)
+            wait_for(lambda: read_json(operation / 'live-status.json')['state'] in ('SAVED', 'NEEDS_RECONCILIATION'),
+                     process, seconds=60 if args.fixture == 'cancel' else 15)
             status = read_json(operation / 'live-status.json')
             assert process.poll() is None and status.get('mutation_started') is True
             assert sum(read_json(p)['state'] == 'RUNNING' for p in (operation / 'live-history').glob('*.json')) == 1
             if args.fixture == 'lost-reply-unknown':
                 assert not (operation / 'recovery').exists(), 'Unknown acknowledgement must not trigger implicit restore'
+            else:
+                assert status['state'] == 'NEEDS_RECONCILIATION' and status['cancellation_requested'] is True
+                assert read_json(out / 'cancellation-observed.json')['cancellation'] == cancellation_proofs[0]['durable_request']
+                changed = read_json(operation / 'live-snapshot.json')['objects'][target]['matrix_world']
+                assert [row[3] for row in changed[:3]] == recipe['parameters']['location']
+                assert workflow.resume(root)['active']['id'] == request['expected_parent']
+                assert not (operation / 'outcome.json').exists() and not (operation / 'recovery').exists()
             current = blender_bridge.call('attach_check', {}, binding=binding)
             recovered = live.reconcile(root, request['operation_id'], 'restore-precopy', current['fingerprint'])
             assert recovered['live_state'] == 'READY'
+            if args.fixture == 'cancel':
+                verified = sorted((operation / 'recovery').glob('*/verified.json'))
+                assert len(verified) == 2
+                assert all(read_json(p)['saved_inventory_matches'] and read_json(p)['saved_fingerprint_matches'] for p in verified)
+                archive = read_json(next((operation / 'recovery').glob('archive-check-*/observation.json')))['objects'][target]['matrix_world']
+                assert [row[3] for row in archive[:3]] == recipe['parameters']['location']
+                assert workflow.resume(root)['active']['id'] == request['expected_parent']
+                live.ensure_aligned(root)
             (out / 'result.json').write_text(json.dumps({'case': 'jobs', 'fixture': args.fixture, 'passed': True,
                 'dispatch_count': 1, 'native_process_survived': True, 'eventual_outcome_recorded': True,
                 'explicit_recovery_verified': True,
+                **({'cancellation_after_measured_mutation': True, 'public_cancel_request_retained': True,
+                    'native_running_count': 1, 'no_publication': True, 'repeated_call_did_not_redispatch': True,
+                    'helper_thread_closed': True, 'independent_recovery_verifications': len(verified)} if args.fixture == 'cancel' else {}),
                 **({'lost_response_injected': True, 'matching_durable_submit': False,
                     'initial_status': result['status'], 'native_running_count': 1,
                     'recovery_only_after_explicit_request': True,
