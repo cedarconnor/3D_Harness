@@ -505,7 +505,10 @@ def accept_revision(root, stage, preview, expected_preview_sha, review_note):
             if read_json(reject_links(folder / 'request.json')) != request:
                 raise ValueError('Saved revision intent changed; recover the original request')
             if (folder / 'outcome.json').exists():
-                result = _outcome(folder)['outcome']
+                retained = _outcome(folder)
+                if retained['status'] == 'REJECTED' and 'outcome' not in retained:
+                    return retained
+                result = retained['outcome']
                 return {**result, 'status': 'ALREADY_PUBLISHED' if result['passed'] else result['status']}
             # The only recovery is rechecking frozen saved evidence or finding the
             # matching committed preview. No native script is ever executed.

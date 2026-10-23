@@ -279,6 +279,13 @@ class ReviewExecutionTests(Fixture):
         operation_id = execution.status(self.root)['operations'][0]['operation_id']
         result = execution.reconcile(self.root, operation_id, accept=False, reason='No checkpoint committed; discard import')
         self.assertEqual(result['status'], 'REJECTED')
+        with mock.patch.object(revisions, '_accept_revision', side_effect=AssertionError('Rejected import must not republish')), \
+             mock.patch.object(execution, 'run_worker', side_effect=AssertionError('Rejected import must not dispatch')):
+            for _ in range(2):
+                retried = revisions.accept_revision(self.root, preview['preview'], preview['preview_sha256'], 'Reviewed', stage='direction')
+                self.assertEqual(retried, result)
+        self.assertEqual(len(workflow.Continuity(self.root).status()['task_history']), 1)
+        self.assertEqual(len(execution.status(self.root)['operations']), 1)
         self.assertEqual(execution.status(self.root)['status'], 'CANCELLED')
 
 
