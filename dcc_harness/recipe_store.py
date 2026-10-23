@@ -1,9 +1,10 @@
 """Content-addressed bundles; safe to inspect without executing provider/adapter code."""
 import ast
 from pathlib import Path, PurePosixPath
+import stat
 
 from .evidence import digest, read_json, write_json
-from .files import file_hash, reject_links, copy_verified
+from .files import file_hash, io_path, reject_links, copy_verified
 from .recipe_schema import validate, identifier, sha
 
 PROTOCOL = {'preflight':2, 'apply':3, 'inspect_output':2, 'verify_saved':2}
@@ -59,10 +60,18 @@ def load(root, recipe_id, identity):
         if '\\' in name or file_hash(reject_links(folder / name)) != sha(wanted):
             raise ValueError('Recipe member changed')
     actual = set()
-    for path in folder.rglob('*'):
-        reject_links(path)
-        if path.is_file(): actual.add(path.relative_to(folder).as_posix())
-        elif path.relative_to(folder).as_posix() != 'assets': raise ValueError('Unexpected bundle members')
+    pending = [folder]
+    while pending:
+        parent = pending.pop()
+        # rglob may silently return an empty/incomplete inventory on I/O failure.
+        # Enumerate only the admitted bundle levels and propagate syscall errors.
+        for entry in io_path(parent).iterdir():
+            path = reject_links(parent / entry.name)  # Never retain the I/O namespace.
+            relative = path.relative_to(folder).as_posix()
+            mode = io_path(path).stat().st_mode
+            if stat.S_ISREG(mode): actual.add(relative)
+            elif stat.S_ISDIR(mode) and relative == 'assets': pending.append(path)
+            else: raise ValueError('Unexpected bundle members')
     if actual != set(files) | {'bundle.json'}: raise ValueError('Recipe bundle members changed')
     return {'state':'DRAFT', 'recipe':manifest['recipe'], 'digest':identity,
             'adapter':str(folder / 'adapter.py'), 'assets':{Path(name).name:str(folder / name)

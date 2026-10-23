@@ -115,6 +115,37 @@ class RecipeTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'members|changed'):
             recipes.load(self.root, ref['id'], ref['digest'])
 
+    def test_deep_bundle_keeps_logical_paths_and_strict_member_inventory(self):
+        from dcc_harness import recipes
+        from dcc_harness.files import file_hash
+        self.root = self.root / ('owned-' + 'a' * 80) / ('project-' + 'b' * 80)
+        ref = self.draft()
+        loaded = recipes.load(self.root, ref['id'], ref['digest'])
+        adapter = Path(loaded['adapter'])
+        self.assertGreater(len(str(adapter)), 260)
+        self.assertEqual(adapter, self.root / 'capabilities/recipes' / ref['id'] / ref['digest'] / 'adapter.py')
+        self.assertEqual(file_hash(adapter), loaded['manifest']['files']['adapter.py'])
+        # Inventory is exact even for an otherwise harmless empty directory.
+        (adapter.parent / 'assets/unexpected').mkdir()
+        with self.assertRaisesRegex(ValueError, 'Unexpected bundle members'):
+            recipes.load(self.root, ref['id'], ref['digest'])
+
+    def test_missing_member_and_unreadable_inventory_do_not_become_success(self):
+        from dcc_harness import recipes
+        from unittest.mock import patch
+        ref = self.draft()
+        # The syscall may fail rather than enumerate an incomplete snapshot.
+        # Path.iterdir is the platform's direct directory enumeration boundary.
+        denied = PermissionError('inventory denied')
+        with patch.object(Path, 'iterdir', side_effect=denied):
+            with self.assertRaises(PermissionError) as error:
+                recipes.load(self.root, ref['id'], ref['digest'])
+        self.assertIs(error.exception, denied)
+        loaded = recipes.load(self.root, ref['id'], ref['digest'])
+        Path(loaded['assets']['asset.txt']).unlink()
+        with self.assertRaises(FileNotFoundError):
+            recipes.load(self.root, ref['id'], ref['digest'])
+
     def test_qualification_cannot_register_caller_success_or_foreign_report(self):
         from dcc_harness import recipes
         ref = self.draft(); report = self.root / 'fake-report.json'

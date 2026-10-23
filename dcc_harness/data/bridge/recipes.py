@@ -12,14 +12,14 @@ try:
     from .capability_projection import observed_scope
     from .evidence import digest
     from .continuity_blender import measure_live
-    from .files import file_hash, reject_links
+    from .files import file_hash, io_path, reject_links
 except ModuleNotFoundError:
     from dcc_harness.recipe_store import load
     from dcc_harness.recipe_schema import validate_parameters, sha
     from dcc_harness.capability_projection import observed_scope
     from dcc_harness.evidence import digest
     from dcc_harness.continuity_blender import measure_live
-    from dcc_harness.files import file_hash, reject_links
+    from dcc_harness.files import file_hash, io_path, reject_links
 
 # Evidence of completed calls, never a validation cache: every use still measures
 # current bytes/state. Cross-process reuse belongs to verified host receipts.
@@ -44,8 +44,8 @@ def validate_managed(request, project):
     if not report_path.is_relative_to(root / 'capabilities/qualifications') or file_hash(report_path)!=reference['sha256']:
         raise ValueError('Qualification reference changed or escaped project')
     record=reject_links(root / 'capabilities/registered' / (sha(reference['sha256'])+'.json'))
-    if json.loads(record.read_text())!=reference: raise ValueError('Qualification registration changed')
-    report=json.loads(report_path.read_text())
+    if json.loads(io_path(record).read_text(encoding='utf-8'))!=reference: raise ValueError('Qualification registration changed')
+    report=json.loads(io_path(report_path).read_text(encoding='utf-8'))
     if (report['passed'] is not True or report['recipe_digest']!=selected['recipe_digest']
             or report['profile_digest']!=selected['profile_digest'] or 'live' not in report['contexts']):
         raise ValueError('Recipe is not qualified for this live profile')
@@ -97,7 +97,7 @@ def context_for(scene, obj):
 
 def adapter_for(bundle):
     # Compile retained bytes directly: no pyc writes inside the immutable bundle.
-    source = reject_links(bundle['adapter']).read_bytes()
+    source = io_path(reject_links(bundle['adapter'])).read_bytes()
     if file_hash(bundle['adapter']) != bundle['manifest']['files']['adapter.py']: raise ValueError('Adapter changed')
     module = types.ModuleType('dcc_recipe_' + bundle['digest'])
     module.__file__ = bundle['adapter']; exec(compile(source, bundle['adapter'], 'exec'), module.__dict__)

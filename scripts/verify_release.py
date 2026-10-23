@@ -99,6 +99,9 @@ def main():
         run('native-paths', [python, str(repo / 'scripts/qualify_native_paths.py'),
             '--blender', str(Path(args.blender).resolve()), '--runtime', str(target),
             '--out', str(out / 'native-paths')], cwd=out, env=env)
+        run('native-recipe-paths', [python, str(repo / 'scripts/qualify_recipe_paths.py'),
+            '--blender', str(Path(args.blender).resolve()), '--runtime', str(target),
+            '--out', str(out / 'native-recipe-paths')], cwd=out, env=env)
         for name in ('units', 'adoption', 'execution', 'mcp'):
             run('native-' + name, [python, str(repo / 'scripts' / ('qualify_' + name + '.py')),
                                   '--blender', str(Path(args.blender).resolve()), '--runtime', str(target),
