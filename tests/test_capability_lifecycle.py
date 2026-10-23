@@ -20,6 +20,11 @@ class LifecycleTests(Fixture):
         self.bind_capability(value)
         changed=copy.deepcopy(self.obs); changed['scene']['world']='unrelated'
         self.assertEqual(cap.changes(self.root,self.obs,changed),[])
+        with_effect=copy.deepcopy(self.obs)
+        with_effect['objects']['ext.table.top']['modifier_settings']=[{'type':'BEVEL','settings':{'width':.2}}]
+        without_effect=copy.deepcopy(with_effect)
+        without_effect['objects']['ext.table.top']['modifier_settings']=[]
+        self.assertEqual(cap.changes(self.root,with_effect,without_effect),[])
         changed['objects']['ext.table.new']=copy.deepcopy(changed['objects']['ext.table.top'])
         self.assertIn('ENROLLED',[r['state'] for r in cap.changes(self.root,self.obs,changed)])
         changed=copy.deepcopy(self.obs); changed['objects']['ext.table.top']['source_mesh_hash']='changed'

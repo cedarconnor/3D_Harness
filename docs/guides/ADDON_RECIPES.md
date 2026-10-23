@@ -61,6 +61,12 @@ Only one declared invocation is supported. The adapter and output inspector cann
 manufacture measured output outside that invocation. An unchanged call needs exact
 prior successful invocation proof in the same native process; cross-process reuse
 uses verified host receipts. Source, intent and measured state are checked each time.
+If declared dependencies change, an idempotent refresh that leaves the claimed
+modifier unchanged is unsupported without that exact native contribution proof.
+The lifecycle qualifier uses a separate synthetic scale/finish provider: authored
+mean vertex radius and material roughness determine bevel width. Its geometry and
+material refreshes therefore produce measurable modifier changes. The fixed-width
+provider remains a refusal case; these fixtures make no artistic quality claim.
 
 Claimed outputs currently require one native modifier on the target, named
 `DCC::` plus the first 48 characters of the effect ID. `coverage.writes` must include

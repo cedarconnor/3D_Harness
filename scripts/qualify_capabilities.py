@@ -260,6 +260,8 @@ bpy.data.libraries.write(request['output'],{tree})
     single['cases'][1]['failure_contains'] = 'Shared material copy policy'
     values.append(single)
     values[-2]['compatibility']['engines']=['CYCLES']
+    values.append(fixture_recipe(providers['capability_fixture'],'python_function','capability_fixture.mark_adaptive',
+                                 both,name='capability_fixture.adaptive'))
     results = []
     for value in values:
         ref = recipes.draft(project,value,str(fixture_root / 'capability_adapter.py'),[str(asset)] if value['invocation']['kind']=='node_asset' else [])

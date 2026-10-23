@@ -28,6 +28,14 @@ def mark(context, parameters, effect_id):
     return {'status':'FINISHED'}
 
 
+def mark_adaptive(context, parameters, effect_id):
+    """Synthetic scale/finish rule: authored mesh size and roughness drive bevel width."""
+    obj = context['target']
+    radius = sum(vertex.co.length for vertex in obj.data.vertices) / len(obj.data.vertices)
+    roughness = obj.active_material.node_tree.nodes.get('Principled BSDF').inputs['Roughness'].default_value
+    return mark(context, {**parameters, 'amount': parameters['amount'] * radius * (1 + roughness)}, effect_id)
+
+
 class FIXTURE_OT_apply(bpy.types.Operator):
     bl_idname = 'object.capability_fixture'; bl_label = 'Synthetic capability'
     amount: bpy.props.FloatProperty(default=.1)

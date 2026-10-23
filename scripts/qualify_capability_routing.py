@@ -67,15 +67,18 @@ def control():
     return .1
 bpy.app.timers.register(control,persistent=True)
 ''')
-    config=out / 'config'; config.mkdir(); temporary=out / 'temporary'; temporary.mkdir()
+    user_dirs={key:out/name for key,name in (('BLENDER_USER_CONFIG','config'),('BLENDER_USER_SCRIPTS','scripts'),
+               ('BLENDER_USER_DATAFILES','datafiles'),('BLENDER_USER_EXTENSIONS','extensions'))}
+    for directory in user_dirs.values(): directory.mkdir()
+    config=user_dirs['BLENDER_USER_CONFIG']; temporary=out / 'temporary'; temporary.mkdir()
     startup=None
     if os.name=='nt':
         startup=subprocess.STARTUPINFO(); startup.dwFlags|=subprocess.STARTF_USESHOWWINDOW; startup.wShowWindow=0
     with (out / 'gui.log').open('x') as log:
         process=subprocess.Popen([args.blender,'--offline-mode','--factory-startup','--disable-autoexec',
             '--python-exit-code','1','--python',str(script)],stdout=log,stderr=subprocess.STDOUT,
-            startupinfo=startup,env={**os.environ,'BLENDER_USER_CONFIG':str(config),'TEMP':str(temporary),'TMP':str(temporary),
-                                   'BLENDER_USER_EXTENSIONS':str(out / 'extensions')})
+            startupinfo=startup,env={**os.environ,**{key:str(path) for key,path in user_dirs.items()},
+                                   'TEMP':str(temporary),'TMP':str(temporary)})
         token=None
         try:
             wait_for(lambda:(out / 'ready.json').exists(),process)
