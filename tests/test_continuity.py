@@ -226,13 +226,16 @@ print(json.dumps(result))
 
         def copy_then_mutate(incoming, outgoing, *args):
             result = real_copy(incoming, outgoing, *args)
-            if Path(incoming.name) == native:
+            # Native Python may use an extended Windows I/O spelling; identify
+            # the actual file so the simulated concurrent save still occurs.
+            if Path(incoming.name).samefile(native):
                 native.write_bytes(b"concurrent native save")
             return result
 
         with patch("dcc_harness.files.shutil.copyfileobj", side_effect=copy_then_mutate):
             with self.assertRaisesRegex(ValueError, "Source changed"):
                 self.store.publish("change", first["active"]["id"], native, observation, handoff, {}, check)
+        self.assertEqual(native.read_bytes(), b"concurrent native save")
         with self.assertRaisesRegex(RuntimeError, "Incomplete"):
             self.store.status()
 

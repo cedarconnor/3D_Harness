@@ -6,7 +6,7 @@ import json
 import math
 from pathlib import Path
 
-from .files import file_hash, json_text  # noqa: F401  file_hash is re-exported for existing callers
+from .files import file_hash, io_path, json_text  # noqa: F401  file_hash is re-exported for existing callers
 
 
 def canonical(value):
@@ -20,7 +20,7 @@ def digest(value):
 def read_json(path):
     def reject(value):
         raise ValueError(f"Nonfinite JSON number: {value}")
-    value = json.loads(Path(path).read_text(encoding="utf-8"), parse_constant=reject)
+    value = json.loads(io_path(path).read_text(encoding="utf-8"), parse_constant=reject)
     from .observation_storage import unpack_observation
     return unpack_observation(value)
 
@@ -32,8 +32,8 @@ def write_json(path, value, *, compact_observation=False):
         value = pack_observation(value)
     data = json_text(value, compact=compact_observation)
     path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("x", encoding="utf-8") as stream:
+    io_path(path.parent).mkdir(parents=True, exist_ok=True)
+    with io_path(path).open("x", encoding="utf-8") as stream:
         stream.write(data)
 
 
