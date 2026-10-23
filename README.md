@@ -2,7 +2,7 @@
 
 **Persistent workflows, practical skills, and measured feedback for longer Blender projects.**
 
-3D Harness helps an agent build and revise a 3D environment while preserving its assets, materials, lighting, and project decisions across sessions. Its combined MCP endpoint bundles the build rules, managed background execution and a pinned Blender observation bridge, with the artist working through their usual agent chat.
+3D Harness helps an agent build and revise a 3D environment while preserving its assets, materials, lighting, and project decisions across sessions. One package provides the build rules, MCP server, managed execution in an open Blender scene or a background process, and a pinned Blender bridge. The artist works through their usual agent chat.
 
 **Status: v0.23.0 — Blender-first research prototype with managed open-scene/background execution and reusable add-on capabilities.** See [installation and MCP operation](docs/guides/COMBINED_MCP.md), the [managed execution guide](docs/guides/MANAGED_EXECUTION.md), [changelog](CHANGELOG.md), and [build plan](docs/BUILD_PLAN.md).
 
@@ -12,11 +12,11 @@
 
 ## What it does
 
-- **Delivers one package and endpoint:** `dcc-harness-mcp` exposes build rules, managed commands and live observations. `new-project` creates an owned baseline; the optional bundled bridge derives from upstream MCP for Blender 2.2.2 with telemetry removed. Raw live Python is outside this endpoint.
+- **Delivers one package and endpoint:** `dcc-harness-mcp` exposes build rules, managed commands, paired live operations and observations. `new-project` creates an owned background baseline; live attachment adopts an explicitly selected open scene. The bundled bridge derives from upstream MCP for Blender 2.2.2 with telemetry and activity recording removed. Raw live Python is outside this endpoint.
 
 - **Uses qualified local add-ons:** discover providers, pin their environment, qualify reusable recipes and require or prefer them at named workflow stages. Native receipts prove actual use; relevant edits update the same effect while unchanged effects reuse evidence. See [add-on onboarding and limits](docs/guides/ADDON_RECIPES.md).
 
-- **Executes through one managed service:** runs an owned copy in background Blender, independently reopens it, checks the contract and publishes once. Autonomous mode can complete stages with agent review; approval-gated mode requires owner approval before the next stage. Durable operation IDs, cancellation and time/operation budgets bound execution.
+- **Executes through one managed service:** applies bounded operations in the paired open scene or runs scripts in owned background Blender. Both paths retain recovery evidence, independently reopen saved results, check the contract and control publication. Autonomous mode can complete stages with agent review; approval-gated mode requires owner approval before the next stage. Durable operation IDs, cancellation and time/operation budgets bound execution.
 - **Continues from files:** retains the brief, decisions, checkpoint history, handoff notes, and unresolved operations so a fresh context can resume the project.
 - **Orients a new session in seconds:** `brief` prints where the project stands and the permitted next steps, with each command filled in from the verified record.
 - **Starts from existing scenes:** previews missing identity assignments, applies the chosen plan to a new native file, and independently checks its saved identities and observation.
@@ -68,19 +68,45 @@ Open the repository in your normal Codex, Claude Code, or Cursor workspace. Wher
 
 The source skills live in [`.agents/skills/`](.agents/skills/). The wheel includes their local reference closure, accessible through MCP or `--export-rules`, plus the exportable pinned observation add-on. It does not automatically register the MCP or configure Blender. See [combined package setup](docs/guides/COMBINED_MCP.md).
 
+### Choose how the agent works
+
+Choose the mode when creating the managed run or attaching an open scene. The mode is fixed for that run.
+
+| Mode | Stage progression | When it stops |
+|---|---|---|
+| `autonomous` | The agent plans, executes, verifies and advances valid agent-reviewed stages within the brief and budgets | Missing evidence, unsupported work, uncertain outcomes, exhausted budgets or an explicit artist-only decision |
+| `approval_gated` | The agent prepares and verifies each stage, then returns `AWAITING_APPROVAL` | The owner reviews and approves through their own terminal or review-page import before advancement |
+
+Both modes enforce the same technical checks. MCP cannot provide owner approval or waive missing evidence. The host agent drives the work; the server does not run an unattended reasoning loop.
+
+### Work directly in the open scene
+
+Export and enable the bundled bridge, select its workspace, and start it in Blender. Use `blender_session` to discover and describe sessions, then attach the chosen scene to a new managed project with either mode. Attachment retains recovery copies and independently verifies the baseline. Use `blender_inspect` to identify targets and `blender_execute` for supported operations. See [pairing, execution, external edits and recovery](docs/guides/LIVE_BLENDER.md) for exact payloads and coverage.
+
+Manual edits require an explicit refresh before continuing. After a lost response, inspect the retained operation using its existing UUID; do not create a new operation to repeat an uncertain edit.
+
+### Make add-on use part of the workflow
+
+Discover an installed provider with `blender_capabilities`, pin its environment, and qualify a reusable function, operator or node-asset recipe with `blender_recipe`. Then bind its capability to the relevant objects and stages:
+
+- **`require`:** the stage cannot complete without a verified effect from the named qualified provider.
+- **`prefer`:** use the provider when applicable; substitution or manual work requires an explicitly configured fallback.
+- **`best_qualified`:** select using measured execution time on comparable qualified inputs. This does not rank visual quality.
+
+The agent checks capability requirements at stage boundaries and after refresh. Geometry/material edits or deleted effects trigger an update to the same effect; unchanged effects reuse evidence without another job. Another layer requires an explicit new slot. There is no background edit watcher.
+
+Once the artist confirms a capability policy, every revision requires owner confirmation. Add-ons are installed and licensed separately, and each real provider needs its own qualification. See the [add-on guide and executable onboarding example](docs/guides/ADDON_RECIPES.md).
+
 ## Everyday workflow
 
 ```text
-Run brief Ã¢â€ â€™ inspect the accepted checkpoint Ã¢â€ â€™ reserve a scoped edit
-          Ã¢â€ â€œ
-Execute the retained script once Ã¢â€ â€™ save a new native file Ã¢â€ â€™ observe, render and measure relations
-          Ã¢â€ â€œ
-Publish the checked result, or retain the rejection Ã¢â€ â€™ write the next handoff
-          Ã¢â€ â€œ
-Build a review page for the artist Ã¢â€ â€™ import their notes; they approve in their own terminal
+Read brief and requirements -> inspect the accepted checkpoint -> reserve a scoped edit
+  -> execute once in the selected backend -> save and independently verify
+  -> publish the checked result or retain the rejection -> write the next handoff
+  -> submit stage evidence -> advance autonomously or wait for owner approval
 ```
 
-For a new project, first save an owned `.blend` and observe it with `python -m dcc_harness observe SAVED.blend --blender PATH --output-dir NEW_FOLDER`. This opens the file in a fresh background Blender, never saves it, and reports `READY` or the issues to fix. If the scene lacks stable harness identities, use [initial scene adoption](docs/guides/SCENE_ADOPTION.md): `adopt-preview` lists proposed assignments, then `adopt-apply` writes and independently observes a new file. Existing IDs are preserved; ambiguous identities block adoption. See the [everyday workflow](docs/guides/EVERYDAY_WORKFLOW.md) for preparation and exact edit commands.
+For a background project based on an existing file, first save an owned `.blend` and observe it with `python -m dcc_harness observe SAVED.blend --blender PATH --output-dir NEW_FOLDER`. This opens the file in a fresh background Blender, never saves it, and reports `READY` or the issues to fix. If the scene lacks stable harness identities, use [initial scene adoption](docs/guides/SCENE_ADOPTION.md): `adopt-preview` lists proposed assignments, then `adopt-apply` writes and independently observes a new file. Existing IDs are preserved; ambiguous identities block adoption. See the [everyday workflow](docs/guides/EVERYDAY_WORKFLOW.md) for preparation and exact edit commands.
 
 Example commands below assume you have prepared your own baseline, observation, brief, decisions, and handoff files. They are not bundled demo files.
 
@@ -95,6 +121,8 @@ python -m dcc_harness review ./my-project/state
 |---|---|
 | `run-create` / `run-status` | Select immutable autonomous or approval-gated policy and inspect the run's stages, budgets and operations |
 | `run-execute` / `run-submit` | Execute/check/publish one operation, then submit stage evidence through the shared service |
+| `live-attach` / `live-refresh` | Pair an explicitly selected open scene with a new managed project; import or reconnect measured external state |
+| `live-execute` / `live-status` / `live-reconcile` | Execute a bounded live operation, inspect its retained outcome and explicitly reconcile uncertain state |
 | `capability-*` / `recipe-*` / `run-operation` | Discover, qualify and select add-on recipes, then execute a typed operation in either backend |
 | `run-cancel` / `run-reconcile` | Stop owned execution and resolve retained attempts without replaying scripts |
 | `brief` | Start here: where a project stands and the permitted next steps with filled-in commands, as Markdown |
@@ -122,7 +150,7 @@ python -m dcc_harness review ./my-project/state
 
 The pilot's `init`, `status`, `begin`, and `finish` journal commands remain for legacy journal-only projects. Use the commands above for new work.
 
-If acknowledgement is lost, inspect the saved native result and reconcile it before sending another write. Direct MCP edits remain outside the reservation mechanism. Use one native writer and preserve the accepted file.
+If acknowledgement is lost, inspect the retained operation and reconcile uncertain state before sending another write. Edits through an unrelated raw-write MCP endpoint are outside the reservation mechanism. Use one native writer and preserve the accepted file.
 
 For an artist edit made outside a reservation, use [external revision review](docs/guides/EXTERNAL_REVISIONS.md). It requires a separate saved candidate, fresh observation, explicit change contract, handoff and decision updates. With `--blender`, textures referenced beside the candidate are packed into an owned copy first. The workflow preserves existing history and records caller-supplied review provenance; it does not settle a pending native operation.
 
@@ -147,7 +175,20 @@ Read [craft capabilities and recipe boundaries](docs/guides/CRAFT_SKILLS.md) bef
 
 ## Validation and current limits
 
-The v0.23.0 source and clean-installed suites each ran **593 tests: 591 passed and two Windows permission cases skipped**. All 17 release gates passed, including profiles, recipe qualification, provider routing, revision freshness and real stdio onboarding in both modes/backends. See [add-on capability evidence and limits](docs/archive/releases/ADDON_CAPABILITIES_RESULTS.md). Wheel/sdist and bridge parity, installed entry points, baseline native gates, 26 live scenarios and dirty-image preservation passed. Live workflows support explicit pairing, bounded edits, previews and recovery in both autonomous and approval-gated modes. See [live qualification and limits](docs/archive/releases/LIVE_EXECUTION_RESULTS.md). The bundled MCP remains telemetry-free. Every version also runs native Blender fixtures; see the [0.19.0 report](docs/archive/releases/ATTRIBUTES_0_19_0_RESULTS.md) for the attribute hash, the [0.18.1 report](docs/archive/releases/MAINTENANCE_0_18_1_RESULTS.md) for saved-state evidence and offline mode, the [0.18.0 report](docs/archive/releases/UV_0_18_0_RESULTS.md) for the UV report, the [0.17.0 report](docs/archive/releases/MODIFIERS_0_17_0_RESULTS.md) for modifier and node permissions, the [0.16.0 report](docs/archive/releases/RELOCATION_0_16_0_RESULTS.md) for revision relocation, the [0.15.0 report](docs/archive/releases/COVERAGE_0_15_0_RESULTS.md) for coverage and rechecks, the [0.14.0 report](docs/archive/releases/DELIVERY_0_14_0_RESULTS.md) for GLB delivery, the [0.13.1 report](docs/archive/releases/MAINTENANCE_0_13_1_RESULTS.md) for maintenance, the [0.13.0 report](docs/archive/releases/CHECKS_0_13_0_RESULTS.md) for learned checks, the [0.12.0 report](docs/archive/releases/OWNER_APPROVAL_0_12_0_RESULTS.md) for owner approval, the [0.11.0 report](docs/archive/releases/REVIEW_PAGE_0_11_0_RESULTS.md) for the review page, the [0.10.0 report](docs/archive/releases/INSTANCES_0_10_0_RESULTS.md) for collection instances, the [0.9.0 report](docs/archive/releases/RELATIONS_0_9_0_RESULTS.md) for `relations`, the [0.8.0 report](docs/archive/releases/RENDER_0_8_0_RESULTS.md) for `render` and `render-wait`, the [0.7.0 report](docs/archive/releases/GUIDANCE_0_7_0_RESULTS.md) for `brief`, `next` and `requirements`, the [0.6.0 report](docs/archive/releases/STEP_COST_0_6_0_RESULTS.md) for the `observe` and `fill-hashes` commands and the [0.5.1 report](docs/archive/releases/MAINTENANCE_0_5_1_RESULTS.md) for the latest maintenance fixes. The [changelog](CHANGELOG.md) summarizes each version's evidence, and the [scripts index](scripts/README.md) lists its qualification scripts.
+The v0.23.0 release is qualified on Blender 5.1.1 and Python 3.11 on Windows:
+
+| Verification | Result |
+|---|---|
+| Source and clean-installed test suites | 593 tests each: 591 passed, two existing Windows permission skips |
+| Maintained release gates | All 17 passed |
+| Open-scene execution | All 26 live scenarios passed, plus dirty-image and external-dependency preservation |
+| Add-on capabilities | Discovery/profiles, native recipes, routing, revision freshness and public MCP onboarding passed |
+| Workflow/backend combinations | Autonomous and approval-gated modes passed in background and live Blender |
+| Distribution | Wheel/source-archive parity, installed entry points and standalone bridge parity passed; final documentation package retained identical qualified runtime/bridge bytes |
+
+The final review found three Important issues: artist-policy downgrade, missing owner CLI confirmation and rejected native node-group names. All three were fixed with five failing-before/passing-after regressions and renewed native qualification. Telemetry and activity recording remain absent from the bundled MCP.
+
+See [add-on evidence and limits](docs/archive/releases/ADDON_CAPABILITIES_RESULTS.md), [final review and decisions](docs/archive/releases/ADDON_CAPABILITIES_REVIEW.md), and [live qualification](docs/archive/releases/LIVE_EXECUTION_RESULTS.md). These results use owned disposable scenes and synthetic providers; they do not establish compatibility or artistic superiority for arbitrary third-party add-ons. The [changelog](CHANGELOG.md) links historical release evidence, and the [scripts index](scripts/README.md) lists reproducible qualification commands.
 
 The [0.5.0 report](docs/archive/releases/FEEDBACK_0_5_0_RESULTS.md) covers feedback retention, evidence binding, and native revision tests. Its native exercise completed all seven workflow stages on a synthetic micro-scene. The first fresh agent exposed a missing view-definition artifact; the corrected package retains actual settings alongside their digest. In the corrected sealed trial, an independent reviewer verified three notes and left the visual note uncertain. These results test continuity mechanisms, not visual-quality improvement.
 
@@ -157,13 +198,14 @@ The comparisons so far have **not established a general visual-quality or long-h
 - In the longer comparison, sixteen fresh sessions produced fourteen native-check passes and two incomplete stages. Plain MCP completed 8/8 stages and the harness 6/8.
 - A realistic held-out comparison was interrupted after one partial build.
 
-[Short comparison](docs/archive/studies/BLIND_RESULTS.md) Ã‚Â· [Longer comparison](docs/archive/studies/CONTINUITY_RESULTS.md) Ã‚Â· [Realistic comparison](docs/studies/REALISM_COMPARISON.md)
+[Short comparison](docs/archive/studies/BLIND_RESULTS.md) | [Longer comparison](docs/archive/studies/CONTINUITY_RESULTS.md) | [Realistic comparison](docs/studies/REALISM_COMPARISON.md)
 
 The harness's own overhead has improved. On the same one-parameter revision, a fresh agent took 8 to 10 minutes on 0.5.1 and 0.6.0 and 3 minutes on 0.7.0, starting its edit after 51 seconds instead of 4 to 5 minutes ([report](docs/archive/releases/GUIDANCE_0_7_0_RESULTS.md)). On 0.9.0, two fresh agents each fixed a bench on sloping ground on the first attempt without repeating a failed whole-bench move ([report](docs/archive/releases/RELATIONS_0_9_0_RESULTS.md)). On 0.13.0, a fresh agent continuing the 1,289-object production garden found and answered all three open notes in 32 minutes ([E5 results](docs/studies/E5_CONTINUATION_RESULTS.md)). On 0.16.0, fresh agents handled all six known failure situations correctly: a lost acknowledgement, a stale image, a shared material, a missing view definition, an artist-saved revision and a conflicting late request ([P5 results](docs/studies/P5_SKILL_REGRESSIONS.md)). These are single runs, not a measured advantage over plain MCP.
 
 Current boundaries:
 
-- Advisory execution: no native sandbox, exactly-once guarantee, external-write interception, or unattended agent scheduler.
+- Managed execution enforces reservations, verification, publication and stage policy. It is not a native sandbox, an unconditional exactly-once guarantee, an external-write interceptor or an unattended agent scheduler.
+- Real add-ons require provider-specific qualification. Managed recipes initially cover measured MESH cases and qualified engines/contexts; arbitrary custom properties and GUI-only providers without independent background verification remain unsupported. Provider-dependent preview/recovery beyond the retained fixtures needs additional native proof.
 - Collection instances, local or from linked libraries, are observed since 0.10.0. Vertex, face, particle and Geometry Nodes instancing and library overrides are still reported as issues. External revisions pack their textures since 0.16.0 but still reject linked libraries, because packing one changes its collections' asset identity. Libraries are referenced, not copied into the project store.
 - Blender qualification only; Unreal and other DCC adapters remain planned.
 - Observation coverage is explicit and incomplete: animation over time, arbitrary procedural instances, rig semantics and general topology quality are not certified. UV overlap and texel density are measured by the separate `uv-report`, as grid and per-mesh estimates, not in observations ([UV report](docs/guides/UV_REPORT.md)).
