@@ -1,5 +1,8 @@
 """Initialize only a new, owned baseline; failure retains files for inspection."""
 from pathlib import Path
+from contextlib import contextmanager
+import os
+import json
 import uuid
 
 from . import distribution, execution, workflow
@@ -39,6 +42,47 @@ def create(destination, brief_file, blender, mode, *, max_operations=20, seconds
     return result
 
 
+@contextmanager
+def _rules_lock(path):
+    """Serialize short export repair, including independent client processes."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open('a+b') as stream:
+        if path.stat().st_size == 0:
+            stream.write(b'0'); stream.flush()
+        stream.seek(0)
+        if os.name == 'nt':
+            import msvcrt
+            msvcrt.locking(stream.fileno(), msvcrt.LK_LOCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(stream, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            stream.seek(0)
+            if os.name == 'nt':
+                msvcrt.locking(stream.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                fcntl.flock(stream, fcntl.LOCK_UN)
+
+
+def _bound_rules(target):
+    with _rules_lock(reject_links(target.with_suffix('.lock'))):
+        if target.exists() and (target / 'index.json').exists():
+            try:
+                return distribution.verify_rules(target)
+            except json.JSONDecodeError:
+                pass  # Preserve a truncated legacy export before rebuilding exact pinned bytes.
+        if target.exists():
+            # Preserve interrupted exports, including unknown files; never remove guessed data.
+            target.rename(reject_links(target.with_name(target.name + '-incomplete-' + str(uuid.uuid4()))))
+        staged = reject_links(target.with_name(target.name + '-staging-' + str(uuid.uuid4())))
+        distribution.export_rules(staged)
+        distribution.verify_rules(staged)
+        staged.rename(target)
+        return distribution.verify_rules(target)
+
+
 def bind_rules(project, workspace, expected_revision, request_id):
     from . import environment_workflow as ew, coordination as c, workflow
     root = Path(project)
@@ -47,9 +91,7 @@ def bind_rules(project, workspace, expected_revision, request_id):
     # Stable export path allows an identical request to replay after lost acknowledgement.
     request = str(uuid.UUID(request_id))
     target = reject_links(Path(workspace) / '.harness-mcp' / 'rules' / request)
-    if not target.exists():
-        distribution.export_rules(target)
-    index = distribution.verify_rules(target)
+    index = _bound_rules(target)
     manifest = ew.default_manifest()
     skills = {s for stage in manifest['stages'] for s in stage['skills']}
     refs = lambda names: [{'path': name, 'sha256': index['files'][name]} for name in names]

@@ -22,6 +22,7 @@ from .live_contracts import validate_operation
 _permit = ContextVar('managed_execution_root', default=None)
 _stage_context = ContextVar('managed_execution_stage', default=None)
 _publication_guard = ContextVar('native_publication_guard', default=None)
+_recovery = ContextVar('managed_verified_recovery', default=False)
 WORKER = Path(__file__).with_name('_execution_blender.py')
 OBSERVER = Path(__file__).with_name('_observe_blender.py')
 
@@ -34,6 +35,8 @@ def configuration(root):
     folder = _folder(root)
     if not folder.exists():
         return None
+    if not (folder / 'run.json').is_file():
+        raise ValueError('Incomplete managed execution configuration; inspect execution/run.json')
     config = read_json(reject_links(folder / 'run.json'))
     if config.get('schema') not in ('dcc.execution.run.v1', 'dcc.execution.run.v2') or config.get('mode') not in ('autonomous', 'approval_gated'):
         raise ValueError('Invalid managed execution configuration')
@@ -58,14 +61,26 @@ def _authorized(root, stage=None):
         _stage_context.reset(stage_token)
 
 
+def check_run(root, *, allow_expired=False):
+    config = configuration(root)
+    if config is None:
+        raise ValueError('Create a managed run first')
+    if config['runtime'] != ew.runtime_stamp():
+        raise ValueError('Managed run pins another runtime; use its installed version')
+    if (_folder(root) / 'cancel.json').exists():
+        raise RuntimeError('Run cancelled')
+    if not allow_expired and time.time() >= config['deadline']:
+        raise RuntimeError('Execution time budget exhausted')
+    return config
+
+
 def check_publication(root):
     """Recheck policy under the workflow writer lock, just before publication."""
     config = configuration(root)
     if config is None:
         return
     require_service(root)
-    if (_folder(root) / 'cancel.json').exists() or time.time() >= config['deadline']:
-        raise RuntimeError('Run cancelled or execution time budget exhausted')
+    check_run(root, allow_expired=_recovery.get())
     ctx = c.Context(root, Continuity(root).status(), c.read(root), root)
     stage = _stage_context.get()
     _, states = ew._stage(ctx, stage)
@@ -121,10 +136,14 @@ def create(root, mode, *, max_operations=20, seconds=3600, backend='background')
         if mode == 'approval_gated' and any(row['state'] in ('complete', 'inherited') for row in ew.stages(events, native).values()):
             raise ValueError('Enable approval-gated mode before completing or inheriting stages; reopen prior stages first')
         folder = _folder(root)
-        folder.mkdir(exist_ok=False)
-        write_json(folder / 'run.json', {'schema': 'dcc.execution.run.v2', 'backend': backend, 'id': str(uuid.uuid4()),
+        if folder.exists():
+            raise FileExistsError('Managed execution run already exists: ' + str(folder))
+        staged = reject_links(folder.with_name('.execution-' + str(uuid.uuid4())))
+        staged.mkdir(exist_ok=False)
+        write_json(staged / 'run.json', {'schema': 'dcc.execution.run.v2', 'backend': backend, 'id': str(uuid.uuid4()),
                    'mode': mode, 'max_operations': max_operations, 'deadline': time.time() + seconds,
                    'binding': bound['id'], 'runtime': ew.runtime_stamp(), 'initial_checkpoint': native['active']['id']})
+        staged.rename(folder)
     return status(root)
 
 
@@ -152,21 +171,24 @@ def status(root):
     operations = [_outcome(reject_links(p)) for p in _operations(root)]
     native, events = Continuity(root).status(), c.read(root)
     stages = ew.stages(events, native)
-    state = ('CANCELLED' if (_folder(root) / 'cancel.json').exists() else
-             'NEEDS_RECONCILIATION' if any(o['status'] == 'NEEDS_RECONCILIATION' for o in operations) else
+    state = ('NEEDS_RECONCILIATION' if any(o['status'] == 'NEEDS_RECONCILIATION' for o in operations) else
+             'CANCELLED' if (_folder(root) / 'cancel.json').exists() else
              'COMPLETE' if stages and all(s['state'] == 'complete' for s in stages.values()) else
              'BUDGET_EXHAUSTED' if time.time() >= config['deadline'] or len(operations) >= config['max_operations'] else
-             'AWAITING_APPROVAL' if config['mode'] == 'approval_gated' and any(s['state'] == 'awaiting_review' for s in stages.values()) else 'READY')
+             'AWAITING_APPROVAL' if any(s['state'] == 'awaiting_review' and ew.review_policy(root, events, sid) == 'artist_required'
+                                        for sid, s in stages.items()) else 'READY')
     live_state = {}
     if config.get('backend') == 'live':
         from .live import read_binding
         try:
             live_state = {'live_state': read_binding(root)['state'], 'alignment': 'Use live-status for current scene comparison'}
-        except (OSError, ValueError):
+        except (OSError, ValueError, KeyError, TypeError):
             live_state = {'live_state': 'UNBOUND', 'alignment': 'No verified live binding'}
         if live_state['live_state'] != 'READY' and state in ('READY', 'COMPLETE', 'AWAITING_APPROVAL'):
             state = live_state['live_state']
-    return {'schema': 'dcc.execution.status.v1', 'status': state, 'run': config, 'operations': operations, **live_state,
+    staging = [{'path': str(p), 'status': 'FAILED_BEFORE_DISPATCH' if (p / 'failure.json').exists() else 'INCOMPLETE_BEFORE_DISPATCH'}
+               for p in sorted((_folder(root) / 'staging').glob('*'))]
+    return {'schema': 'dcc.execution.status.v1', 'status': state, 'run': config, 'operations': operations, 'staging': staging, **live_state,
             'stages': list(stages.values()), 'active': c.checkpoint_ref(native['active']),
             'artistic_acceptance': 'not_evaluated'}
 
@@ -179,6 +201,19 @@ def cancel(root):
     except FileExistsError:
         pass
     return {'status': 'CANCEL_REQUESTED'}
+
+
+def cancel_operation(root, operation_id):
+    """Cancel one intent, including one whose controller has not reserved it yet."""
+    c.identifier(operation_id)
+    if configuration(root) is None:
+        raise ValueError('No managed execution run')
+    path = reject_links(_folder(root) / 'cancellations' / (operation_id + '.json'))
+    try:
+        write_json(path, {'operation_id': operation_id, 'requested_at': time.time()})
+    except FileExistsError:
+        pass
+    return {'operation_id': operation_id, 'status': 'CANCEL_REQUESTED'}
 
 
 def submit(root, payload, base, *, review=None):
@@ -198,12 +233,14 @@ def submit(root, payload, base, *, review=None):
         receipt = next(e for e in events if e['id'] == row['receipt_id'])
         previous = receipt['result']['submission_id']
     candidate = next((e for e in events if e['id'] == previous and e['payload'] == payload), None)
+    if candidate is None or row.get('state') != 'complete':
+        check_run(root)
     # A retry resumes the active review cycle. Reopening (even with identical
     # evidence) is a new intent and must receive a new submission and approval.
     request = candidate['request_id'] if candidate else str(uuid.uuid5(uuid.UUID(config['id']),
                 'submit:' + events[-1]['id'] + ':' + digest(payload)))
     submitted = ew.apply(root, 'stage.submit', payload, events[-1]['id'], request, base)
-    if config['mode'] == 'approval_gated':
+    if ew.review_policy(root, c.read(root), payload['stage_id']) == 'artist_required':
         return {'status': 'AWAITING_APPROVAL', 'submission': submitted,
                 'next_action': 'Review this submission, then use stage-complete from the owner terminal or import its review page.'}
     review = review or {'reviewer': {'role': 'agent', 'author': 'managed execution', 'reference': 'Supplied stage evidence'},
@@ -217,13 +254,7 @@ def submit(root, payload, base, *, review=None):
 
 
 def _admit(root, stage, expected_parent):
-    config = configuration(root)
-    if config is None:
-        raise ValueError('Create a managed run first')
-    if config['runtime'] != ew.runtime_stamp():
-        raise ValueError('Managed run pins another runtime; use its installed version')
-    if (_folder(root) / 'cancel.json').exists():
-        raise RuntimeError('Run cancelled')
+    config = check_run(root)
     operations = _operations(root)
     if any(not (p / 'outcome.json').exists() for p in operations):
         raise RuntimeError('Unresolved operation; reconcile before executing another edit')
@@ -293,18 +324,23 @@ def execute_operation(root, value):
             raise ValueError('Script and handoff must be nonempty')
         staged = reject_links(_folder(root) / 'staging' / str(uuid.uuid4()))
         staged.mkdir(parents=True, exist_ok=False)
-        write_json(staged / 'request.json', request)
-        for name, source in sources.items():
-            copy_verified(source, staged / name, request['files'][name], 'Execution input changed during reservation')
-        copy_verified(active['checkpoint'], staged / 'input.blend', active['checkpoint_sha256'], 'Checkpoint changed')
-        folder.parent.mkdir(parents=True, exist_ok=True)
-        staged.rename(folder)  # Publish the complete request before any native dispatch.
+        try:
+            write_json(staged / 'request.json', request)
+            for name, source in sources.items():
+                copy_verified(source, staged / name, request['files'][name], 'Execution input changed during reservation')
+            copy_verified(active['checkpoint'], staged / 'input.blend', active['checkpoint_sha256'], 'Checkpoint changed')
+            folder.parent.mkdir(parents=True, exist_ok=True)
+            staged.rename(folder)  # Publish the complete request before any native dispatch.
+        except Exception as exc:
+            write_json(staged / 'failure.json', {'operation_id': operation_id, 'error': str(exc), 'type': type(exc).__name__})
+            raise
         try:
             reserved = workflow.begin_edit(root, expected_parent, active['checkpoint'], active['observation'],
                                            folder / 'script.py', folder / 'contract.json', 'managed-' + operation_id)
             write_json(folder / 'reservation.json', reserved)
             deadline = min(config['deadline'], time.time() + timeout)
-            cancelled = lambda: (_folder(root) / 'cancel.json').exists()
+            cancelled = lambda: ((_folder(root) / 'cancel.json').exists() or
+                                 (_folder(root) / 'cancellations' / (operation_id + '.json')).exists())
             def run(worker, action, payload):
                 remaining = deadline - time.time()
                 if remaining <= 0:
@@ -348,7 +384,14 @@ def execute_operation(root, value):
             backend.verify(receipt)
             if cancelled() or time.time() >= deadline:
                 raise RuntimeError('Execution cancelled or time budget exhausted before publication')
-            guard = _publication_guard.set(lambda: backend.before_publish(receipt))
+            def before_publish():
+                backend.before_publish(receipt)
+                if cancelled():
+                    raise RuntimeError('Execution cancelled before publication')
+                if 'capability' in request:
+                    from .capabilities import prepare_operation_receipt
+                    prepare_operation_receipt(root, folder, request)
+            guard = _publication_guard.set(before_publish)
             try:
                 updates = ({'live_external_revision': {'operation_id': operation_id, 'provenance': 'external_live_edit'}}
                            if kind == 'live' and request.get('live', {}).get('recipe') == 'external.capture' else {})
@@ -371,8 +414,30 @@ def execute_operation(root, value):
 def reconcile(root, operation_id, *, accept=False, reason):
     """Explicitly adopt a fully observed candidate or reject an attempt; never execute a script."""
     c.identifier(operation_id); c.text(reason)
+    config = configuration(root)
+    if config is None:
+        raise ValueError('Create a managed run first')
+    if config['runtime'] != ew.runtime_stamp():
+        raise ValueError('Managed run pins another runtime; use its installed version')
     folder = reject_links(_folder(root) / 'operations' / operation_id)
+    if not (folder / 'request.json').is_file():
+        raise ValueError('Unknown managed operation: ' + operation_id)
     request = read_json(reject_links(folder / 'request.json'))
+    if request.get('kind') == 'external_revision':
+        if accept:
+            raise ValueError('Retry accept-revision with its original preview and explicit stage to recover this saved revision')
+        with _exclusive(root), _authorized(root, request['stage']):
+            retained = _outcome(folder)
+            if (folder / 'outcome.json').exists():
+                return retained
+            for step in Continuity(root).status()['task_history']:
+                if step['check_report']:
+                    accepted = read_json(step['check_report']).get('external_revision', {})
+                    if accepted.get('preview_sha256') == request['preview_sha256']:
+                        raise RuntimeError('Saved revision already published; recover its original accept-revision request')
+            result = {'operation_id': operation_id, 'status': 'REJECTED', 'reconciliation': reason, 'dispatched': False}
+            write_json(folder / 'outcome.json', result)
+            return result
     if request.get('backend') == 'live':
         raise ValueError('Use live reconciliation with an explicit current fingerprint and recovery decision')
     with _exclusive(root), _authorized(root, request['stage']):
@@ -399,9 +464,67 @@ def reconcile(root, operation_id, *, accept=False, reason):
             observed_candidate = (folder / 'observation.json').exists() and (folder / 'candidate.blend').exists()
             checkpoint = folder / 'candidate.blend' if accept or observed_candidate else native['checkpoint']
             observation = folder / 'observation.json' if accept or observed_candidate else native['observation']
-            outcome = workflow.finish_edit(root, reserved['edit'], checkpoint, observation, folder / 'handoff.md', {},
-                                           reconciled=True, reject_reason=None if accept else reason)
+            token = _recovery.set(True)
+            def before_publish():
+                if 'capability' in request:
+                    from .capabilities import prepare_operation_receipt
+                    prepare_operation_receipt(root, folder, request)
+            guard = _publication_guard.set(before_publish)
+            try:
+                outcome = workflow.finish_edit(root, reserved['edit'], checkpoint, observation, folder / 'handoff.md', {},
+                                               reconciled=True, reject_reason=None if accept else reason)
+            finally:
+                _publication_guard.reset(guard)
+                _recovery.reset(token)
         result = {'operation_id': operation_id, 'status': outcome['status'] if outcome['passed'] else 'REJECTED',
                   'outcome': outcome, 'reconciliation': reason}
+        if 'capability' in request and result['status'] == 'PUBLISHED':
+            from .capabilities import record_operation
+            result['capability_receipt'] = record_operation(root, folder, result, request)
         write_json(folder / 'outcome.json', result)
+        return result
+
+
+def accept_revision(root, stage, preview, expected_preview_sha, review_note):
+    """Admit one already-saved revision without native dispatch or artist stage approval."""
+    from . import revisions
+    config = configuration(root)
+    if config is None or config.get('backend', 'background') != 'background':
+        raise ValueError('Saved revision import requires a background managed run; use live refresh/recovery for a paired project')
+    if config['runtime'] != ew.runtime_stamp():
+        raise ValueError('Managed run pins another runtime; use its installed version')
+    c.text(review_note)
+    manifest = revisions._load_preview(Path(root).resolve(), Path(preview).resolve(), expected_preview_sha)
+    operation_id = str(uuid.uuid5(uuid.UUID(config['id']), 'external:' + stage + ':' + expected_preview_sha))
+    request = {'kind': 'external_revision', 'backend': 'background', 'stage': stage,
+               'expected_parent': manifest['expected_parent'], 'preview': str(Path(preview).resolve()),
+               'preview_sha256': expected_preview_sha, 'review_note': review_note, 'files': {}}
+    folder = reject_links(_folder(root) / 'operations' / operation_id)
+    with _exclusive(root), _authorized(root, stage):
+        if folder.exists():
+            if read_json(reject_links(folder / 'request.json')) != request:
+                raise ValueError('Saved revision intent changed; recover the original request')
+            if (folder / 'outcome.json').exists():
+                result = _outcome(folder)['outcome']
+                return {**result, 'status': 'ALREADY_PUBLISHED' if result['passed'] else result['status']}
+            # The only recovery is rechecking frozen saved evidence or finding the
+            # matching committed preview. No native script is ever executed.
+            other = [p for p in _operations(root) if p != folder and not (p / 'outcome.json').exists()]
+            if other:
+                raise RuntimeError('Unresolved operation; reconcile before importing another revision')
+        else:
+            _admit(root, stage, manifest['expected_parent'])
+            staged = reject_links(_folder(root) / 'staging' / str(uuid.uuid4()))
+            staged.mkdir(parents=True, exist_ok=False)
+            write_json(staged / 'request.json', request)
+            folder.parent.mkdir(parents=True, exist_ok=True)
+            staged.rename(folder)
+        result = revisions._accept_revision(root, preview, expected_preview_sha, review_note)
+        if result['passed']:
+            events = c.read(root)
+            ew.apply(root, 'stage.reopen', {'schema': 'dcc.environment.reopen.v1', 'stage_id': stage,
+                'reason': 'Saved external revision accepted; review the revised checkpoint',
+                'authority': {'role': 'agent', 'author': 'managed revision import', 'reference': expected_preview_sha}},
+                events[-1]['id'], str(uuid.uuid5(uuid.UUID(operation_id), 'reopen')), root)
+        write_json(folder / 'outcome.json', {'operation_id': operation_id, 'status': result['status'], 'outcome': result})
         return result

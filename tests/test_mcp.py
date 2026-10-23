@@ -113,10 +113,10 @@ class MCPWorkflowTests(Fixture):
         self.assertEqual(asyncio.run(run_cli(args + ['--review', str(review)], self.base))['result']['status'], 'AWAITING_APPROVAL')
         self.assertEqual(execution.status(self.root)['status'], 'AWAITING_APPROVAL')
 
-    def test_cancelled_controller_marks_run_and_reaps_real_child(self):
+    def test_cancelled_controller_marks_only_operation_and_reaps_real_child(self):
         self.cancel_controller('run-execute')
 
-    def test_cancelled_typed_controller_marks_run_and_reaps_real_child(self):
+    def test_cancelled_typed_controller_marks_only_operation_and_reaps_real_child(self):
         self.cancel_controller('run-operation')
 
     def cancel_controller(self, command):
@@ -131,12 +131,13 @@ class MCPWorkflowTests(Fixture):
             process = await actual_spawn(getattr(sys, '_base_executable', sys.executable), '-c', 'import time; time.sleep(60)', **kwargs)
             processes.append(process)
             return process
-        args = ['run-execute', str(self.root), '--stage', 'direction', '--operation-id', str(uuid.uuid4()),
+        operation_id = str(uuid.uuid4())
+        args = ['run-execute', str(self.root), '--stage', 'direction', '--operation-id', operation_id,
                 '--script', str(self.script), '--contract', str(self.contract), '--handoff', str(self.handoff),
                 '--blender', sys.executable, '--parent', self.packet['active']['id']]
         if command == 'run-operation':
             request = self.base / 'typed.json'
-            request.write_text(json.dumps({'blender': sys.executable}), encoding='utf-8')
+            request.write_text(json.dumps({'blender': sys.executable, 'operation_id': operation_id}), encoding='utf-8')
             args = [command, str(self.root), '--request', str(request)]
         async def trial():
             with mock.patch('asyncio.create_subprocess_exec', side_effect=slow_child):
@@ -148,4 +149,6 @@ class MCPWorkflowTests(Fixture):
                     await task
             self.assertIsNotNone(processes[0].returncode)
         asyncio.run(trial())
-        self.assertEqual(execution.status(self.root)['status'], 'CANCELLED')
+        self.assertFalse((self.root / 'execution/cancel.json').exists())
+        self.assertTrue((self.root / 'execution/cancellations' / (operation_id + '.json')).is_file())
+        self.assertEqual(execution.status(self.root)['status'], 'READY')

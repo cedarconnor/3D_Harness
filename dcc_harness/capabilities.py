@@ -419,24 +419,71 @@ def reuse(root,requirement,resolution,parameters):
     return None
 
 
-def record_operation(root,folder,result,request):
-    if result['status']!='PUBLISHED' or result.get('live_state','READY')!='READY': return None
-    cap=request['capability']; req=cap['requirement']; active=result['outcome']['active']
-    current=next((r for r in requirements(root,req['stage'],read_json(active['observation']))
+def prepare_operation_receipt(root,folder,request,*,observation=None):
+    """Validate policy and independent output before the checkpoint commit.
+
+    The checkpoint ID is assigned by publication. All other receipt fields are
+    frozen here under the workflow writer lock and survive controller death.
+    """
+    folder=Path(folder); cap=request['capability']; req=cap['requirement']
+    observed=read_json(observation or folder / 'observation.json')
+    current=next((r for r in requirements(root,req['stage'],observed)
                   if r['target_id']==req['target_id'] and r['rule']['id']==req['rule']['id']
                   and r['policy_digest']==req['policy_digest']),None)
     if current is None: raise ValueError('Capability policy changed before receipt')
     verified=read_json(folder / 'capability-verified.json')
     if verified.get('passed') is not True: raise ValueError('Missing independent capability verification')
     selected=cap['resolution']['selected']
+    if selected not in current['rule']['candidates']: raise ValueError('Capability provider changed before publication')
+    bundle=recipes.require_qualified(root,selected['recipe_id'],selected['recipe_digest'],
+                                     profile_digest=selected['profile_digest'],context=request['backend'])
+    output=read_json(folder / 'capability-output.json')
+    actual=output.get('output')
+    if (not isinstance(actual,dict) or actual.get('effect_id')!=cap['effect_id']
+            or type(actual.get('effect_count')) is not int or actual['effect_count']!=1
+            or not isinstance(actual.get('measurements'),dict) or not actual['measurements']):
+        raise ValueError('Capability output does not prove the requested owned effect')
+    scope=sorted(set(sum(bundle['recipe']['coverage'].values(),[])))
+    measured=observed_scope(observed,req['target_id'],scope)
+    if (verified.get('measurements')!=measured or output.get('after')!=measured
+            or verified.get('output')!=output.get('output')
+            or verified.get('output_fingerprint')!=digest(output['output'])
+            or output.get('output_fingerprint')!=verified['output_fingerprint']):
+        raise ValueError('Capability independent output evidence differs from candidate')
     receipt={'schema':'dcc.capability.receipt.v1','operation_id':folder.name,'request_sha256':digest(request),
         'requirement_digest':digest(req),'current_requirement_digest':digest(current), 'effect_id':cap['effect_id'],
         'target_id':req['target_id'],'capability':req['rule']['capability'],'slot':req['rule']['slot'],
         'policy_digest':req['policy_digest'],'provider':selected['provider'],'recipe_digest':selected['recipe_digest'],
         'profile_digest':selected['profile_digest'],'parameters_digest':digest(cap['parameters']),
         'input_dependency_fingerprint':req['dependency_fingerprint'],'dependency_fingerprint':current['dependency_fingerprint'],
-        'output_fingerprint':verified['output_fingerprint'],'checkpoint':c.checkpoint_ref(active),
+        'output_fingerprint':verified['output_fingerprint'],
         'evidence':{name:file_hash(folder / name) for name in ('capability-output.json','capability-verified.json','observation.json')}}
+    # Validate the complete shape using the already accepted checkpoint identity;
+    # its replacement is the only field deferred until publication assigns an ID.
+    validate_receipt({**receipt,'checkpoint':c.checkpoint_ref(c.Continuity(root).status()['active'])})
+    path=folder / 'capability-publication.json'
+    if path.exists():
+        if read_json(reject_links(path))!=receipt: raise ValueError('Retained capability publication evidence changed')
+    else: write_json(path,receipt)
+    return receipt
+
+
+def record_operation(root,folder,result,request):
+    if result['status']!='PUBLISHED' or result.get('live_state','READY')!='READY': return None
+    folder=Path(folder); active=result['outcome']['active']; draft=folder / 'capability-publication.json'
+    if not draft.is_file(): raise ValueError('Missing capability publication evidence; inspect the retained operation')
+    receipt=read_json(reject_links(draft))
+    if receipt['request_sha256']!=digest(request): raise ValueError('Capability publication request changed')
+    for name,wanted in receipt['evidence'].items():
+        if file_hash(reject_links(folder / name))!=wanted: raise ValueError('Capability publication evidence changed')
+    receipt={**receipt,'checkpoint':c.checkpoint_ref(active)}
     validate_receipt(receipt)
-    path=folder / 'capability-receipt.json'; write_json(path,receipt)
+    path=folder / 'capability-receipt.json'
+    if path.exists():
+        if read_json(reject_links(path))!=receipt: raise ValueError('Retained capability receipt changed')
+    else:
+        # A crash while writing leaves only an unpublished temporary file.
+        staged=folder / ('capability-receipt-' + str(__import__('uuid').uuid4()) + '.json')
+        write_json(staged,receipt)
+        staged.rename(path)
     return {'path':str(path),'sha256':file_hash(path)}

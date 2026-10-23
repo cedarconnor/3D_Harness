@@ -16,9 +16,10 @@ def default_manifest():
 def review_policy(root, events, stage):
     from .execution import configuration
     managed = configuration(root)
-    if managed is not None:
-        return 'artist_required' if managed['mode'] == 'approval_gated' else 'agent_within_brief'
-    return feedback.policy(events, stage)
+    bound = feedback.policy(events, stage)
+    if managed is not None and managed['mode'] == 'approval_gated':
+        return 'artist_required'
+    return bound
 
 
 # Comparison tooling: frozen packets carry their own copies, and the pinned runtime never imports
@@ -312,9 +313,11 @@ def _answers(questions, answers):
     return resolved
 
 
-def _submit(ctx, value):
-    from .execution import configuration
+def _submit(ctx, value, *, check_budget=True):
+    from .execution import configuration, check_run
     config = configuration(ctx.root)
+    if config and check_budget:
+        check_run(ctx.root)
     if config and config.get('backend') == 'live':
         from .live import ensure_aligned
         ensure_aligned(ctx.root)
@@ -368,7 +371,7 @@ def _complete(ctx, value):
         raise ValueError('Submission no longer active')
     ctx.checkpoint(submitted['submission']['checkpoint'], current=True)
     frozen = c.Context(ctx.root, ctx.native, ctx.events, event['artifacts'])
-    refreshed = _submit(frozen, submitted['submission'])
+    refreshed = _submit(frozen, submitted['submission'], check_budget=False)
     if refreshed['missing_evidence'] or refreshed['unresolved_notes'] or not all(r['passed'] for r in refreshed['reports']):
         raise ValueError('Stage has missing evidence, failed checks or unresolved feedback')
     if refreshed.get('failed_checks'):
@@ -378,6 +381,10 @@ def _complete(ctx, value):
     review = value['review']
     c.fields(review, {'reviewer', 'verdict', 'finding'}, {'answers'})
     evidence.actor(review['reviewer']); c.text(review['finding'])
+    if review['reviewer']['role'] == 'agent':
+        from .execution import configuration, check_run
+        if configuration(ctx.root) is not None:
+            check_run(ctx.root)
     answers = _answers(submitted['submission'].get('questions', []), review.get('answers', {}))
     if review['verdict'] != 'pass':
         raise ValueError('Stage review has not passed')

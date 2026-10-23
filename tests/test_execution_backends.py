@@ -30,6 +30,7 @@ class BackendTests(Fixture):
             else: self.worker(blender,folder,worker,action,payload,**kwargs)
         with mock.patch.object(capabilities,'admit',return_value=request['capability']), \
              mock.patch.object(capabilities,'reuse',return_value=None), \
+             mock.patch.object(capabilities,'prepare_operation_receipt'), \
              mock.patch.object(capabilities,'record_operation',return_value={'sha256':'a'*64}), \
              mock.patch('dcc_harness.execution.run_worker',side_effect=worker) as native:
             first=execution.execute_operation(self.root,request)

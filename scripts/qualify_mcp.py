@@ -16,7 +16,7 @@ from contextlib import suppress
 
 async def qualify(args):
     sys.path.insert(0, str(Path(args.runtime).resolve()))
-    from dcc_harness import distribution, blender_bridge, workflow
+    from dcc_harness import distribution, blender_bridge, workflow, environment_workflow as ew, coordination as c
     from dcc_harness.evidence import file_hash, read_json
     from mcp import ClientSession, StdioServerParameters
     from mcp.client.stdio import stdio_client
@@ -121,6 +121,7 @@ bpy.app.timers.register(finish)
                         assert 'observation' in str(exc)
                     assert (await call('blender_observe'))['result']['object_count'] == 1
                     for mode in ('autonomous', 'approval_gated'):
+                        cancellation_continued = False
                         brief = await call('harness_write_input', {'name': mode + '-brief.md', 'content': 'Disposable MCP qualification. Build a one-metre cube.'})
                         initialized = await cli('new-project', str(out / mode), '--brief-file', brief['path'], '--blender', args.blender,
                                                 '--mode', mode, '--max-operations', '5', '--seconds', '600')
@@ -148,13 +149,14 @@ bpy.app.timers.register(finish)
                             'feedback_ids': [], 'note': 'Fixture ready'}
                         payload = await call('harness_write_input', {'name': mode + '-submission.json', 'content': json.dumps(submission)})
                         submitted = await cli('run-submit', root, '--submission', payload['path'], '--evidence-root', str(out))
-                        expected = 'COMPLETE' if mode == 'autonomous' else 'AWAITING_APPROVAL'
+                        effective_policy = ew.review_policy(root, c.read(root), 'direction')
+                        expected = 'AWAITING_APPROVAL' if effective_policy == 'artist_required' else 'COMPLETE'
                         assert submitted['status'] == expected, submitted
                         second = arguments.copy()
                         second[second.index('--stage') + 1] = 'blockout'
                         second[second.index('--operation-id') + 1] = str(uuid.uuid4())
                         second[second.index('--parent') + 1] = active['id']
-                        if mode == 'approval_gated':
+                        if effective_policy == 'artist_required':
                             await cli(*second, error=True)
                         else:
                             move = await call('harness_write_input', {'name': 'move.py', 'content': "import bpy\nbpy.data.objects['Cube'].location.x = .25\n"})
@@ -187,15 +189,28 @@ bpy.app.timers.register(finish)
                             with suppress(asyncio.CancelledError, Exception):
                                 await task
                             assert workflow.resume(root)['active']['id'] == before_cancel
-                            assert (Path(root) / 'execution/cancel.json').exists()
+                            assert (Path(root) / 'execution/cancellations' / (operation_id + '.json')).is_file()
+                            assert not (Path(root) / 'execution/cancel.json').exists()
                             assert not (operation / 'candidate.blend').exists()
+                            assert (await cli('run-status', root))['status'] == 'NEEDS_RECONCILIATION'
+                            rejected = await cli('run-reconcile', root, '--operation-id', operation_id,
+                                                 '--reason', 'Explicitly reject interrupted owned MCP fixture')
+                            assert rejected['status'] == 'REJECTED', rejected
+                            assert (await cli('run-status', root))['status'] == 'READY'
+                            continued = second.copy()
+                            continued[continued.index('--operation-id') + 1] = str(uuid.uuid4())
+                            continued[continued.index('--parent') + 1] = before_cancel
+                            assert (await cli(*continued))['status'] == 'PUBLISHED'
+                            cancellation_continued = True
                         assert file_hash(initialized['baseline']) == baseline_sha
                         obs = read_json(workflow.resume(root)['active']['observation'])
                         assert 'ext.cube' in obs['objects']
                         from dcc_harness.continuity import Continuity
                         results.append({'mode': mode, 'submission': expected, 'checkpoint_count': len(Continuity(root).status()['task_history']),
                                         'baseline_unchanged': True, 'saved_cube_observed': True,
-                                        'mcp_cancellation_preserved_checkpoint': mode == 'autonomous'})
+                                        'effective_review_policy': effective_policy,
+                                        'mcp_cancellation_preserved_checkpoint': cancellation_continued,
+                                        'mcp_cancellation_reconciled_and_continued': cancellation_continued})
                     assert file_hash(out / 'live.blend') == original_sha
                     (out / 'VERIFICATION.json').write_text(json.dumps({'passed': True, 'tools': tools, 'live_bridge': live,
                         'raw_socket_mutation_refused': True, 'live_scene_unchanged': True, 'workflows': results,

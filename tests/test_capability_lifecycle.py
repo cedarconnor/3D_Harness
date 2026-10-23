@@ -42,10 +42,13 @@ class LifecycleTests(Fixture):
         coverage={'reads':['geometry','materials'],'writes':['modifiers'],'dependencies':['geometry','materials']}
         measured=cap.observed_scope(observation,req['target_id'],['geometry','materials','modifiers'])
         write_json(folder/'request.json',request)
-        write_json(folder/'capability-output.json',{'after':measured})
-        write_json(folder/'capability-verified.json',{'passed':True,'output_fingerprint':'a'*64,'measurements':measured})
+        output={'effect_id':context['effect_id'],'effect_count':1,'measurements':measured}
+        write_json(folder/'capability-output.json',{'after':measured,'output':output,'output_fingerprint':digest(output)})
+        write_json(folder/'capability-verified.json',{'passed':True,'output_fingerprint':digest(output),'measurements':measured,'output':output})
         write_json(folder/'observation.json',observation)
         result={'status':'PUBLISHED','outcome':{'active':active}}
+        with patch.object(recipes,'require_qualified',return_value={'recipe':{'coverage':coverage}}):
+            cap.prepare_operation_receipt(self.root,folder,request)
         result['capability_receipt']=cap.record_operation(self.root,folder,result,request)
         write_json(folder/'outcome.json',result)
         return native,req,folder,{'recipe':{'coverage':coverage}}

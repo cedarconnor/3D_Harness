@@ -8,6 +8,7 @@ import sys
 import uuid
 import time
 import concurrent.futures
+import copy
 
 p = argparse.ArgumentParser()
 p.add_argument('--blender', required=True); p.add_argument('--runtime', required=True); p.add_argument('--out', required=True)
@@ -80,7 +81,8 @@ for mode in ('autonomous', 'approval_gated'):
         submitted = ew.apply(root, 'stage.submit', submission, c.read(root)[-1]['id'], str(uuid.uuid4()), out)
         review = {'submission_id': submitted['revision'], 'review': {'reviewer': actor, 'verdict': 'pass', 'finding': 'Verified native fixture'}}
         approval = None
-        if mode == 'approval_gated':
+        effective_policy = ew.review_policy(root, c.read(root), stage)
+        if effective_policy == 'artist_required':
             try:
                 ew.apply(root, 'stage.complete', review, submitted['revision'], str(uuid.uuid4()), out)
                 raise AssertionError('Agent bypassed owner gate')
@@ -127,5 +129,49 @@ for mode in ('autonomous', 'approval_gated'):
         assert workflow.resume(root)['active']['id'] == active['id']
         assert execution.reconcile(root, op, accept=False, reason='Cancelled native fixture')['status'] == 'REJECTED'
         results[-1].update(timeout_retains_checkpoint=True, cancellation_retains_checkpoint=True)
+
+# Explicit artist policies must survive either managed mode. These extra cases
+# use only the owned saved source/candidate and the synthetic owner-path fixture.
+for mode in ('autonomous', 'approval_gated'):
+    for policy_source in ('manifest', 'binding'):
+        root = out / ('artist-policy-' + mode + '-' + policy_source)
+        workflow.start(root, source, observed['observation'], 'Native artist-policy fixture', {}, handoff)
+        required_manifest = copy.deepcopy(manifest)
+        required_manifest['stages'][0]['review'] = ('artist_required' if policy_source == 'manifest' else 'agent_within_brief')
+        required_binding = {**copy.deepcopy(binding), 'checkpoint': c.checkpoint_ref(workflow.resume(root)['active']),
+            'authority': {**actor, 'role': 'artist', 'reference': 'SYNTHETIC OWNER FIXTURE, not a human approval'},
+            'review_policies': {'direction': 'artist_required'} if policy_source == 'binding' else {}}
+        policy_payload = {'manifest': required_manifest, 'binding': required_binding}
+        approval = owner.confirm('workflow.bind', policy_payload, SyntheticOwnerConsole())
+        ew.apply(root, 'workflow.bind', policy_payload, 'none', str(uuid.uuid4()), out, approval=approval)
+        execution.create(root, mode, max_operations=2, seconds=300)
+        effective_policy = ew.review_policy(root, c.read(root), 'direction')
+        assert effective_policy == 'artist_required', (mode, policy_source, effective_policy)
+        active = workflow.resume(root)['active']
+        edited = execution.execute(root, 'direction', str(uuid.uuid4()), script, contract, handoff,
+                                   a.blender, active['id'], timeout=90)
+        assert edited['status'] == 'PUBLISHED', edited
+        current = workflow.resume(root)['active']
+        submitted = execution.submit(root, {'schema': 'dcc.environment.submission.v1', 'stage_id': 'direction',
+            'checkpoint': c.checkpoint_ref(current), 'deliverables': {'brief': 'Native artist-policy fixture'},
+            'evidence': [{'kind': 'direction_record', 'file': ref(handoff)}], 'feedback_ids': [],
+            'note': 'Ready for required owner review'}, out)
+        assert submitted['status'] == 'AWAITING_APPROVAL', submitted
+        assert execution.status(root)['status'] == 'AWAITING_APPROVAL'
+        review = {'submission_id': submitted['submission']['revision'],
+                  'review': {'reviewer': actor, 'verdict': 'pass', 'finding': 'Agent cannot provide artist acceptance'}}
+        try:
+            ew.apply(root, 'stage.complete', review, c.read(root)[-1]['id'], str(uuid.uuid4()), out)
+            raise AssertionError('Managed mode weakened an artist-bound stage')
+        except ValueError as exc:
+            assert 'Artist review' in str(exc), exc
+        review['review']['reviewer'] = {**actor, 'role': 'artist', 'reference': 'SYNTHETIC OWNER FIXTURE, not a human approval'}
+        approval = owner.confirm('stage.complete', review, SyntheticOwnerConsole())
+        ew.apply(root, 'stage.complete', review, c.read(root)[-1]['id'], str(uuid.uuid4()), out, approval=approval)
+        assert ew.stages(c.read(root), c.Continuity(root).status())['direction']['state'] == 'complete'
+        assert file_hash(source) == sha
+        results.append({'mode': mode, 'policy_source': policy_source, 'effective_review_policy': effective_policy,
+                        'submission': 'AWAITING_APPROVAL', 'passed': True, 'native_publications': 1,
+                        'owner_gate': 'synthetic authority path only'})
 write_json(out / 'VERIFICATION.json', {'passed': True, 'source_unchanged': sha, 'results': results})
 print(json.dumps(results))

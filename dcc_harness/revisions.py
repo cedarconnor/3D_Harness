@@ -206,7 +206,17 @@ def _load_preview(root, preview, expected_sha):
     return manifest
 
 
-def accept_revision(root, preview, expected_preview_sha, review_note):
+def accept_revision(root, preview, expected_preview_sha, review_note, *, stage=None):
+    """Managed imports require explicit stage admission; ordinary projects retain their API."""
+    from . import execution
+    if execution.configuration(root) is not None:
+        if stage is None:
+            raise ValueError('A managed external revision requires an explicit workflow stage')
+        return execution.accept_revision(root, stage, preview, expected_preview_sha, review_note)
+    return _accept_revision(root, preview, expected_preview_sha, review_note)
+
+
+def _accept_revision(root, preview, expected_preview_sha, review_note):
     """Recheck a frozen proposal, publish once, or report an already committed result."""
     _text(review_note, 'Review note')
     root, preview = (_plain(p).resolve() for p in (root, preview))
@@ -257,6 +267,8 @@ def accept_revision(root, preview, expected_preview_sha, review_note):
         check_path = root / 'reports' / ('external-revision-' + str(uuid.uuid4()) + '.json')
         write_json(check_path, check)
         _load_preview(root, preview, expected_preview_sha)
+        from .execution import check_publication
+        check_publication(root)
         published = Continuity(root).publish(manifest['label'], manifest['expected_parent'],
             preview / 'checkpoint.blend', preview / 'observation.json', preview / 'handoff.md', updates, check_path)
         return {'status': 'PUBLISHED', 'passed': True, 'accepted': published['active'],

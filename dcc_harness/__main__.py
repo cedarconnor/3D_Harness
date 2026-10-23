@@ -158,6 +158,7 @@ def build_parser():
     p = sub.add_parser("accept-revision", help="Recheck and publish a frozen external revision")
     p.add_argument("project"); p.add_argument("preview"); p.add_argument("--preview-sha", required=True)
     p.add_argument("--review-note", required=True); p.add_argument("--out")
+    p.add_argument("--stage", help="Explicit workflow stage required for managed saved revisions")
     p = sub.add_parser("start", help="Start continuity from a saved native checkpoint")
     p.add_argument("project"); p.add_argument("--checkpoint", required=True); p.add_argument("--observation", required=True)
     p.add_argument("--brief-file", required=True); p.add_argument("--decisions", required=True); p.add_argument("--handoff"); p.add_argument("--out")
@@ -201,6 +202,8 @@ def main():
         payload=read_json(args.request)
         if family=='capability' and action=='bind':
             from . import owner
+            from .coordination import fields
+            fields(payload, {'project','policy','expected_revision','request_id','authority'})
             approval=owner.authorize(payload['project'],'capability.bind',
                 {'policy':payload['policy'],'authority':payload['authority']},payload['request_id'])
             result=capability_action(action,payload,blender=args.blender,approval=approval)
@@ -270,7 +273,7 @@ def main():
             result = revisions.preview_revision(args.project, args.parent, args.checkpoint, args.observation,
                 args.contract, args.handoff, read_json(args.updates), args.label, args.note, args.output_dir, blender=args.blender)
         else:
-            result = revisions.accept_revision(args.project, args.preview, args.preview_sha, args.review_note)
+            result = revisions.accept_revision(args.project, args.preview, args.preview_sha, args.review_note, stage=args.stage)
     elif args.command in ('adopt-preview', 'adopt-apply'):
         from . import adoption
         action = adoption.preview if args.command == 'adopt-preview' else adoption.apply

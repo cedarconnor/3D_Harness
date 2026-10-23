@@ -101,8 +101,10 @@ class CapabilityGateTests(Fixture):
     def test_manual_script_or_text_claim_cannot_satisfy_required_use_in_either_mode(self):
         from dcc_harness import capabilities
         self.bind(); self.bind_policy()
+        execution.create(self.root, 'autonomous')
+        config = execution.configuration(self.root)
         for mode in ('autonomous','approval_gated'):
-            with patch.object(execution,'configuration',return_value={'mode':mode,'backend':'background'}):
+            with patch.object(execution,'configuration',return_value={**config,'mode':mode}):
                 with self.assertRaisesRegex(ValueError,'capability|required|receipt'):
                     self.submit(note='The required add-on was used; trust this text')
         self.assertFalse(any(e['kind']=='stage.submit' for e in c.read(self.root)))

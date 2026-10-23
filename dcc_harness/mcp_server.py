@@ -88,7 +88,7 @@ async def run_cli(arguments, workspace, blender=None, *, timeout=3600):
         try:
             await asyncio.wait_for(process.wait(), timeout)
         except BaseException:
-            # MCP cancellation is a durable run cancellation, never permission to replay.
+            # A transport interruption cancels only this operation, never the run.
             # Shield cleanup from AnyIO's level-triggered cancellation scope.
             import anyio
             with anyio.CancelScope(shield=True):
@@ -98,7 +98,10 @@ async def run_cli(arguments, workspace, blender=None, *, timeout=3600):
                     if not root.is_absolute():
                         root = workspace / root
                     try:
-                        execution.cancel(root)
+                        operation_id = (getattr(parsed, 'operation_id', None) if parsed.command == 'run-execute'
+                                        else value.get('operation_id'))
+                        if operation_id is not None:
+                            execution.cancel_operation(root, operation_id)
                     except Exception:
                         pass  # Preserve the original interruption and retained controller logs.
                 try:
@@ -117,7 +120,7 @@ async def run_cli(arguments, workspace, blender=None, *, timeout=3600):
         except json.JSONDecodeError:
             pass
     result = {'exit_code': process.returncode, 'result': value, 'logs': str(folder)}
-    if process.returncode:
+    if process.returncode and not isinstance(value, (dict, list)):
         error_path = folder / 'stderr.txt'
         with error_path.open('rb') as stream:
             error = stream.read(16384).decode('utf-8', errors='replace')
