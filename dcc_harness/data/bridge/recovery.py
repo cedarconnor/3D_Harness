@@ -31,7 +31,7 @@ def capture(jobs, payload):
             raise ValueError('BUSY: wait for the actual native outcome before recovery')
         scene = attachment.scene_for(session.scene)
         current = attachment.snapshot(scene)
-        if attachment.fingerprint(current) != payload['expected_fingerprint']:
+        if not attachment.matches_retained(session.project,payload['expected_fingerprint'],current):
             raise ValueError('STALE_SCENE: later edits must be inspected before recovery')
         if decision == 'restore-precopy':
             prepared = json.loads(reject_links(folder / 'live-prepared.json').read_text())

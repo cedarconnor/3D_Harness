@@ -184,6 +184,16 @@
         },
         "cancellation": {
           "const": "between_calls"
+        },
+        "arguments": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^(target|effect_name|effect_id|parameters|context|parameter:[A-Za-z0-9_.-]+)$"
+          }
         }
       },
       "required": [
@@ -241,6 +251,20 @@
               "entry": {
                 "pattern": "^[A-Za-z_][A-Za-z0-9_]*\\.[A-Za-z_][A-Za-z0-9_]*$",
                 "maxLength": 128
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "arguments"
+            ]
+          },
+          "then": {
+            "properties": {
+              "kind": {
+                "const": "python_function"
               }
             }
           }

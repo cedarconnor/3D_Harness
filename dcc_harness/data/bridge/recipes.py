@@ -1,6 +1,7 @@
 """Only retained, qualified bundles may reach invocation. Discovery stays import-free."""
 from contextlib import contextmanager
 import importlib
+import copy
 from pathlib import Path
 import types
 import bpy
@@ -8,15 +9,21 @@ from . import addons, inspection
 try:
     from .recipe_store import load
     from .recipe_schema import validate_parameters, sha
+    from .capability_projection import observed_scope
     from .evidence import digest
     from .continuity_blender import measure_live
     from .files import file_hash, reject_links
 except ModuleNotFoundError:
     from dcc_harness.recipe_store import load
     from dcc_harness.recipe_schema import validate_parameters, sha
+    from dcc_harness.capability_projection import observed_scope
     from dcc_harness.evidence import digest
     from dcc_harness.continuity_blender import measure_live
     from dcc_harness.files import file_hash, reject_links
+
+# Evidence of completed calls, never a validation cache: every use still measures
+# current bytes/state. Cross-process reuse belongs to verified host receipts.
+PROVEN_INVOCATIONS = {}
 
 
 def inspect_bundle(root, recipe_id, identity):
@@ -61,20 +68,9 @@ def measurements(scene, target_id, fields):
     obj = inspection.target(scene, target_id)
     current = measure_live(scene); record = current['objects'][target_id]
     if current['issues']: raise ValueError('UNSUPPORTED_COVERAGE: ' + '; '.join(current['issues']))
-    result = {}
-    for field in fields:
-        if field == 'geometry':
-            result[field] = {k:record[k] for k in ('source_mesh_hash','source_uv_hash','source_attribute_hash','geometry_hash') if k in record}
-        elif field == 'transform': result[field] = [list(row) for row in obj.matrix_world]
-        elif field == 'modifiers': result[field] = record.get('modifier_settings', [])
-        elif field in ('materials','nodes'):
-            result[field] = {mid:current['materials'][mid] for mid in record['material_ids'] if mid is not None}
-            result['material_users'] = {mid:sorted(o.get('dcc_instance_id', '') for o in bpy.data.objects
-                if any(slot.material and slot.material.get('dcc_material_id') == mid for slot in o.material_slots))
-                for mid in result[field]}
-        elif field == 'properties':
-            result[field] = {key:inspection.plain(value) for key,value in obj.items() if not key.startswith('dcc_')}
-        else: raise ValueError('Unsupported measurement scope')
+    # Whole-scene issues remain a preservation admission boundary. Projection itself
+    # is target-scoped and identical to independent checkpoint observations.
+    result = observed_scope(current, target_id, fields)
     digest(result)
     return result
 
@@ -139,6 +135,11 @@ def invoke_declared(context, **kwargs):
         if module_name != provider['module'] and not module_name.startswith(provider['module'] + '.'):
             raise ValueError('Entry point does not belong to the pinned provider')
         function = getattr(importlib.import_module(module_name), name)
+        if 'arguments' in invocation:
+            sources={'target':context['target'],'effect_name':context['effect_name'],
+                     'effect_id':context['effect_id'],'parameters':context['parameters'],'context':context}
+            sources.update({'parameter:'+key:value for key,value in context['parameters'].items()})
+            return function(**{name:sources[source] for name,source in invocation['arguments'].items()})
         return function(context, context['parameters'], context['effect_id'])
     if kind == 'operator':
         group,name = entry.split('.')
@@ -195,8 +196,41 @@ def apply(root, recipe_id, identity, profile, scene, target, parameters, effect_
     shared = [(index,slot.material) for index,slot in enumerate(context['target'].material_slots) if slot.material
               and any(o != context['target'] and any(s.material == slot.material for s in o.material_slots) for o in bpy.data.objects)]
     adapter = adapter_for(bundle); called = []
+    proof_key=digest({'root':str(Path(root).resolve()),'recipe':identity,'profile':profile,
+        'target':target,'effect_id':effect_id,'parameters':parameters,'invocation':recipe['invocation']})
     def invoke(**kwargs):
-        called.append(recipe['invocation']); return invoke_declared(context, **kwargs)
+        if called: raise ValueError('Exactly one declared provider invocation is supported')
+        if measurements(scene,target,scope)!=before:
+            raise ValueError('Adapter changed measured state before provider invocation')
+        try:
+            prior_output=copy.deepcopy(output_record(adapter,context))
+        except ValueError:
+            prior_output=None  # Initial invocation may have no owned effect yet.
+        if measurements(scene,target,scope)!=before:
+            raise ValueError('Output inspector mutated state before provider invocation')
+        intent=digest({'declared':proof_key,'arguments':kwargs})
+        existing={m.as_pointer() for m in context['target'].modifiers}
+        returned=invoke_declared(context, **kwargs)
+        # Ordinary APIs may return an untagged native modifier. Only a modifier
+        # actually returned by the declared provider can receive the effect name.
+        if isinstance(returned,bpy.types.Modifier):
+            if not any(m==returned for m in context['target'].modifiers):
+                raise ValueError('Provider invocation returned a foreign modifier')
+            if returned.as_pointer() in existing and returned.name!=context['effect_name']:
+                raise ValueError('Provider invocation cannot adopt an unowned existing modifier')
+            returned.name=context['effect_name']
+        bpy.context.view_layer.update()
+        after=measurements(scene,target,scope)
+        output=output_record(adapter,context)
+        if measurements(scene,target,scope)!=after:
+            raise ValueError('Output inspector mutated state after provider invocation')
+        proven=PROVEN_INVOCATIONS.get(intent)==digest({'after':after,'output':output})
+        if prior_output==output and after!=before:
+            raise ValueError('Provider changed unrelated measured state but not the claimed output')
+        if after==before and not proven:
+            raise ValueError('Unchanged provider invocation has no prior exact successful proof')
+        called.append({'invocation':recipe['invocation'], 'output':output,'after':after,'intent':intent})
+        return returned
     context['invoke'] = invoke
     with context_for(scene, context['target']):
         preflight = adapter.preflight(context, parameters)
@@ -208,6 +242,8 @@ def apply(root, recipe_id, identity, profile, scene, target, parameters, effect_
         if not called or not isinstance(result,dict) or result.get('status') != 'FINISHED':
             raise ValueError('Provider invocation did not finish')
         bpy.context.view_layer.update(); output = output_record(adapter,context)
+        if output!=called[0]['output'] or measurements(scene,target,scope)!=called[0]['after']:
+            raise ValueError('Claimed output changed outside the declared provider invocation')
         if protected_materials is not None:
             slots = context['target'].material_slots
             if (any(index >= len(slots) or not slots[index].material or slots[index].material == original
@@ -216,7 +252,9 @@ def apply(root, recipe_id, identity, profile, scene, target, parameters, effect_
                 raise ValueError('Shared material copy policy requires isolated copies and unchanged other users')
     addons.assert_profile(profile); load(root,recipe_id,identity)
     after = measurements(scene,target,scope)
-    return {'output':output, 'before':before, 'after':after, 'invocations':called,
+    PROVEN_INVOCATIONS[called[0]['intent']]=digest({'after':after,'output':output})
+    return {'output':output, 'before':before, 'after':after, 'invocations':[row['invocation'] for row in called],
+            'invocation_evidence':called,
             'output_fingerprint':digest(output), 'changed':before != after}
 
 
@@ -224,8 +262,11 @@ def apply(root, recipe_id, identity, profile, scene, target, parameters, effect_
 def verify(root, recipe_id, identity, profile, scene, target, parameters, effect_id, expected):
     bundle, context = prepare_context(root,recipe_id,identity,profile,scene,target,parameters,effect_id,verify=True)
     adapter = adapter_for(bundle)
+    scope=sorted(set(sum(bundle['recipe']['coverage'].values(),[])))
+    before=measurements(scene,target,scope)
     output = output_record(adapter,context)
-    observed = measurements(scene,target,sorted(set(sum(bundle['recipe']['coverage'].values(),[]))))
+    observed = measurements(scene,target,scope)
+    if observed!=before: raise ValueError('Output inspector mutated saved state')
     if output != expected['output'] or observed != expected['after']: raise ValueError('Saved output differs from applied measurements')
     validation = adapter.verify_saved(observed,output)
     if not isinstance(validation,dict) or validation.get('passed') is not True: raise ValueError('Saved output validator failed')

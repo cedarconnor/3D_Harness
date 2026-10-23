@@ -3,35 +3,142 @@
   "$id": "dcc.environment.profile.v1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "blender", "providers", "preferences", "network_policy"],
+  "required": [
+    "schema",
+    "blender",
+    "providers",
+    "preferences",
+    "network_policy"
+  ],
   "properties": {
-    "schema": {"const": "dcc.environment.profile.v1"},
-    "network_policy": {"const": "offline_qualification_required"},
-    "blender": {
-      "type": "object", "additionalProperties": false,
-      "required": ["version", "build_hash"],
-      "properties": {
-        "version": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "integer", "minimum": 0}},
-        "build_hash": {"type": "string", "minLength": 1}
-      }
+    "schema": {
+      "const": "dcc.environment.profile.v1"
     },
-    "providers": {
-      "type": "array", "minItems": 1,
-      "items": {
-        "type": "object", "additionalProperties": false,
-        "required": ["id", "module", "path", "entry", "kind", "source_digest", "files", "dependencies"],
-        "properties": {
-          "id": {"type": "string", "minLength": 1},
-          "module": {"type": "string", "minLength": 1},
-          "path": {"type": "string", "minLength": 1},
-          "entry": {"type": "string", "minLength": 1},
-          "kind": {"enum": ["legacy", "extension"]},
-          "source_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-          "files": {"type": "object", "minProperties": 1, "additionalProperties": {"type": "string", "pattern": "^[a-f0-9]{64}$"}},
-          "dependencies": {"type": "array", "uniqueItems": true, "items": {"type": "string"}}
+    "network_policy": {
+      "const": "offline_qualification_required"
+    },
+    "blender": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "build_hash"
+      ],
+      "properties": {
+        "version": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "build_hash": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
-    "preferences": {"type": "object", "additionalProperties": {"type": "object", "additionalProperties": {"type": ["string", "number", "boolean"]}}}
+    "providers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "module",
+          "path",
+          "entry",
+          "kind",
+          "source_digest",
+          "files",
+          "dependencies"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "module": {
+            "type": "string",
+            "minLength": 1
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "entry": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "enum": [
+              "legacy",
+              "extension"
+            ]
+          },
+          "source_digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "files": {
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "dependencies": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "preferences": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ]
+        }
+      }
+    },
+    "source_reviews": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_digest",
+          "reviewed_by",
+          "reason"
+        ],
+        "properties": {
+          "source_digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "reviewed_by": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
   }
 }

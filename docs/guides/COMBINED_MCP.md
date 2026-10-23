@@ -73,8 +73,8 @@ selection policy, reports requirements, resolves candidates and prepares operati
 See [payload fields and a complete executable example](ADDON_RECIPES.md#mcp-and-cli-onboarding).
 
 Choose `require` when a stage must use a named qualified provider. Choose `prefer`
-with an explicit fallback when substitution is allowed. `best_qualified` compares
-measured fixture execution time only; it cannot decide which result looks better.
+with an explicit fallback when substitution is allowed. `best_qualified` returns
+`TIMING_SELECTION_UNAVAILABLE`; only explicitly configured fallbacks may proceed.
 Missing, changed or unverifiable required effects block both autonomous completion
 and gated approval. Source changes require requalification; unrelated scene changes
 can preserve receipts. No add-on is purchased, installed or enabled globally by this

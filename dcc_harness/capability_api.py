@@ -12,8 +12,8 @@ def capability_action(action,payload,*,blender=None,approval=None):
         if not payload.get('binding') and not blender: raise ValueError('Configure Blender for background discovery')
         return environments.inventory(payload.get('binding'),blender=blender,roots=payload.get('roots'),out=payload.get('out'))
     if action=='profile':
-        c.fields(payload,{'project','inventory','selected','preferences'})
-        return environments.create_profile(payload['project'],payload['inventory'],payload['selected'],payload['preferences'])
+        c.fields(payload,{'project','inventory','selected','preferences'},{'reviews'})
+        return environments.create_profile(payload['project'],payload['inventory'],payload['selected'],payload['preferences'],reviews=payload.get('reviews'))
     if action=='bind':
         c.fields(payload,{'project','policy','expected_revision','request_id','authority'})
         return capabilities.bind_policy(payload['project'],payload['policy'],expected_revision=payload['expected_revision'],

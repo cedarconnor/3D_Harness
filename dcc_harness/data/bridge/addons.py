@@ -5,6 +5,7 @@ import importlib.abc
 import importlib.machinery
 from pathlib import Path
 import sys
+from contextlib import contextmanager
 
 import bpy
 import addon_utils
@@ -21,14 +22,67 @@ except ImportError:
 
 PINS = {}
 ACTIVE_PROFILE = None
+ACTIVE_CONFIGURATION = None
 LAST_ACTIVATION = None
 NETWORK_ATTEMPTS = []
+
+
+@contextmanager
+def session_preferences(profile=None, *, activate=True):
+    """Apply configured preferences only within synchronous provider execution.
+
+    Blender autosave cannot observe temporary entries between timer ticks. Restore
+    existing values, newly created entries/repos and the user's autosave setting.
+    This is lifecycle containment, not a sandbox against malicious provider code.
+    """
+    prefs=bpy.context.preferences
+    auto=prefs.use_preferences_save
+    entries={entry.module for entry in prefs.addons}
+    repos={repo.module for repo in prefs.extensions.repos}
+    previous=[]
+    configured=(profile or ACTIVE_CONFIGURATION or {}).get('preferences',{})
+    prefs.use_preferences_save=False
+    try:
+        if activate and ACTIVE_CONFIGURATION:
+            provider_sources.validate_profile(ACTIVE_CONFIGURATION,inventory(roots_for(ACTIVE_CONFIGURATION)))
+            for pin in ACTIVE_CONFIGURATION['providers']:
+                name=pin['module']
+                if not name.startswith('bl_ext.'): continue
+                if PINS.get(name)!=pin: raise ValueError('Extension activation has no verified source pin')
+                repo_name=name.split('.')[1]
+                expected=str(Path(pin['path']).parent)
+                found=[r for r in prefs.extensions.repos if r.module==repo_name]
+                if not found:
+                    prefs.extensions.repos.new(name='Harness profile '+repo_name,module=repo_name,custom_directory=expected,remote_url='')
+                elif len(found)!=1 or str(Path(found[0].directory).resolve())!=expected:
+                    raise ValueError('Profile extension repository changed')
+                if not getattr(sys.modules.get(name),'__addon_enabled__',False):
+                    failures=[]
+                    module=addon_utils.enable(name,default_set=False,persistent=True,handle_error=lambda error:failures.append(type(error).__name__))
+                    if module is None or failures: raise ValueError('Session extension activation failed')
+        for name,values in configured.items():
+            entry=prefs.addons.get(name)
+            if not activate and (entry is None or entry.preferences is None): continue
+            if entry is None:
+                entry=prefs.addons.new(); entry.module=name
+            for key,value in values.items():
+                previous.append((entry.preferences,key,getattr(entry.preferences,key)))
+                if activate: setattr(entry.preferences,key,value)
+        yield
+    finally:
+        for owner,key,value in reversed(previous): setattr(owner,key,value)
+        for entry in list(prefs.addons):
+            if entry.module not in entries: prefs.addons.remove(entry)
+        for repo in list(prefs.extensions.repos):
+            if repo.module not in repos: prefs.extensions.repos.remove(repo)
+        prefs.use_preferences_save=auto
 
 
 def offline_call(function):
     @functools.wraps(function)
     def bounded(*args, **kwargs):
-        with scope(NETWORK_ATTEMPTS):
+        enabling=function.__name__=='enable_profile'
+        with scope(NETWORK_ATTEMPTS), session_preferences(args[0] if enabling else None,activate=not enabling):
             return function(*args, **kwargs)
     return bounded
 
@@ -121,7 +175,7 @@ FINDER = ProfileFinder()
 
 @offline_call
 def enable_profile(profile):
-    global ACTIVE_PROFILE, LAST_ACTIVATION
+    global ACTIVE_PROFILE, ACTIVE_CONFIGURATION, LAST_ACTIVATION
     if LAST_ACTIVATION and LAST_ACTIVATION['state'] != 'ENABLED':
         raise ValueError('Previous activation is incomplete; inspect it and restart before retrying')
     current = inventory(roots_for(profile))
@@ -179,10 +233,12 @@ def enable_profile(profile):
                 raise ValueError('Provider preference was clamped or refused')
     provider_sources.validate_profile(profile, inventory(roots_for(profile)))
     ACTIVE_PROFILE = digest(profile)
+    ACTIVE_CONFIGURATION = profile
     LAST_ACTIVATION['state'] = 'ENABLED'
     return dict(LAST_ACTIVATION)
 
 
+@offline_call
 def assert_profile(profile):
     if NETWORK_ATTEMPTS:
         raise ValueError('Offline profile attempted a network connection; inspect owned audit evidence')

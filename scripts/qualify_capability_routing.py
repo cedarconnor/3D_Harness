@@ -23,6 +23,7 @@ def owned_bridge(args,out,engine,source=None):
 import bpy,json,sys,time
 from pathlib import Path
 out=Path(CONFIG['out']); sys.path.insert(0,str(out / 'addon'))
+assert Path(bpy.utils.user_resource('CONFIG')).resolve() == (out / 'config').resolve(), 'Owned configuration required'
 bpy.context.preferences.filepaths.temporary_directory=str(out / 'temporary')
 if CONFIG['source']: bpy.ops.wm.open_mainfile(filepath=CONFIG['source'])
 bpy.context.scene.render.engine=CONFIG['engine']
@@ -134,7 +135,7 @@ def project_case(args,out,root,central,mode,backend):
     assert resolution['state']=='RESOLVED' and resolution['selected']['provider']==expected,resolution
     import copy
     best=copy.deepcopy(req); best['rule']['mode']='best_qualified'
-    assert capabilities.resolve(root,best,inventory)['state']=='NO_COMPARABLE_EVIDENCE'
+    assert capabilities.resolve(root,best,inventory)['state']=='TIMING_SELECTION_UNAVAILABLE'
     contract=out / 'contract.json'
     write_json(contract,{'schema':'dcc.continuity.contract.v1','spec':{'schema':'dcc.spec.v1','required':{target:{}}},
                         'allowed_new_prefixes':[],'allowed_object_prefixes':{target:sorted(OBJECT_FIELDS)}})

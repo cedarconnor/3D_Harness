@@ -5,6 +5,7 @@ from . import coordination as c, recipes
 from .evidence import digest, read_json, write_json, file_hash
 from .files import reject_links, write_exclusive
 from .recipe_schema import identifier, sha, strings, exact, MEASUREMENTS
+from .capability_projection import observed_scope
 
 
 def validate_policy(value):
@@ -117,23 +118,6 @@ def benchmark_input(observation,target):
     return comparison_input(measured)
 
 
-def observed_scope(observation,target,fields):
-    """Projection matching native recipe measurements; unknown coverage never matches."""
-    obj=observation['objects'].get(target)
-    if obj is None: raise ValueError('Capability target is missing')
-    result={}
-    for field in fields:
-        if field=='geometry':
-            result[field]={k:obj[k] for k in ('source_mesh_hash','source_uv_hash','source_attribute_hash','geometry_hash') if k in obj}
-        elif field=='transform': result[field]=obj['matrix_world']
-        elif field=='modifiers': result[field]=obj.get('modifier_settings',[])
-        elif field in ('materials','nodes'):
-            result[field]={mid:observation['materials'][mid] for mid in obj['material_ids'] if mid is not None}
-            result['material_users']={mid:sorted(oid for oid,o in observation['objects'].items() if mid in o.get('material_ids',[])) for mid in result[field]}
-        else: raise ValueError('UNSUPPORTED_COVERAGE: '+field)
-    return result
-
-
 def changes(root,before,after):
     bound=bound_policy(c.read(root))
     if bound is None: return []
@@ -168,7 +152,6 @@ def requirements(root,stage_id,observation):
                 'target_id':target,'target_type':obj.get('type','MISSING'),'stage':stage_id,
                 'engine':observation['scene'].get('render',{}).get('engine','UNKNOWN'),
                 'context':config.get('backend','background'),'blender_version':None,
-                'benchmark_input':benchmark_input(observation,target),
                 'dependency_fingerprint':digest(dependency_state(observation,target,rule['dependencies']))})
     return result
 
@@ -191,18 +174,6 @@ def candidate_evidence(root,ref,requirement):
             return {'qualified':False,'reason':'UNSUPPORTED_CONTEXT: no matching native case'}
         recipes.validate_parameters(recipe,requirement['rule']['parameters'])
         result={'candidate':ref,'qualified':True,'qualification':bundle['qualification'],'score':None,'comparison':None}
-        benchmark=requirement['rule']['benchmark']
-        if benchmark:
-            case=next((r for r in report['results'] if r['name']==benchmark['case'] and r['actual_passed']
-                       and r['context']==requirement['context']),None)
-            spec=next((r for r in recipe['cases'] if r['name']==benchmark['case']),None)
-            if case and spec and spec['parameters']==requirement['rule']['parameters']:
-                # A fixture speed test is comparable only on its measured input scope.
-                before=case['applied']['result']['before']
-                if requirement.get('benchmark_input')==comparison_input(before):
-                    result.update(score=case['applied']['elapsed_seconds'],comparison=digest({
-                        'input':comparison_input(before),'parameters':spec['parameters'],'build':report['blender'],
-                        'engine':requirement['engine'],'context':requirement['context']}))
         return result
     except (ValueError,OSError,KeyError) as exc:
         return {'qualified':False,'reason':str(exc)}
@@ -223,10 +194,8 @@ def resolve(root,requirement,inventory):
                       key=lambda e:(names.index(e['candidate']['provider']),e['candidate']['provider'],e['candidate']['recipe_id'],e['candidate']['recipe_digest']))
     preferred=ordered(rule['providers']); selected=None; fallback=None
     state='UNQUALIFIED' if any(r['state']=='UNQUALIFIED' and r['provider'] in rule['providers'] for r in rejected) else 'UNAVAILABLE'
-    if rule['mode']=='best_qualified' and preferred:
-        if (any(e['score'] is None or e['comparison'] is None for e in preferred)
-                or len({e['comparison'] for e in preferred})!=1): state='NO_COMPARABLE_EVIDENCE'
-        else: selected=min(preferred,key=lambda e:e['score'])
+    if rule['mode']=='best_qualified':
+        state='TIMING_SELECTION_UNAVAILABLE'
     elif preferred: selected=preferred[0]
     if selected is None and rule['mode']!='require':
         choices=ordered(rule['fallback_providers'])

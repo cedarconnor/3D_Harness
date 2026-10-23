@@ -555,8 +555,8 @@ from dcc_harness.data.bridge import attachment
 with tempfile.TemporaryDirectory() as tmp:
     session=SimpleNamespace(project=Path(tmp)/'state',scene='Scene',describe=lambda:{})
     with mock.patch.object(attachment,'scene_for'), mock.patch.object(attachment,'snapshot',return_value={'objects':{}}):
-        one=attachment.check(session,{'fingerprint':'wrong'})
-        two=attachment.check(session,{'fingerprint':'wrong'})
+        one=attachment.check(session,{'fingerprint':'0'*64})
+        two=attachment.check(session,{'fingerprint':'0'*64})
     assert one['diagnostic']==two['diagnostic'],(one,two)
     assert len(list((session.project/'live/divergence').glob('*.json')))==1
 ''')

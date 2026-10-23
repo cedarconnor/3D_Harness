@@ -145,9 +145,12 @@ def require_qualified(root, recipe_id, identity, *, context=None, profile_digest
     if not records: raise ValueError('DRAFT recipe has no qualified registration')
     for record in records:
         if profile_digest is not None and record['profile_digest'] != profile_digest: continue
-        if file_hash(reject_links(record['report'])) != record['sha256']: raise ValueError('STALE qualification report')
-        report = check_report(root,record['report'])
-        if report['recipe_digest'] != identity: raise ValueError('Qualification belongs to another recipe')
+        try:
+            if file_hash(reject_links(record['report'])) != record['sha256']: raise ValueError('STALE qualification report')
+            report = check_report(root,record['report'])
+            if report['recipe_digest'] != identity: raise ValueError('Qualification belongs to another recipe')
+        except (ValueError,OSError,KeyError):
+            continue  # Every selected report still receives full fresh byte validation.
         if context is not None and context not in report['contexts']: continue
         return {**bundle,'state':'QUALIFIED','qualification':record,'report':report}
     raise ValueError('UNQUALIFIED in this profile/context')

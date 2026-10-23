@@ -118,7 +118,16 @@ def validate(value):
     strings(compat['contexts'], {'background','live'})
     exact(value['coverage'], {'reads','writes','dependencies'})
     for fields in value['coverage'].values(): strings(fields, MEASUREMENTS)
-    invocation = value['invocation']; exact(invocation, {'kind','entry','completion','cancellation'})
+    invocation = value['invocation']; exact(invocation, {'kind','entry','completion','cancellation'} | ({'arguments'} if 'arguments' in invocation else set()))
+    if 'arguments' in invocation:
+        if invocation['kind']!='python_function' or not isinstance(invocation['arguments'],dict):
+            raise ValueError('Argument mapping requires a Python function')
+        for name,source in invocation['arguments'].items():
+            if not isinstance(name,str) or re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*',name) is None:
+                raise ValueError('Invalid Python argument name')
+            if not isinstance(source,str) or (source not in ('target','effect_name','effect_id','parameters','context') and source not in {
+                    'parameter:'+key for key in value['parameters']['properties']}):
+                raise ValueError('Unknown invocation argument source')
     if (invocation['kind'] not in ('python_function','operator','node_asset') or invocation['completion'] != 'synchronous'
             or invocation['cancellation'] != 'between_calls'):
         raise ValueError('Unsupported invocation or completion protocol')

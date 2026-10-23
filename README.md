@@ -91,7 +91,7 @@ Discover an installed provider with `blender_capabilities`, pin its environment,
 
 - **`require`:** the stage cannot complete without a verified effect from the named qualified provider.
 - **`prefer`:** use the provider when applicable; substitution or manual work requires an explicitly configured fallback.
-- **`best_qualified`:** select using measured execution time on comparable qualified inputs. This does not rank visual quality.
+- **`best_qualified`:** timing selection is unavailable; only explicitly configured fallbacks may proceed. Whole-worker timing cannot rank provider performance.
 
 The agent checks capability requirements at stage boundaries and after refresh. Geometry/material edits or deleted effects trigger an update to the same effect; unchanged effects reuse evidence without another job. Another layer requires an explicit new slot. There is no background edit watcher.
 

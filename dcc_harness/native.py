@@ -55,7 +55,9 @@ def run_worker(blender, folder, worker, action, request, *, timeout=3600, cancel
                '--python-exit-code', '1']
     if profile is not None:
         command += ['--python', str(Path(__file__).with_name('_profile_blender.py'))]
-    command += ['--python', str(worker), '--', action, str(request_path)]
+        command += ['--', action, str(request_path), str(worker)]
+    else:
+        command += ['--python', str(worker), '--', action, str(request_path)]
     log_path = folder / (action + '.log')
     if profile is None:
         run_process(command, log_path, timeout=timeout, cancelled=cancelled)

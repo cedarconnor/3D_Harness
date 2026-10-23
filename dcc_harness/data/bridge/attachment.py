@@ -9,13 +9,13 @@ try:
     from .identity import plan_identities, validate_plan
     from .adoption_inventory_blender import inventory
     from .continuity_blender import measure_live
-    from .live_snapshot import fingerprint, equivalent
+    from .live_snapshot import fingerprint, equivalent, retain, matches_retained
 except ModuleNotFoundError:
     from dcc_harness.files import file_hash, json_bytes, reject_links, write_exclusive
     from dcc_harness.identity import plan_identities, validate_plan
     from dcc_harness.adoption_inventory_blender import inventory
     from dcc_harness.continuity_blender import measure_live
-    from dcc_harness.live_snapshot import fingerprint, equivalent
+    from dcc_harness.live_snapshot import fingerprint, equivalent, retain, matches_retained
 from . import inspection
 
 
@@ -53,7 +53,9 @@ def check(session, payload):
     scene = scene_for(session.scene)
     current = snapshot(scene)
     observed = fingerprint(current)
-    matches = payload.get('fingerprint') == observed
+    retain(session.project, current)
+    matches = (matches_retained(session.project,payload['fingerprint'],current)
+               if payload.get('fingerprint') is not None else False)
     if payload.get('snapshot'):
         path = reject_links(payload['snapshot']).resolve()
         if not path.is_relative_to(session.project.parent):

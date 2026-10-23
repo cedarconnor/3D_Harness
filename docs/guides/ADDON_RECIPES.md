@@ -15,10 +15,19 @@ Create an explicit profile from selected local providers. It pins the Blender bu
 all provider source/assets within the supported source boundary, dependencies and
 whitelisted non-secret scalar preferences. Workers activate it before opening the
 candidate, including independent observers. Activation records its session delta and
-never saves global preferences. A pre-enabled provider without proven loaded-byte
-identity requires clean activation; a file hash alone cannot identify loaded Python.
+restores temporary preferences and extension repositories after synchronous provider
+work. Owned background workers keep that scope open through worker execution. A
+pre-enabled provider without proven loaded-byte identity requires a clean Blender
+session with that provider disabled before harness activation; merely hashing its
+files cannot identify already loaded Python. The harness does not disable artist providers.
 Extension wheels, unavailable licenses and required networking are initially refused.
 No package installation, purchasing, downloading or updating is implicit.
+Providers with unknown network behavior require an explicit `reviews` entry keyed
+by provider ID: `{source_digest, reviewed_by, reason}`. The authorized agent may
+review local source; this is a source-bound assertion, not a security sandbox or an
+extra owner approval gate. Required-network/license refusal remains in force.
+Implicit inventory directories are removed after success; failure retains native
+evidence and reports its path. Explicit `out` directories always remain.
 
 ## Author an inert draft
 
@@ -41,6 +50,17 @@ agent writes it; the server does not contain a hidden drafting model. Implement:
   `FINISHED` operator status or a custom success flag is not sufficient.
 - `verify_saved(observation, output)`: validate independent reopened measurements and
   the intended effect. Missing dependencies or unverifiable output must fail.
+
+Python function invocation can declare `arguments`, mapping native keyword names
+to `target`, `effect_name`, `effect_id`, `parameters`, `context`, or `parameter:NAME`.
+For example `{"object":"target","width":"parameter:amount","name":"effect_name"}`
+calls an unchanged `bevel(object, width, name)` API. Without the mapping, the legacy
+`function(context, parameters, effect_id)` protocol remains. A newly returned native
+modifier can be named by the harness; unowned existing modifiers are not adopted.
+Only one declared invocation is supported. The adapter and output inspector cannot
+manufacture measured output outside that invocation. An unchanged call needs exact
+prior successful invocation proof in the same native process; cross-process reuse
+uses verified host receipts. Source, intent and measured state are checked each time.
 
 Parameter schemas use a strict, portable JSON Schema subset shared with Blender:
 closed objects (`properties`, `required`, `additionalProperties: false`), arrays with
@@ -91,10 +111,11 @@ agent-authored policies remain revisable by the agent. The owner runs
 `authority.role` set to `artist`. The CLI displays the policy and asks for confirmation;
 identical committed request IDs do not prompt again. MCP cannot supply that approval.
 
-`best_qualified` currently compares measured execution time only, on matching fixture
-inputs, parameters, Blender build, engine and invocation context. It returns
-`NO_COMPARABLE_EVIDENCE` when those conditions do not match. It does not rank visual
-quality. Initial qualification proves the MESH fixture and first declared engine;
+`best_qualified` currently returns `TIMING_SELECTION_UNAVAILABLE`; only explicitly
+configured provider/manual fallbacks may proceed. Worker elapsed time includes
+saving and rendering, so it cannot select a provider winner. Benchmark metadata is
+retained for parsing compatibility but does not invalidate dependency receipts.
+Initial qualification proves the MESH fixture and first declared engine;
 a longer compatibility list is not proof that every target/engine combination works.
 Node-asset entry points are native group names, including spaces and Unicode (up to
 255 characters, without control characters). Function entries use a dotted Python
@@ -127,8 +148,12 @@ and stage checks additionally validate current provider/recipe qualification. Di
 artist edits require explicit live refresh first; no activity watcher is installed.
 Initial managed support refuses recipes whose coverage includes custom properties,
 which P21 does not measure, and refuses policies that omit declared recipe inputs.
-The isolated qualifier can inspect broader recipe properties, but that does not make
-them eligible for managed use. Existing projects keep their pinned runtime and rules.
+The native qualifier also refuses unmeasured properties. Capability projections use
+the target and measured active-scene material users consistently on host and native
+paths. Whole-scene preservation remains a separate admission requirement: an unrelated
+unlabeled object or unsupported Geometry Nodes graph can still refuse publication.
+This does not claim support for arbitrary surrounding scenes. Existing projects keep
+their pinned runtime and rules.
 
 Provider-dependent preview and recovery beyond the retained synthetic fixtures are
 not yet qualified. An add-on whose saved result needs active provider registration
@@ -145,7 +170,7 @@ and `blender_recipe(action="draft", payload=...)` retain the same inert bundle.
 | Tool/action | Required payload fields | Result |
 |---|---|---|
 | `blender_capabilities/inventory` | none; optional `binding`, `roots`, `out` | Discovered providers; roots are `{path, namespace}` entries |
-| `blender_capabilities/profile` | `project`, `inventory`, `selected`, `preferences` | Immutable selected environment; `selected` is a provider-ID list |
+| `blender_capabilities/profile` | `project`, `inventory`, `selected`, `preferences`; optional source-bound `reviews` | Immutable selected environment; `selected` is a provider-ID list |
 | `blender_recipe/scaffold` | `recipe` | Incomplete adapter text; no native execution |
 | `blender_recipe/draft` | `project`, `recipe`, `adapter`, `assets` | `DRAFT` bundle; adapter/assets are explicit local paths |
 | `blender_recipe/inspect` | `project`, `recipe_id`, `recipe_digest` | Draft, failed, qualified or stale state |

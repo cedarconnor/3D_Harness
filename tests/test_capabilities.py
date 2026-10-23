@@ -63,18 +63,18 @@ class ResolutionTests(unittest.TestCase):
         self.assertEqual(result['state'],'RESOLVED'); self.assertIsNone(result['selected'])
         self.assertIn('manual',result['fallback_reason'])
 
-    def test_best_qualified_requires_comparable_evidence_and_breaks_ties_by_priority(self):
+    def test_timing_selection_unavailable_even_with_synthetic_scores(self):
         req=requirement('best_qualified'); req['rule']['providers']=['primary','secondary']
         req['rule']['benchmark']={'metric':'elapsed_seconds','direction':'minimize','case':'background'}
-        self.assertEqual(self.resolve(req)['state'],'NO_COMPARABLE_EVIDENCE')
+        self.assertEqual(self.resolve(req)['state'],'TIMING_SELECTION_UNAVAILABLE')
         def measured(root,ref,requirement):
             return {**self.candidate(root,ref,requirement),'score':1.0,'comparison':'same-inputs'}
-        self.assertEqual(self.resolve(req,measured)['selected']['provider'],'primary')
+        self.assertIsNone(self.resolve(req,measured)['selected'])
         req['rule']['providers'].reverse()
-        self.assertEqual(self.resolve(req,measured)['selected']['provider'],'secondary')
+        self.assertIsNone(self.resolve(req,measured)['selected'])
         def different(root,ref,requirement):
             return {**measured(root,ref,requirement),'comparison':ref['provider']}
-        self.assertEqual(self.resolve(req,different)['state'],'NO_COMPARABLE_EVIDENCE')
+        self.assertEqual(self.resolve(req,different)['state'],'TIMING_SELECTION_UNAVAILABLE')
 
     def test_required_policy_cannot_enable_manual_fallback(self):
         from dcc_harness import capabilities

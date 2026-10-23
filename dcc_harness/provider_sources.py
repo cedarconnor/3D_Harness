@@ -169,9 +169,12 @@ def scan(roots, blender, *, enabled=None, operators=None):
                                        'network_status':'provider_declaration_not_security_proof'}}
 
 
-def make_profile(inventory, selected, preferences):
+def make_profile(inventory, selected, preferences, *, reviews=None):
     if not isinstance(selected, list) or not selected or len(set(selected)) != len(selected):
         raise ValueError('Select distinct provider IDs explicitly')
+    reviews = {} if reviews is None else reviews
+    if not isinstance(reviews,dict) or set(reviews)-set(selected):
+        raise ValueError('Source reviews must identify selected providers')
     if not isinstance(preferences, dict) or set(preferences) - set(selected):
         raise ValueError('Preferences must belong to selected providers')
     providers = []
@@ -184,6 +187,12 @@ def make_profile(inventory, selected, preferences):
             raise ValueError('Provider needs unavailable offline/license configuration: ' + name)
         if set(item['dependencies']) - set(selected):
             raise ValueError('Select every required provider dependency: ' + name)
+        review=reviews.get(name)
+        if item['network']=='unknown' or review is not None:
+            if (not isinstance(review,dict) or set(review)!={'source_digest','reviewed_by','reason'}
+                    or review['source_digest']!=item['source_digest']
+                    or any(not isinstance(review[k],str) or not review[k].strip() for k in ('reviewed_by','reason'))):
+                raise ValueError('Unknown network behavior requires a current source-bound local review: '+name)
         configured = preferences.get(name, {})
         if not isinstance(configured, dict):
             raise ValueError('Invalid provider preferences')
@@ -198,18 +207,19 @@ def make_profile(inventory, selected, preferences):
         providers.append({key:item[key] for key in ('id', 'module', 'path', 'entry', 'kind', 'source_digest', 'files', 'dependencies')})
     profile = {'schema':PROFILE_SCHEMA, 'blender':{key:inventory['blender'][key] for key in ('version', 'build_hash')},
                'providers':providers, 'preferences':preferences, 'network_policy':'offline_qualification_required'}
+    if reviews: profile['source_reviews']=reviews
     digest(profile)  # Reject non-finite values before retention.
     return profile
 
 
 def validate_profile(profile, inventory):
-    if (not isinstance(profile, dict) or set(profile) != {'schema','blender','providers','preferences','network_policy'}
+    if (not isinstance(profile, dict) or set(profile)-{'source_reviews'} != {'schema','blender','providers','preferences','network_policy'}
             or profile['schema'] != PROFILE_SCHEMA or profile['network_policy'] != 'offline_qualification_required'):
         raise ValueError('Invalid environment profile schema')
     if profile['blender'] != {key:inventory['blender'][key] for key in ('version', 'build_hash')}:
         raise ValueError('Profile Blender build is incompatible')
     selected = [p['id'] for p in profile['providers']]
-    current = make_profile(inventory, selected, profile['preferences'])
+    current = make_profile(inventory, selected, profile['preferences'], reviews=profile.get('source_reviews'))
     if current != profile:
         raise ValueError('STALE profile: provider source or dependency changed')
     return profile

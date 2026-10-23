@@ -77,9 +77,9 @@ def reconcile(root, operation_id, decision, expected_fingerprint):
                     raise ValueError('Recovery refusal evidence changed')
         binding = read_binding(root)
         if receipt is None:
-            current = blender_bridge.call('attach_check', {}, binding=binding['descriptor'],
+            current = blender_bridge.call('attach_check', {'fingerprint':expected_fingerprint}, binding=binding['descriptor'],
                                           expected=(binding['session_id'], binding['generation']))
-            if current['fingerprint'] != expected_fingerprint:
+            if not current.get('matches', current['fingerprint'] == expected_fingerprint):
                 raise ValueError('STALE_SCENE: inspect later edits before choosing recovery')
             attempt = attempts / str(uuid.uuid4()); attempt.mkdir(parents=True)
             write_json(attempt / 'request.json', intent)

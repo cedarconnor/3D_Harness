@@ -8,6 +8,30 @@ def fingerprint(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True, allow_nan=False).encode()).hexdigest()
 
 
+def retain(root, observation):
+    """Keep exact content-addressed observations for explicitly chosen recovery."""
+    from pathlib import Path
+    from .files import reject_links, write_exclusive, json_bytes
+    identity=fingerprint(observation)
+    path=reject_links(Path(root)/'live/observations'/(identity+'.json'))
+    path.parent.mkdir(parents=True,exist_ok=True)
+    if not path.exists(): write_exclusive(path,json_bytes(observation))
+    if json.loads(path.read_text())!=observation: raise ValueError('Retained observation changed')
+    return identity
+
+
+def matches_retained(root, identity, current):
+    from pathlib import Path
+    from .files import reject_links
+    if not isinstance(identity,str) or len(identity)!=64 or any(c not in '0123456789abcdef' for c in identity):
+        raise ValueError('Invalid retained fingerprint')
+    path=reject_links(Path(root)/'live/observations'/(identity+'.json'))
+    if not path.exists(): return fingerprint(current)==identity
+    expected=json.loads(path.read_text())
+    if fingerprint(expected)!=identity: raise ValueError('Retained observation changed')
+    return equivalent(expected,current)
+
+
 def equivalent(before, after):
     if before == after:
         return True

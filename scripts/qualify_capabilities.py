@@ -23,6 +23,7 @@ def gui_profile(args, out, ref):
 import bpy, json, sys, time
 from pathlib import Path
 out = Path(CONFIG['out']); sys.path.insert(0, str(out / 'addon'))
+assert Path(bpy.utils.user_resource('CONFIG')).resolve() == (out / 'gui-config').resolve(), 'Owned configuration required'
 attempts = []
 def audit(event, args):
     if event == 'socket.connect':
@@ -111,7 +112,9 @@ def profiles(args):
     provider = next(p for p in first['providers'] if p['id'] == 'harness_fixture')
     assert not provider['enabled'] and provider['loaded_identity'] == 'not_loaded'
     ref = environments.create_profile(out / 'project', first, ['harness_fixture', 'bl_ext.fixture.example_extension'],
-                                      {'harness_fixture':{'quality':3}})
+                                      {'harness_fixture':{'quality':3}}, reviews={'bl_ext.fixture.example_extension':{
+        'source_digest':next(p['source_digest'] for p in first['providers'] if p['id']=='bl_ext.fixture.example_extension'),
+        'reviewed_by':'owned qualifier','reason':'Reviewed local fixture: empty register/unregister, no network calls'}})
     gui = gui_profile(args, out, ref)
     probe = out / 'probe.py'
     probe.write_text('''
