@@ -10,6 +10,19 @@ from .live_snapshot import equivalent, fingerprint
 from .native import run_worker
 
 
+def _attempt_payload(folder):
+    """Keep public intent separate from this persisted native dispatch identity."""
+    intent = read_json(reject_links(folder / 'request.json'))
+    path = reject_links(folder / 'wire-payload.json')
+    if not path.exists():
+        return intent  # Retained pre-attempt-identity evidence remains readable, never redispatched.
+    payload = read_json(path)
+    if payload != {**intent, 'attempt_id': folder.name}:
+        raise ValueError('Recovery attempt transport identity changed')
+    c.identifier(folder.name)
+    return payload
+
+
 def reconcile(root, operation_id, decision, expected_fingerprint):
     c.identifier(operation_id)
     if decision not in ('keep-current', 'restore-precopy') or not isinstance(expected_fingerprint, str) or len(expected_fingerprint) != 64:
@@ -32,7 +45,7 @@ def reconcile(root, operation_id, decision, expected_fingerprint):
         recovered = backend.recover_published()
         if recovered is not None:
             return recovered
-        receipt = None
+        receipt, receipt_payload = None, None
         if (folder / 'reconcile-request.json').exists():
             if read_json(folder / 'reconcile-request.json') != intent:
                 raise ValueError('Recovery intent changed; inspect the retained recovery')
@@ -44,21 +57,23 @@ def reconcile(root, operation_id, decision, expected_fingerprint):
             for previous in attempts.iterdir():
                 # Missing/ambiguous replies are never evidence that a restore did not happen.
                 refusal = reject_links(previous / 'refusal.json')
+                payload = _attempt_payload(previous)
                 if not refusal.is_file():
                     identity = previous / 'bridge.json'
-                    outcome = (blender_bridge.retained_outcome('recovery_capture', read_json(previous / 'request.json'),
+                    outcome = (blender_bridge.retained_outcome('recovery_capture', payload,
                                read_json(identity)) if identity.exists() else None)
                     if (isinstance(outcome, dict) and outcome.get('state') == 'REFUSED_BEFORE_MUTATION'):
                         write_json(refusal, outcome)
                     elif (outcome is not None and read_json(previous / 'request.json') == intent
                           and outcome == read_json(reject_links(folder / 'recovery/receipt.json'))):
                         receipt = outcome
+                        receipt_payload = payload
                         continue
                     else:
                         raise RuntimeError('Recovery outcome is incomplete; inspect retained evidence, never repeat the restore')
                 value = read_json(refusal)
                 if (value.get('state') != 'REFUSED_BEFORE_MUTATION'
-                        or value.get('request') != read_json(previous / 'request.json')):
+                        or value.get('request') != payload):
                     raise ValueError('Recovery refusal evidence changed')
         binding = read_binding(root)
         if receipt is None:
@@ -68,23 +83,28 @@ def reconcile(root, operation_id, decision, expected_fingerprint):
                 raise ValueError('STALE_SCENE: inspect later edits before choosing recovery')
             attempt = attempts / str(uuid.uuid4()); attempt.mkdir(parents=True)
             write_json(attempt / 'request.json', intent)
+            payload = {**intent, 'attempt_id': attempt.name}
+            write_json(attempt / 'wire-payload.json', payload)
             descriptor = Path(binding['descriptor'])
             if descriptor.exists():
                 private = blender_bridge.descriptor(descriptor)
                 write_json(attempt / 'bridge.json', {k: private[k] for k in ('workspace', 'session_id', 'generation')})
-            receipt = blender_bridge.call('recovery_capture', intent, binding=binding['descriptor'],
+            receipt = blender_bridge.call('recovery_capture', payload, binding=binding['descriptor'],
                                            expected=(binding['session_id'], binding['generation']))
             if (isinstance(receipt, dict) and set(receipt) == {'state', 'request', 'reason'}
-                    and receipt['state'] == 'REFUSED_BEFORE_MUTATION' and receipt['request'] == intent
+                    and receipt['state'] == 'REFUSED_BEFORE_MUTATION' and receipt['request'] == payload
                     and isinstance(receipt['reason'], str)):
                 write_json(attempt / 'refusal.json', receipt)
                 raise RuntimeError(receipt['reason'])
+            receipt_payload = payload
         if not (folder / 'reconcile-request.json').exists():
             write_json(folder / 'reconcile-request.json', intent)
         if receipt != read_json(folder / 'recovery/receipt.json'):
             raise ValueError('Recovery receipt differs from durable evidence')
         if receipt['operation_id'] != operation_id or receipt['decision'] != decision:
             raise ValueError('Recovery result request identity differs')
+        if receipt_payload is not None and 'attempt_id' in receipt_payload and receipt.get('attempt_id') != receipt_payload['attempt_id']:
+            raise ValueError('Recovery result attempt identity differs')
         recovery = folder / 'recovery'
         def verify(label, source, snapshot_path, inventory):
             # Verification uses a fresh owned worker directory on resume. It never

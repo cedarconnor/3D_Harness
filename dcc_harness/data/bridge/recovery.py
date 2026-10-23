@@ -1,5 +1,6 @@
 """Explicit recovery preserves current work before opening a separate restored working file."""
 import json
+import uuid
 from pathlib import Path
 
 import bpy
@@ -13,8 +14,10 @@ except ModuleNotFoundError:
 
 
 def capture(jobs, payload):
-    if set(payload) != {'operation_id', 'decision', 'expected_fingerprint'}:
+    if set(payload) != {'operation_id', 'decision', 'expected_fingerprint', 'attempt_id'}:
         raise ValueError('Explicit recovery decision and current fingerprint required')
+    if str(uuid.UUID(payload['attempt_id'])) != payload['attempt_id']:
+        raise ValueError('Canonical recovery attempt UUID required')
     op, decision = payload['operation_id'], payload['decision']
     if decision not in ('keep-current', 'restore-precopy'):
         raise ValueError('Unsupported recovery decision')
@@ -56,7 +59,7 @@ def capture(jobs, payload):
     restored = attachment.snapshot(scene)
     snapshot_path = destination / 'current-snapshot.json'
     write_exclusive(snapshot_path, json_bytes(restored))
-    result = {'operation_id': op, 'decision': decision, 'archive': archive,
+    result = {'operation_id': op, 'decision': decision, 'attempt_id': payload['attempt_id'], 'archive': archive,
               'archive_snapshot': str(destination / 'archive-snapshot.json'), 'archive_inventory': archived_inventory,
               'source': target, 'snapshot': str(snapshot_path), 'fingerprint': attachment.fingerprint(restored),
               'inventory': inventory(scene), 'scene': scene.name, 'session_id': session.session_id,

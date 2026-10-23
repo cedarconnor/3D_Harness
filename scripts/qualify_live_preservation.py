@@ -20,7 +20,7 @@ def main():
     with zipfile.ZipFile(out / 'bridge.zip') as archive: archive.extractall(out / 'addon')
     script = out / 'fixture.py'
     script.write_text('OUT = ' + repr(str(out)) + '\n' + '''
-import bpy, json, sys, types, hashlib
+import bpy, json, sys, types, hashlib, uuid
 from pathlib import Path
 out = Path(OUT); sys.path.insert(0, str(out / 'addon'))
 import dcc_harness_bridge as bridge
@@ -53,7 +53,7 @@ refused(lambda: bridge.attachment.snapshot(bpy.context.scene))
 op = 'fixture'; folder = out / op; folder.mkdir()
 jobs = types.SimpleNamespace(session=session, folder=lambda _:folder,
     status=lambda _:{'state':'NEEDS_RECONCILIATION', 'generation':'fixture'})
-result = bridge.recovery.capture(jobs, {'operation_id':op, 'decision':'restore-precopy', 'expected_fingerprint':'a' * 64})
+result = bridge.recovery.capture(jobs, {'operation_id':op, 'decision':'restore-precopy', 'expected_fingerprint':'a' * 64, 'attempt_id':str(uuid.uuid4())})
 assert result['state'] == 'REFUSED_BEFORE_MUTATION', result
 assert 'UNSAVED_IMAGE' in result['reason'], result
 assert not (folder / 'recovery').exists()
@@ -66,7 +66,7 @@ bridge.attachment.assert_copyable()  # Empty default sequence editors carry no e
 # A queued job is a known no-effect refusal; the same explicit decision can be
 # retried after it settles, while ambiguous dispatch remains non-repeatable.
 jobs.status = lambda _:{'state':'QUEUED', 'generation':'fixture'}
-result = bridge.recovery.capture(jobs, {'operation_id':op, 'decision':'keep-current', 'expected_fingerprint':'a' * 64})
+result = bridge.recovery.capture(jobs, {'operation_id':op, 'decision':'keep-current', 'expected_fingerprint':'a' * 64, 'attempt_id':str(uuid.uuid4())})
 assert result['state'] == 'REFUSED_BEFORE_MUTATION' and 'BUSY' in result['reason'], result
 assert not (folder / 'recovery').exists()
 # Broader external dependency classes are explicitly unqualified in P21.

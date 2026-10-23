@@ -97,9 +97,10 @@ class RecoveryRefusalTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, 'BUSY'):
                 live_recovery.reconcile(root, op, 'keep-current', 'a' * 64)
             with self.assertRaisesRegex(ConnectionError, 'Lost reply'):
-                live_recovery.reconcile(root, op, 'restore-precopy', 'a' * 64)
+                live_recovery.reconcile(root, op, 'keep-current', 'a' * 64)
             self.assertEqual(len(captures), 2)
+            self.assertNotEqual(captures[0]['attempt_id'], captures[1]['attempt_id'])
             native.reset_mock()
             with self.assertRaisesRegex(RuntimeError, 'incomplete'):
-                live_recovery.reconcile(root, op, 'restore-precopy', 'a' * 64)
+                live_recovery.reconcile(root, op, 'keep-current', 'a' * 64)
             native.assert_not_called()

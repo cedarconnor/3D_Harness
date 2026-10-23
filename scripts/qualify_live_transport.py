@@ -82,10 +82,23 @@ def worker(config_path):
     bridge.jobs.operations.execute_step = step
     original_capture = bridge.recovery.capture
     def capture(jobs, payload):
-        path = out / 'capture-count.json'
-        count = json.loads(path.read_text()) if path.exists() else 0
-        path.write_text(json.dumps(count + 1))
-        return original_capture(jobs, payload)
+        attempts_path = out / 'native-capture-attempts.json'
+        attempts = json.loads(attempts_path.read_text()) if attempts_path.exists() else []
+        attempts.append(payload); attempts_path.write_text(json.dumps(attempts))
+        if (control / 'refuse-recovery-once').exists():
+            (control / 'refuse-recovery-once').unlink()
+            original_status = jobs.status
+            jobs.status = lambda op: {'state':'QUEUED','generation':jobs.session.generation}
+            try:
+                return original_capture(jobs, payload)
+            finally:
+                jobs.status = original_status
+        result = original_capture(jobs, payload)
+        if result.get('state') != 'REFUSED_BEFORE_MUTATION':
+            path = out / 'capture-count.json'
+            count = json.loads(path.read_text()) if path.exists() else 0
+            path.write_text(json.dumps(count + 1))
+        return result
     bridge.recovery.capture = capture
     bridge.register(); bridge.server = bridge.ObservationServer(config['port'], out); bridge.server.start()
     (control / 'ready.json').write_text(json.dumps({'descriptor': str(bridge.server.session.descriptor_path)}))
@@ -185,6 +198,12 @@ def qualify(args):
         (control / 'debug-snapshots').write_text('retain')
         current = blender_bridge.call('attach_check', {}, binding=descriptor)
         write_json(out / 'recovery-fingerprint.json', current)
+        (control / 'refuse-recovery-once').write_text('temporary BUSY')
+        try: live.reconcile(root, operation['operation_id'], 'keep-current', current['fingerprint'])
+        except RuntimeError as exc: assert 'BUSY' in str(exc), str(exc)
+        else: raise AssertionError('Recovery did not issue its native pre-mutation refusal')
+        attempts_folder = root / 'execution/operations' / operation['operation_id'] / 'reconcile-attempts'
+        refused_attempt = next(attempts_folder.iterdir()).name
         original_request = blender_bridge._request
         def short_reply(port, command, payload, timeout):
             return original_request(port, command, payload, .2 if command == 'recovery_capture' else timeout)
@@ -194,11 +213,15 @@ def qualify(args):
             except blender_bridge.BridgeTransportError: pass
             else: raise AssertionError('Deliberately lost capture response was not lost')
         finally: blender_bridge._request = original_request
-        intent = {'operation_id':operation['operation_id'],'decision':'keep-current','expected_fingerprint':current['fingerprint']}
-        wait(lambda: blender_bridge.retained_outcome('recovery_capture', intent, private) is not None, process)
+        successful_attempt = next(p for p in attempts_folder.iterdir() if p.name != refused_attempt)
+        wire_payload = read_json(successful_attempt / 'wire-payload.json')
+        wait(lambda: blender_bridge.retained_outcome('recovery_capture', wire_payload, private) is not None, process)
         recovered = live.reconcile(root, operation['operation_id'], 'keep-current', current['fingerprint'])
         assert recovered['live_state'] == 'READY', recovered
         assert read_json(out / 'capture-count.json') == 1
+        native_attempts = read_json(out / 'native-capture-attempts.json')
+        assert len(native_attempts) == 2 and native_attempts[0]['attempt_id'] != native_attempts[1]['attempt_id']
+        assert {k:v for k,v in native_attempts[0].items() if k!='attempt_id'} == {k:v for k,v in native_attempts[1].items() if k!='attempt_id'}
         # Kill the owned bridge exactly after checkpoint publication and before
         # live acknowledgement. Replacement alignment must never enter old job
         # acknowledgement or capture, and must not publish another checkpoint.
@@ -231,6 +254,7 @@ def qualify(args):
             'delayed_attachment_seconds':elapsed,'deliberate_copy_delay_seconds':2.5,
             'dirty_attach_refusal_retried_safely':True,'prepare_refusal_closed_without_dispatch':True,
             'lost_capture_reply_resolved_without_recapture':True,'capture_count':1,
+            'same_intent_refusal_then_success':True, 'native_recovery_attempts':len(native_attempts),
             'crashed_descriptor_reconnected':True,'image_preservation':read_json(out/'image-preservation.json'),
             'crash_between_publication_and_ack_realigned':True, 'alignment_did_not_publish_checkpoint':True,
             'limits':'Owned GUI Blender main-thread bridge fixtures; no arbitrary-scene or saved stale-cache claim.'}

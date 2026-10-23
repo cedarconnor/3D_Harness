@@ -13,7 +13,7 @@ import uuid
 from unittest import mock
 
 from dcc_harness import blender_bridge, live, live_recovery
-from dcc_harness.evidence import write_json
+from dcc_harness.evidence import read_json, write_json
 from test_live_protocol import bridge_leaf
 from test_live_review import STUBS
 import test_live_jobs as live_job_tests
@@ -21,6 +21,11 @@ from coordination_helpers import Fixture
 
 
 class TransportTests(unittest.TestCase):
+    @staticmethod
+    def capture_payload():
+        return {'operation_id':str(uuid.uuid4()),'decision':'keep-current',
+                'expected_fingerprint':'a'*64,'attempt_id':str(uuid.uuid4())}
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(); self.addCleanup(self.tmp.cleanup)
         self.session = bridge_leaf('session').Session(self.tmp.name, 9878)
@@ -33,7 +38,7 @@ class TransportTests(unittest.TestCase):
 
     def test_copy_deadline_is_independent_of_short_handshake(self):
         with mock.patch.object(blender_bridge, '_request', side_effect=[self.info, {}]) as send:
-            blender_bridge.call('recovery_capture', {'operation_id': str(uuid.uuid4())}, binding=self.session.descriptor_path)
+            blender_bridge.call('recovery_capture', self.capture_payload(), binding=self.session.descriptor_path)
         self.assertGreaterEqual(send.call_args_list[1].args[3], 120)
         self.assertLessEqual(send.call_args_list[0].args[3], 10)
 
@@ -63,7 +68,7 @@ class TransportTests(unittest.TestCase):
             self.assertEqual(blender_bridge.session_presence(self.session.descriptor_path), 'DEAD')
 
     def test_durable_result_recovers_later_without_socket_contact(self):
-        payload = {'operation_id': str(uuid.uuid4())}
+        payload = self.capture_payload()
         self.session.retain_outcome('recovery_capture', payload, {'archive': 'retained'})
         with mock.patch.object(blender_bridge, '_request') as send:
             result = blender_bridge.call('recovery_capture', payload, binding=self.session.descriptor_path)
@@ -71,7 +76,7 @@ class TransportTests(unittest.TestCase):
         send.assert_not_called()
 
     def test_retained_outcome_is_one_exact_immutable_record_and_redacts_pairing_secret(self):
-        payload={'operation_id':str(uuid.uuid4())}
+        payload=self.capture_payload()
         for _ in range(3): self.session.retain_outcome('recovery_capture',payload,{'state':'saved'})
         files=list((Path(self.tmp.name)/'.harness-mcp/outcomes'/self.session.session_id).glob('*.json'))
         self.assertEqual(len(files),1)
@@ -84,6 +89,55 @@ class TransportTests(unittest.TestCase):
 
 
 class RecoveryEvidenceTests(unittest.TestCase):
+    def test_same_intent_after_refusal_gets_one_fresh_capture_and_lost_success_is_not_replayed(self):
+        with tempfile.TemporaryDirectory() as tmp, contextlib.ExitStack() as stack:
+            workspace=Path(tmp); session=bridge_leaf('session').Session(workspace,9878)
+            root=workspace/'state'; op=str(uuid.uuid4()); folder=root/'execution/operations'/op; folder.mkdir(parents=True)
+            write_json(folder/'request.json',{'backend':'live','stage':'direction','blender':'fixture'})
+            binding={'descriptor':str(session.descriptor_path),'session_id':session.session_id,'generation':session.generation}
+            stack.enter_context(mock.patch.object(live_recovery.execution,'configuration',return_value={'backend':'live','runtime':'pin'}))
+            stack.enter_context(mock.patch.object(live_recovery.ew,'runtime_stamp',return_value='pin'))
+            stack.enter_context(mock.patch.object(live_recovery.execution,'_exclusive',side_effect=lambda *a:contextlib.nullcontext()))
+            stack.enter_context(mock.patch.object(live_recovery.execution,'_authorized',side_effect=lambda *a:contextlib.nullcontext()))
+            stack.enter_context(mock.patch.object(live,'read_binding',return_value=binding))
+            info={'harness_protocol':3,'protocol_version':14,'upstream_commit':blender_bridge.upstream()['commit'],
+                  'features':list(blender_bridge.FEATURES),'paired_commands':list(blender_bridge.PAIRED_COMMANDS),
+                  'bridge_manifest':blender_bridge.bridge_manifest()}
+            wire=[]; successful_captures=[]
+            def send(port,command,params,timeout):
+                if command=='get_addon_info': return info
+                if command=='attach_check': return {'fingerprint':'a'*64}
+                self.assertEqual(command,'recovery_capture')
+                payload=params['payload']; wire.append(payload)
+                if len(wire)==1:
+                    result={'state':'REFUSED_BEFORE_MUTATION','request':payload,'reason':'BUSY: temporary'}
+                    session.retain_outcome(command,payload,result)
+                    return result
+                successful_captures.append(payload)
+                recovery=folder/'recovery'; recovery.mkdir(); write_json(recovery/'snapshot.json',{})
+                result={'operation_id':op,'decision':'keep-current','scene':'Scene','archive':{},
+                        'archive_snapshot':str(recovery/'snapshot.json'),'archive_inventory':{},
+                        **({'attempt_id':payload['attempt_id']} if 'attempt_id' in payload else {})}
+                write_json(recovery/'receipt.json',result)
+                session.retain_outcome(command,payload,result)
+                raise TimeoutError('successful capture response lost')
+            stack.enter_context(mock.patch.object(blender_bridge,'_request',side_effect=send))
+            stack.enter_context(mock.patch.object(live_recovery,'run_worker',side_effect=RuntimeError('Owned verification reached')))
+            with self.assertRaisesRegex(RuntimeError,'BUSY'):
+                live_recovery.reconcile(root,op,'keep-current','a'*64)
+            # The BUSY condition is now clear; decision, fingerprint and generation are unchanged.
+            for _ in range(2):
+                with self.assertRaisesRegex(RuntimeError,'Owned verification reached'):
+                    live_recovery.reconcile(root,op,'keep-current','a'*64)
+            self.assertEqual(len(wire),2)
+            self.assertEqual(len(successful_captures),1)
+            self.assertNotEqual(wire[0]['attempt_id'],wire[1]['attempt_id'])
+            self.assertEqual({k:v for k,v in wire[0].items() if k!='attempt_id'},
+                             {k:v for k,v in wire[1].items() if k!='attempt_id'})
+            attempts=list((folder/'reconcile-attempts').iterdir())
+            self.assertEqual(len(attempts),2)
+            self.assertEqual(read_json(attempts[0]/'request.json'),read_json(attempts[1]/'request.json'))
+
     def test_late_capture_result_resumes_verification_without_another_native_capture(self):
         with tempfile.TemporaryDirectory() as tmp, contextlib.ExitStack() as stack:
             workspace=Path(tmp); session=bridge_leaf('session').Session(workspace,9878)
@@ -104,6 +158,7 @@ class RecoveryEvidenceTests(unittest.TestCase):
             receipt={'operation_id':op,'decision':'keep-current','scene':'Scene','archive':{},
                      'archive_snapshot':str(recovery/'archive-snapshot.json'),'archive_inventory':{}}
             write_json(recovery/'receipt.json',receipt)
+            # Legacy pre-attempt-identity evidence remains consumable without dispatch.
             session.retain_outcome('recovery_capture',intent,receipt)
             native=stack.enter_context(mock.patch.object(blender_bridge,'call',side_effect=AssertionError('Native capture replayed')))
             stack.enter_context(mock.patch.object(live_recovery,'run_worker',side_effect=RuntimeError('Owned verification reached')))
@@ -134,7 +189,7 @@ class RecoveryEvidenceTests(unittest.TestCase):
             with self.assertRaisesRegex(TimeoutError,'lost'):
                 live_recovery.reconcile(root,op,'keep-current','a'*64)
             with self.assertRaisesRegex(TimeoutError,'lost'):
-                live_recovery.reconcile(root,op,'restore-precopy','a'*64)
+                live_recovery.reconcile(root,op,'keep-current','a'*64)
             self.assertEqual(len(captures),2)
             attempts=list((folder/'reconcile-attempts').iterdir())
             self.assertTrue(any((p/'refusal.json').exists() for p in attempts))
@@ -482,7 +537,7 @@ with tempfile.TemporaryDirectory() as tmp:
     session=Session(tmp,9878); session.bind(Path(tmp)/'state','Scene')
     folder=session.project/'execution/operations'/str(uuid.uuid4()); folder.mkdir(parents=True)
     manager=SimpleNamespace(session=session,folder=lambda op:folder,status=lambda op:{'state':'NEEDS_RECONCILIATION'})
-    payload={'operation_id':folder.name,'decision':'restore-precopy','expected_fingerprint':'f'}
+    payload={'operation_id':folder.name,'decision':'restore-precopy','expected_fingerprint':'f','attempt_id':str(uuid.uuid4())}
     with mock.patch.object(recovery.attachment,'scene_for'), mock.patch.object(recovery.attachment,'snapshot',return_value={}), mock.patch.object(recovery.attachment,'fingerprint',return_value='f'), mock.patch.object(recovery.attachment,'save_copy') as save:
         result=recovery.capture(manager,payload)
     assert result['state']=='REFUSED_BEFORE_MUTATION',result
