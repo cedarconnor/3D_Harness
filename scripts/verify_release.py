@@ -10,6 +10,40 @@ import zipfile
 import venv
 
 
+def release_environment(out, parent=None):
+    """Precreate native user directories; descendants inherit these owned paths."""
+    env = dict(os.environ if parent is None else parent)
+    for name in ('config', 'scripts', 'datafiles', 'extensions'):
+        directory = out / 'native-user' / name
+        directory.mkdir(parents=True, exist_ok=False)
+        env['BLENDER_USER_' + name.upper()] = str(directory)
+    return env
+
+
+def run_check(name, command, *, out, results, cwd, base_env, env=None):
+    # Specific qualifiers may supply overrides without dropping release containment.
+    child_env = {**base_env, **(env or {})}
+    with (out / (name + '.log')).open('x', encoding='utf-8') as log:
+        completed = subprocess.run(command, cwd=cwd, env=child_env, stdout=log, stderr=subprocess.STDOUT)
+    results.append({'name': name, 'exit_code': completed.returncode, 'log': str(out / (name + '.log'))})
+    (out / 'progress.json').write_text(json.dumps(results, indent=2), encoding='utf-8')
+    print(name, 'PASS' if completed.returncode == 0 else 'FAIL', flush=True)
+    if completed.returncode:
+        raise SystemExit(completed.returncode)
+
+
+def native_config_probe(expected, record):
+    """A self-contained Blender probe: read CONFIG and abort before native fixtures."""
+    return ("import bpy, json\nfrom pathlib import Path\n"
+            f"expected = Path({str(expected)!r}).resolve()\n"
+            "actual = Path(bpy.utils.user_resource('CONFIG')).resolve()\n"
+            "proof = {'expected_config': str(expected), 'effective_config': str(actual), "
+            "'matched': actual == expected, 'preference_writes': False}\n"
+            f"Path({str(record)!r}).write_text(json.dumps(proof, indent=2), encoding='utf-8')\n"
+            "print(json.dumps(proof), flush=True)\n"
+            "if actual != expected: raise RuntimeError('Owned CONFIG mismatch; refusing native fixtures')\n")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--out', required=True, help='Fresh evidence directory')
@@ -18,15 +52,10 @@ def main():
     repo = Path(__file__).resolve().parents[1]
     out = Path(args.out).resolve(); out.mkdir(parents=True, exist_ok=False)
     results = []
+    base_env = release_environment(out)
 
     def run(name, command, *, cwd=repo, env=None):
-        with (out / (name + '.log')).open('x', encoding='utf-8') as log:
-            completed = subprocess.run(command, cwd=cwd, env=env, stdout=log, stderr=subprocess.STDOUT)
-        results.append({'name': name, 'exit_code': completed.returncode, 'log': str(out / (name + '.log'))})
-        (out / 'progress.json').write_text(json.dumps(results, indent=2), encoding='utf-8')
-        print(name, 'PASS' if completed.returncode == 0 else 'FAIL', flush=True)
-        if completed.returncode:
-            raise SystemExit(completed.returncode)
+        run_check(name, command, out=out, results=results, cwd=cwd, base_env=base_env, env=env)
 
     run('source-tests', [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-q'])
     run('wheel-build', [sys.executable, '-m', 'pip', 'wheel', '.', '--no-deps', '--no-build-isolation', '--wheel-dir', str(out / 'wheels')])
@@ -45,7 +74,7 @@ def main():
     python = str(clean / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python'))
     run('wheel-install', [python, '-m', 'pip', 'install', str(wheel)])
     target = Path(subprocess.check_output([python, '-c', 'import sysconfig; print(sysconfig.get_paths()["purelib"])'], text=True).strip())
-    env = dict(os.environ, PYTHONPATH=str(target))
+    env = dict(base_env, PYTHONPATH=str(target))
     code = ("from pathlib import Path; import dcc_harness; import unittest; "
             f"assert Path(dcc_harness.__file__).resolve().is_relative_to(Path({str(target)!r})); "
             "print(dcc_harness.__file__, flush=True); "
@@ -61,6 +90,12 @@ def main():
     with zipfile.ZipFile(out / 'source-bridge.zip') as first, zipfile.ZipFile(out / 'installed-bridge.zip') as second:
         assert {n: first.read(n) for n in first.namelist()} == {n: second.read(n) for n in second.namelist()}, 'source/installed bridge mismatch'
     if args.blender:
+        probe = out / 'native-config-preflight.py'
+        probe.write_text(native_config_probe(Path(base_env['BLENDER_USER_CONFIG']),
+                                            out / 'native-config-preflight.json'), encoding='utf-8')
+        run('native-config-preflight', [str(Path(args.blender).resolve()), '--background', '--offline-mode',
+            '--factory-startup', '--disable-autoexec', '--python-exit-code', '1', '--python', str(probe)],
+            cwd=out, env=env)
         for name in ('units', 'adoption', 'execution', 'mcp'):
             run('native-' + name, [python, str(repo / 'scripts' / ('qualify_' + name + '.py')),
                                   '--blender', str(Path(args.blender).resolve()), '--runtime', str(target),
