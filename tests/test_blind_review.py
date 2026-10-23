@@ -134,7 +134,7 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(len(labels), 6)
         self.assertEqual(labels, {entry["label"] for entry in receipt["reviews"]})
         self.assertEqual({entry["run_id"] for entry in receipt["reviews"]}, {entry["run_id"] for entry in self.entries})
-        self.assertEqual(result["gallery"], str(self.out / "index.html"))
+        self.assertTrue(Path(result["gallery"]).samefile(self.out / "index.html"))
         for file in self.out.rglob("*"):
             if file.is_file():
                 self.assertNotIn(b"PRIVATE", file.read_bytes())
