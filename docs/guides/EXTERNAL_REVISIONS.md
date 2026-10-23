@@ -33,6 +33,8 @@ python -m dcc_harness accept-revision C:/project/state C:/project/revision-previ
 python -m dcc_harness review C:/project/state
 ```
 
+For a managed background project, also pass `--stage STAGE`. Acceptance uses managed admission, runtime/parent/budget checks and a durable operation, then reopens the stage and its dependents. The review provenance is `caller_review_recorded_not_authenticated`; this is not artist stage approval, even when that stage requires it. Saved-file imports into paired live projects are refused; use measured [live refresh/recovery](LIVE_BLENDER.md) to preserve paired alignment.
+
 Acceptance checks project identity, preview hashes, current parent and pending work under the workflow metadata lock. It recomputes the native contract instead of trusting the preview's check report. A passing result publishes a new checkpoint with the handoff and cumulative decision updates. The retained `check.json` includes the original contract, preview manifest, edit description and caller-supplied review note. `review` exposes a compact provenance summary.
 
 No native operation is dispatched and no fictional build script is entered in the journal. This records acceptance of work that already exists. A technically passing preview may still be visually unsuitable: leave it unaccepted, retain the review reason in the working notes, and prepare a new candidate if needed.
@@ -49,6 +51,6 @@ Preview and publication copy native bytes to new folders, so a texture reference
 
 Packing or localizing dependencies can itself change observed material/data fields and fail the preservation contract. If the accepted baseline relies on external dependencies, establish a separately qualified self-contained baseline or a deliberately checked dependency migration first. These commands do not supply that migration, and the legacy `start`/publication APIs do not automatically package dependencies.
 
-These guards cover observed dependencies only. Fonts, caches, simulation data, unmeasured links and other unsupported native state still require independent native reopening and review. The command does not launch Blender, pack assets, certify dependency completeness, or authenticate an observation producer. Packed images, material graphs, UVs and geometry retain the current observer/comparator limits. A native pass and a caller review note do not establish independent artist acceptance.
+These guards cover observed dependencies only. Fonts, caches, simulation data, unmeasured links and other unsupported native state still require independent native reopening and review. Without the explicit relocation path above, these commands do not launch Blender or pack assets. Neither path certifies dependency completeness or authenticates an observation producer. Packed images, material graphs, UVs and geometry retain the current observer/comparator limits. A native pass and a caller review note do not establish independent artist acceptance.
 
 Both commands use the existing continuity format and preservation policy. Older consumers can read published checkpoint bundles; only 0.4.10 and later provide this workflow and the extra compact `review` provenance field. See [qualification results](../archive/releases/REVISIONS_0_4_10_RESULTS.md).

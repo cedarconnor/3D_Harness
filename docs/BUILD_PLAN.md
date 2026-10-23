@@ -15,6 +15,8 @@ The owner authorized fixing all six findings in the [adversarial review](referen
 | P21 Direct open-scene Blender execution | Codex | done | [Implementation plan](superpowers/plans/2026-10-22-live-blender-execution.md): paired sessions, live edits, inspection/previews, recovery and both modes. Five final-review issues fixed. Source/installed suites: 536 tests each; 26 live native scenarios and preservation gate passed. [Evidence](archive/releases/LIVE_EXECUTION_RESULTS.md). |
 | P22 Reusable add-on capabilities | Codex | done | [Implementation plan](superpowers/plans/2026-10-22-addon-capabilities.md): discovery, profiles, recipes, provider policy, revision freshness and public routes qualified. All 17 release gates passed; source/installed suites: 593 tests each. [Evidence](archive/releases/ADDON_CAPABILITIES_RESULTS.md). Product-specific qualification remains separate. |
 
+The P19–P22 counts above describe their historical release states. The [external-review follow-up](archive/releases/EXTERNAL_REVIEW_0_23_RESULTS.md) tracks subsequent authority, recovery and capability fixes; final integrated source/installed/native qualification remains pending. Portable CI is now defined separately from local Blender qualification.
+
 The owner approved implementation and selected direct editing in the open scene. The [design](superpowers/specs/2026-10-22-live-blender-capabilities-design.md) records that choice and the engineering defaults. P22 uses P21's qualified shared execution service.
 
 ## How to track work
@@ -29,10 +31,10 @@ The owner approved implementation and selected direct editing in the open scene.
 
 | | |
 |---|---|
-| Version | 0.23.0 verified locally on `codex/managed-execution-overhaul`; `main` unchanged |
-| Active | P19–P22 are verified; final branch review completed, three Important findings fixed and renewed qualification passed. P16 and P18 remain open from the [Scenario review](reference/SCENARIO_BLENDER_PLUGIN_REVIEW_2026-10-15.md) |
-| Next | Final branch review and delivery packaging. Real-project adoption and the separate artist-quality comparison remain open. |
-| Waiting on the user | E1Ã¢â‚¬â€œE3 artist review session; E4 decision on the realistic comparison; E5 artist repair time |
+| Version | 0.23.0 follow-up on `codex/managed-execution-overhaul`; historical release evidence retained, current integrated gate pending; `main` unchanged |
+| Active | External branch-review follow-up: authority, durable live outcomes, capability attribution and packaging/docs corrections implemented; focused proof retained. Final review and integrated qualification pending. P16/P18 remain open from the [Scenario review](reference/SCENARIO_BLENDER_PLUGIN_REVIEW_2026-10-15.md). |
+| Next | Freeze the runtime, complete final review and source/installed/native release gates, then delivery packaging. Real-project adoption and the separate artist-quality comparison remain open. |
+| Waiting on the user | E1–E3 artist review session; E4 decision on the realistic comparison; E5 artist repair time |
 | Investment gate | Open |
 
 ## Tracker
@@ -93,21 +95,21 @@ Ranked by expected effect on the gate. Each ships as its own version.
 | R2 | Organize documentation into active and archive folders; make this plan trackable | Agent | done | No broken relative links; index updated |
 | R3 | Tag released versions | Agent | done | Annotated tags `v0.4.8` through `v0.11.0` pushed, each on the commit that completed its release; tag future releases as they ship |
 
-### X: Deferred until the gate passes
+### X: Originally deferred work and current dispositions
 
-Revisit each against a named, measured gap.
+Completed entries remain here under their original IDs. Remaining work is deferred until its named gate or explicit authorization; shipping bounded execution does not pass the artistic-quality gate.
 
 | ID | Item | Reference |
 |---|---|---|
-| X1 | The D4 executor and managed mode | [D4](DESIGN_DECISIONS.md#d4-operation-identity-and-retry-ownership) |
+| X1 | **Done:** managed executor in P19; shared live backend in P21. Unattended reasoning/scheduling and long fault soaks remain X2. | [D4](DESIGN_DECISIONS.md#d4-operation-identity-and-retry-ownership) |
 | X2 | An unattended runner, worker fencing and fault soak tests, with runaway guards: pause after sessions that move nothing forward, and cap session length | Stage D below; [motion harness review](reference/MOTION_HARNESS_REVIEW_2026-10-10.md) |
-| X3 | Client plugins, installers and an MCP connector | [Packaging study](reference/DCC_HARNESS_PACKAGING_AND_ENTRY_POINTS.md) |
+| X3 | **Partial:** combined MCP connector and wheel entry points shipped in P20. Client plugins, automatic client registration and installers remain deferred. | [Packaging study](reference/DCC_HARNESS_PACKAGING_AND_ENTRY_POINTS.md) |
 | X4 | Unreal and other DCC adapters | [UE-MCP review](reference/DCC_HARNESS_UE_MCP_REVIEW.md) |
 | X5 | Motion workflows; evaluate adopting or connecting to Mortiflix before building | [Skill system](reference/DCC_HARNESS_SKILL_SYSTEM.md), [motion harness review](reference/MOTION_HARNESS_REVIEW_2026-10-10.md) |
 | X6 | Geometry Nodes distribution identity | [D6](DESIGN_DECISIONS.md#d6-asset-and-instance-identity-are-separate) |
 | X7 | Generated textures, bakes and UDIMs | [Archived October 3 plan](archive/plans/DCC_HARNESS_BUILD_PLAN_v3_2026-10-06.txt) |
 | X8 | SDK runners and a DCC-MCP core evaluation | [D2](DESIGN_DECISIONS.md#d2-reuse-the-transport-and-implement-native-observation), [D8](DESIGN_DECISIONS.md#d8-package-the-proven-workflow) |
-| X9 | A live-session scene revision token: refuse a write when the scene changed after it was observed | [Scenario review](reference/SCENARIO_BLENDER_PLUGIN_REVIEW_2026-10-15.md) |
+| X9 | **Done:** P21 pairs document generation and measured scene fingerprint; changed/unknown alignment refuses live writes. Coverage remains bounded. | [Scenario review](reference/SCENARIO_BLENDER_PLUGIN_REVIEW_2026-10-15.md) |
 
 ## Item details
 
@@ -134,7 +136,7 @@ Before 0.6.0, every step needed hand-written JSON, SHA-256 values and a separate
 - A payload helper fills `{path, sha256}` references in feedback, stage and evidence payloads from the actual files, so agents stop computing hashes by hand.
 - Both need native positive and negative fixtures and a repeat of the 0.5.0 fresh-agent revision for comparison.
 
-### P9Ã¢â‚¬â€œP12: orientation, checks and authority
+### P9–P12: orientation, checks and authority
 
 P9 is done in 0.7.0 ([report](archive/releases/GUIDANCE_0_7_0_RESULTS.md)), P10 in 0.8.0 ([report](archive/releases/RENDER_0_8_0_RESULTS.md)), P11 in 0.13.0 ([report](archive/releases/CHECKS_0_13_0_RESULTS.md)) and P12 in 0.12.0 ([report](archive/releases/OWNER_APPROVAL_0_12_0_RESULTS.md)). `brief` covers the generated session brief, and `demo` was not built because orientation fell under a minute. P9 and P10 were added after the 0.6.0 comparison. Both fresh agents spent roughly three minutes reading skills, guides and runtime source before their first command, while native work took seconds. They wrote one script each, because a provided render tool covered rendering and observation; the 0.5.0 agent, without such a tool, wrote five. On October 10 the [motion harness review](reference/MOTION_HARNESS_REVIEW_2026-10-10.md) extended P9 and P10 and added P11 and P12; the same review adds questions and a camera sheet to P4 and the M5 cost record.
 
@@ -143,7 +145,7 @@ P9 is done in 0.7.0 ([report](archive/releases/GUIDANCE_0_7_0_RESULTS.md)), P10 
 - **P11, learned checks.** When feedback verification finds an error that no existing check reported, the response may propose a check: a measurable rule, its applicable stages, tolerance and a negative fixture showing that it catches the error. An owner-approved check joins a versioned library outside any single project; new workflow bindings pin the library version as they pin skills, so earlier projects are unaffected. Classify each artist note as error or taste first: only errors become checks, and taste stays project direction. Unlike Mortiflix, whose checks are plain-language rules the session marks as passed, every library check must be computed by the runtime; a proposal that cannot be measured stays a skill note. Count repeat occurrences of an existing check's error, as Mortiflix's `--same-as` does, to rank which checks matter. P2's first relation family is the natural first library entry. Needs P12 so that approval cannot come from the proposing agent.
 - **P12, owner approval channel.** Roles are caller-attributed today, so an agent can write `authority: {role: "artist"}`. Accept artist completion, blocking deferrals and check approvals only through a path the agent's tools cannot reach, such as answers the artist saves in a review page, imported with their provenance, or an interactive owner command. Record the authority change as a design decision before coding. Pair it with P4. Be explicit about strength: Mortiflix refuses owner commands when a session token is set in the environment and calls that "a guard, not a wall", because an unsandboxed agent with a shell can still edit the record. A guard against accidental self-approval is the first goal; a wall needs OS-level separation, which Windows sessions here do not have yet.
 
-### P15Ã¢â‚¬â€œP18 and M6: from the Scenario review
+### P15–P18 and M6: from the Scenario review
 
 Added October 15 from the [Scenario for Blender review](reference/SCENARIO_BLENDER_PLUGIN_REVIEW_2026-10-15.md). None of them is expected to move the investment gate; they proceed as bounded increments under [D17](DESIGN_DECISIONS.md#d17-bounded-increments-proceed-while-the-creative-gate-stays-open) once the owner authorizes them.
 
@@ -153,7 +155,7 @@ Added October 15 from the [Scenario for Blender review](reference/SCENARIO_BLEND
 - **P17, skill notes.**
   - Materials: build a new material instead of editing a shared one; one explicit UV Map node feeds every image node; base colour is sRGB and every other map is Non-Color; smoothness is inverted into Roughness; height goes through a Bump node chained after the normal map; texture roles come from metadata, not file names.
   - Worlds: build a new World and check the 2:1 aspect.
-  - Image decoding on 5.0Ã¢â‚¬â€œ5.2: EXIF orientation and ICC profiles are ignored, AP1 and Rec.2020 EXR files load as linear Rec.709, and some JPEGs stall the main thread.
+  - Image decoding on 5.0–5.2: EXIF orientation and ICC profiles are ignored, AP1 and Rec.2020 EXR files load as linear Rec.709, and some JPEGs stall the main thread.
   - Python edits: push a named undo step after a Python edit in a live session so the file reads as modified.
   - Verify each claim natively; drop any that does not reproduce.
 - **P18, skill provenance.** P14 verified every skill's code but records neither the sources each skill was built from nor the Blender versions it passed on. Add both to each skill, after the pattern of Scenario's `docs/knowledge.json`. Add a check that flags a skill when a recorded source changes after the skill's reviewed revision.
@@ -162,9 +164,9 @@ Added October 15 from the [Scenario for Blender review](reference/SCENARIO_BLEND
 
 Trial ceilings are set in dollars and minutes, but reports record only elapsed time. Capture turns, elapsed minutes, metered spend where the backend reports it, and the share of input read from cache for every trial session, retained with the trial's other receipts.
 
-### P2Ã¢â‚¬â€œP8
+### P2–P8
 
-- **P2, relationship checks.** Qualify one relation family, such as an object supported by ground or a doorway clear along its path, with stable IDs, method, tolerance and coverage. Classify findings by evidence strength. Retain normalized failures, attempted strategies and measured error across contexts. The basis is [repository ideas](reference/REPOSITORY_IDEAS_2026-10-06.md) 1Ã¢â‚¬â€œ3; the visibility gate is the clearest case of measurement catching what images missed.
+- **P2, relationship checks.** Qualify one relation family, such as an object supported by ground or a doorway clear along its path, with stable IDs, method, tolerance and coverage. Classify findings by evidence strength. Retain normalized failures, attempted strategies and measured error across contexts. The basis is [repository ideas](reference/REPOSITORY_IDEAS_2026-10-06.md) 1–3; the visibility gate is the clearest case of measurement catching what images missed.
 - **P3, instances.** The observer records any instancer as an issue, so `start`, adoption and revisions reject common artist scenes; the production study used shared mesh datablocks instead. Observe collection instances with instance identity and library provenance, then settle [D5](DESIGN_DECISIONS.md#d5-file-ownership-and-asset-publishing).
 - **P4, review page.** Show added, removed, moved and changed objects by stable ID, with bound renders and linked feedback notes. Artist review time is the scarce input to track E. Keep the generator outside the dependency-free core. Let a stage submission carry owner questions with choices and a default, answered on the page with one click, and show every review camera on one sheet before the per-view comparisons. The October 6 [artist review page](studies/ARTIST_REVIEW_SESSION.md) is a working prototype of the layout.
 - **P5, skill regressions.** Use sealed packets for a lost acknowledgement, a stale image, a changed shared material, a missing view definition, an artist-saved revision and a late request that conflicts with protected geometry. Grade actions and artifacts, not restated instructions.
@@ -182,17 +184,17 @@ Run a held-out realistic brief with a fixed asset kit, matched cameras and budge
 2. **Advantage.** Promote the harness beyond a supervised prototype only if it qualifies and, relative to plain MCP, the artist prefers both paired outputs or artist repair time falls by at least 25% without worse quality.
 3. **Otherwise.** If plain MCP is equally usable, keep the simpler workflow and retain only the parts that measurably reduce repair effort. If results are mixed, run a limited additional comparison; never infer success from the best image. If nothing is acceptable after one bounded method revision, stop expanding infrastructure and revisit scope, assets or modeling methods.
 
-These thresholds are investment rules, not statistical proof. Correctness and usability increments may continue under explicit user authorization ([D17](DESIGN_DECISIONS.md#d17-bounded-increments-proceed-while-the-creative-gate-stays-open)); they do not count as passing the gate, and they do not authorize stages CÃ¢â‚¬â€œE.
+These thresholds are investment rules, not statistical proof. Correctness and usability increments may continue under explicit user authorization ([D17](DESIGN_DECISIONS.md#d17-bounded-increments-proceed-while-the-creative-gate-stays-open)); they do not count as passing the gate, and they do not authorize stages C–E.
 
 ## Evidence so far
 
 | Study | Design | Result |
 |---|---|---|
-| [Short comparison](archive/studies/BLIND_RESULTS.md), Oct 3Ã¢â‚¬â€œ4 | Plain MCP, skills, and skills plus a measured loop; six builds and six fresh revisions | All twelve checkpoints passed common checks. The artist preferred two plain-MCP entries, called the differences subtle and gave no scores. |
+| [Short comparison](archive/studies/BLIND_RESULTS.md), Oct 3–4 | Plain MCP, skills, and skills plus a measured loop; six builds and six fresh revisions | All twelve checkpoints passed common checks. The artist preferred two plain-MCP entries, called the differences subtle and gave no scores. |
 | [Continuity comparison](archive/studies/CONTINUITY_RESULTS.md), Oct 4 | Two plain and two continuity workflows, four fresh sessions each | Plain MCP passed 8/8 stages; continuity passed 6/8. One continuity workflow was blocked by the harness's own float32 extent artifact, fixed in 0.1.1. No artist scores. |
 | [Quality loop](archive/releases/QUALITY_LOOP_RESULTS.md) and [overnight study](archive/studies/OVERNIGHT_EVALUATION.md), Oct 4 | Reference-led candidates, native visibility gates, anonymous critics | Measurement caught what images and critics missed: the birdbath was 21.7% and 34.0% visible against a predeclared 55% minimum, and both canopy alternatives failed, including the critics' favorite. A scoped relocation reached 88.7% and 97.4%. |
 | [Realistic comparison](studies/REALISM_COMPARISON.md), Oct 5 | Two plain and two harness runs, fixed scanned kit, fresh revisions | Interrupted by an account usage limit: one partial build, zero complete builds, zero revisions. |
-| Guided production, Oct 5 ([0.4.1](archive/releases/PRODUCTION_0_4_1_RESULTS.md)Ã¢â‚¬â€œ[0.4.7](archive/releases/TERRAIN_0_4_7_RESULTS.md)) | Same-agent everyday workflow on the potting shed | Nine accepted checkpoints; all 934 original objects preserved; six native-passing visual rejections retained. The terrain study did not improve realism. |
+| Guided production, Oct 5 ([0.4.1](archive/releases/PRODUCTION_0_4_1_RESULTS.md)–[0.4.7](archive/releases/TERRAIN_0_4_7_RESULTS.md)) | Same-agent everyday workflow on the potting shed | Nine accepted checkpoints; all 934 original objects preserved; six native-passing visual rejections retained. The terrain study did not improve realism. |
 
 The continuity mechanisms work under native and fresh-context qualification. No study shows a creative-quality or repair-effort advantage over plain MCP: there are no artist scores, no repair-time measurements and no completed held-out comparison. Under the October 3 rule ("if A is equally usable, keep the simpler workflow"), the short comparison promoted no method. The continuity work followed the artist's stated interest in longer development ([D10](DESIGN_DECISIONS.md#d10-measure-continuity-after-the-short-comparison)).
 
@@ -201,26 +203,26 @@ The continuity mechanisms work under native and fresh-context qualification. No 
 | Stage | Scope | Gate | Status, October 6 |
 |---|---|---|---|
 | A Creative experiment | Three skills, small native helper, six trials | Choose the minimum method that produces acceptable results | **Done.** The artist preferred plain MCP; no method was promoted on quality. |
-| B Continuity prototype | Durable record, save/reopen, fresh-context resume, one entry point | Held-out brief succeeds; fresh context resumes; duplicate dispatch and lost responses cause no blind replay | **Built in advisory form (0.1Ã¢â‚¬â€œ0.5).** Fresh-context resume and no-replay reconciliation are qualified on fixtures. The held-out brief is incomplete (E4), and the D4 executor is deferred (X1). |
-| C Detailed environment | Three zones, 12Ã¢â‚¬â€œ20 assets, 4Ã¢â‚¬â€œ6 material families, six views, linked asset publishing | Artist accepts the output and a late shared-material, hero-size and layout revision; unrelated work is preserved | **Partially exercised** by same-agent production. No artist acceptance. Instancers fail observation, and external revisions reject linked libraries (P3). |
-| D Unattended operation | One runner, owned workers, recovery, resource limits | Repeated two-hour, then eight-hour runs with injected faults | **Not started**, by design (X1, X2). |
-| E Broader access and disciplines | Client packages, motion, a second DCC | The same project survives client changes; temporal and transfer work pass their own gates | **Not started**, by design (X3Ã¢â‚¬â€œX5). |
+| B Continuity prototype | Durable record, save/reopen, fresh-context resume, one entry point | Held-out brief succeeds; fresh context resumes; duplicate dispatch and lost responses cause no blind replay | **Built in advisory form (0.1–0.5).** Fresh-context resume and no-replay reconciliation are qualified on fixtures. The held-out brief is incomplete (E4). P19 later delivered the managed executor (X1), and P21 added bounded live execution. |
+| C Detailed environment | Three zones, 12–20 assets, 4–6 material families, six views, linked asset publishing | Artist accepts the output and a late shared-material, hero-size and layout revision; unrelated work is preserved | **Partially exercised** by same-agent production. No artist acceptance. Instancers fail observation, and external revisions reject linked libraries (P3). |
+| D Unattended operation | One runner, owned workers, recovery, resource limits | Repeated two-hour, then eight-hour runs with injected faults | **Partial infrastructure:** X1 is shipped; unattended reasoning/scheduling and the two/eight-hour fault-soak gate remain unfulfilled (X2). |
+| E Broader access and disciplines | Client packages, motion, a second DCC | The same project survives client changes; temporal and transfer work pass their own gates | **Partial access:** the MCP connector shipped (X3); installers/client plugins, motion and a second DCC remain deferred (X3–X5). |
 
-## What exists at 0.5.0
+## Historical baseline at 0.5.0
 
 An advisory, supervised prototype: one cooperating native writer, Blender 5.1.1 on Windows, no interception of direct MCP writes, no executor and no scheduler.
 
 | Capability | Entry points | Since | Guide |
 |---|---|---|---|
 | Continuity store: immutable checkpoints, observations, decisions and handoffs | `start`, `resume`, `review` | 0.1.0; CLI 0.4.0 | [Everyday workflow](guides/EVERYDAY_WORKFLOW.md) |
-| Scoped edit reservations, preservation contracts, visual rejection, observed reconciliation | `begin-edit`, `finish-edit` | 0.4.0Ã¢â‚¬â€œ0.4.1 | [Everyday workflow](guides/EVERYDAY_WORKFLOW.md) |
-| Native observation with explicit coverage, compact storage and within-call reuse | `continuity_blender.observe()` in Blender, `pack-observation` | 0.1.0Ã¢â‚¬â€œ0.4.8 | [Observation storage](guides/OBSERVATION_STORAGE.md) |
-| Reference-led quality loop, reserved-space preflight, native visibility | `python -m dcc_harness.quality` | 0.2.0Ã¢â‚¬â€œ0.3.1 | [Quality loop](guides/QUALITY_LOOP_USAGE.md) |
+| Scoped edit reservations, preservation contracts, visual rejection, observed reconciliation | `begin-edit`, `finish-edit` | 0.4.0–0.4.1 | [Everyday workflow](guides/EVERYDAY_WORKFLOW.md) |
+| Native observation with explicit coverage, compact storage and within-call reuse | `continuity_blender.observe()` in Blender, `pack-observation` | 0.1.0–0.4.8 | [Observation storage](guides/OBSERVATION_STORAGE.md) |
+| Reference-led quality loop, reserved-space preflight, native visibility | `python -m dcc_harness.quality` | 0.2.0–0.3.1 | [Quality loop](guides/QUALITY_LOOP_USAGE.md) |
 | Initial scene adoption | `adopt-preview`, `adopt-apply` | 0.4.9 | [Scene adoption](guides/SCENE_ADOPTION.md) |
 | External revision acceptance | `preview-revision`, `accept-revision` | 0.4.10 | [External revisions](guides/EXTERNAL_REVISIONS.md) |
 | Structured feedback and a pinned seven-stage environment workflow | `feedback-*`, `workflow-*`, `stage-*` | 0.5.0 | [Structured feedback](guides/STRUCTURED_FEEDBACK.md) |
-| Nine project skills and bounded recipes: walls, roof laps, ground, terrain, broadleaf | `.agents/skills/`, `dcc_harness.craft` and recipe modules | 0.4.0Ã¢â‚¬â€œ0.4.7 | [Craft skills](guides/CRAFT_SKILLS.md) |
-| Comparison tooling: frozen packets, fresh-context revisions, anonymous galleries | `python -m dcc_harness.blind`, `python -m dcc_harness.continuity_trial` | PilotÃ¢â‚¬â€œ0.1.1 | [Trial protocol](archive/studies/BLIND_TRIALS.md) |
+| Nine project skills and bounded recipes: walls, roof laps, ground, terrain, broadleaf | `.agents/skills/`, `dcc_harness.craft` and recipe modules | 0.4.0–0.4.7 | [Craft skills](guides/CRAFT_SKILLS.md) |
+| Comparison tooling: frozen packets, fresh-context revisions, anonymous galleries | `python -m dcc_harness.blind`, `python -m dcc_harness.continuity_trial` | Pilot–0.1.1 | [Trial protocol](archive/studies/BLIND_TRIALS.md) |
 
 ## Standing rules
 
@@ -241,7 +243,7 @@ Freeze settings before comparing methods; a changed budget starts a new comparis
 | Agent and native work per trial | 90 minutes, including a reserved 15-minute late revision |
 | Metered model and generation spend | USD 25 per trial and USD 150 across six trials; a held-out round adds at most USD 100 and six hours |
 | Rendering within a trial | 30 minutes in total |
-| Native still captures | At most 24 per trial, normally 960 Ãƒâ€” 540 |
+| Native still captures | At most 24 per trial, normally 960 × 540 |
 | Repair attempts | At most two materially different repairs of one failed requirement |
 | External generation | None; use the fixed asset kit |
 | Artist review | Recorded separately; target at most 30 minutes per method |
@@ -254,13 +256,15 @@ Capture fixed views at blockout, surface and lighting completion, pre-revision a
 
 Newest first. One line per status change.
 
+- **2026-10-22:** external-review follow-up corrects X1/X9 completion and partial X3 scope, preserves original finding dispositions, adds portable package CI and fixes detached-render handle reaping. Final integrated release qualification remains pending; see the external-review ledger above.
+
 - **2026-10-15:** P17 done: verified skill notes from the Scenario review; P5 passed again on 0.19.0.
 - **2026-10-15:** P17 started.
 - **2026-10-15:** P15 done. Version 0.19.0 adds `source_attribute_hash`; seven attribute-only changes that passed protected contracts now fail.
 - **2026-10-15:** P15 started.
 - **2026-10-15:** M6 done. Version 0.18.1 refuses interactive observations as saved-state evidence, adds `--offline-mode` and releases the `340dc9d` review fixes.
 - **2026-10-15:** M6 started; a native fixture reproduced a clean interactive observation after an unsaved Python edit.
-- **2026-10-15:** P15Ã¢â‚¬â€œP18, M6 and X9 added from the [Scenario for Blender review](reference/SCENARIO_BLENDER_PLUGIN_REVIEW_2026-10-15.md). A native probe showed that Python edits leave `is_dirty` false on Blender 5.1.1 and 5.2.1.
+- **2026-10-15:** P15–P18, M6 and X9 added from the [Scenario for Blender review](reference/SCENARIO_BLENDER_PLUGIN_REVIEW_2026-10-15.md). A native probe showed that Python edits leave `is_dirty` false on Blender 5.1.1 and 5.2.1.
 - **2026-10-11:** P14 done: the Blender craft skill library, 25 skills with code verified on Blender 5.1.1 and 5.2.1. Added at the owner's request; not a runtime release.
 - **2026-10-11:** P13 done. Version 0.18.0 ships `uv-report` for texel density, UV overlap and UVs outside the unit square.
 - **2026-10-11:** P13 started; its contract permissions shipped in 0.17.0.
@@ -269,13 +273,13 @@ Newest first. One line per status change.
 - **2026-10-11:** P6 first part done in 0.15.0; the native remainder moves to the new item P13.
 - **2026-10-11:** P8 done. Version 0.14.0 ships `deliver-glb`, built ahead of a required export at the user's request to push through the plan.
 - **2026-10-11:** E5 agent part done: the fresh agent found and answered all three notes in 32 minutes; it is blocked on the artist's repair time.
-- **2026-10-11:** M2Ã¢â‚¬â€œM5 done in maintenance version 0.13.1: shared file helpers, experiment tooling outside the runtime digest, a shared qualification launcher and session cost receipts.
+- **2026-10-11:** M2–M5 done in maintenance version 0.13.1: shared file helpers, experiment tooling outside the runtime digest, a shared qualification launcher and session cost receipts.
 - **2026-10-11:** E5 started: a sealed fresh-agent continuation of the production garden with three controlled notes.
 - **2026-10-10:** P11 done. Version 0.13.0 ships the learned check library: computed rules proven on their error, owner approval, pinning and repeat counts.
 - **2026-10-10:** P11 started; [implementation plan](archive/plans/P11_LEARNED_CHECKS.md) written and [D19](DESIGN_DECISIONS.md#d19-learned-checks-are-computed-rules-in-an-owner-approved-library) recorded.
 - **2026-10-10:** P12 done. Version 0.12.0 requires the owner's terminal for every artist authority; agent sessions and piped input are refused.
 - **2026-10-10:** P12 started; [implementation plan](archive/plans/P12_OWNER_APPROVAL.md) written and [D18](DESIGN_DECISIONS.md#d18-artist-authority-comes-only-through-the-owners-terminal) recorded.
-- **2026-10-10:** R1 and R3 done. Merged remote branches deleted; tags `v0.4.8` through `v0.11.0` pushed. README brought up to date with 0.7.0Ã¢â‚¬â€œ0.11.0.
+- **2026-10-10:** R1 and R3 done. Merged remote branches deleted; tags `v0.4.8` through `v0.11.0` pushed. README brought up to date with 0.7.0–0.11.0.
 - **2026-10-10:** R1 unblocked. With the GitHub CLI switched to `cedarconnor`, `main` was pushed through 0.11.0; deleting the merged remote branches awaits approval.
 - **2026-10-10:** P4 done. Version 0.11.0 ships `review-page`, `review-import` and submission questions with defaults.
 - **2026-10-10:** P4 started; [implementation plan](archive/plans/P4_REVIEW_PAGE.md) written.

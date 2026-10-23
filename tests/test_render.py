@@ -1,5 +1,6 @@
 """Portable checks for review views, the render command and its queue; native runs are qualified separately."""
 import copy
+import gc
 import json
 import os
 from pathlib import Path
@@ -9,6 +10,8 @@ import tempfile
 import threading
 import time
 import unittest
+import warnings
+import weakref
 from unittest import mock
 
 from coordination_helpers import Fixture
@@ -247,6 +250,50 @@ class QueueTests(unittest.TestCase):
         final = render.wait(self.base / 'job', timeout=60)
         self.assertEqual(final['state'], 'failed', final)
         self.assertTrue(final['error'])
+
+    def test_detached_child_handle_is_retained_until_exit_and_reaped(self):
+        """Dropping a running Popen emits a warning and abandons explicit reaping."""
+        source = self.base / 'scene.blend'
+        source.write_bytes(b'synthetic saved native')
+        views = self.base / 'views.json'
+        write_json(views, VIEWS)
+        release = self.base / 'release'
+        real_popen = subprocess.Popen
+        children = []
+
+        def launch(*args, **kwargs):
+            # Keep an actual owned child alive past start_detached's return.
+            code = ('import pathlib,sys,time; p=pathlib.Path(sys.argv[1]); '
+                    'deadline=time.monotonic()+10\n'
+                    'while not p.exists() and time.monotonic()<deadline: time.sleep(.02)')
+            child = real_popen([sys.executable, '-c', code, str(release)], **kwargs)
+            children.append(weakref.ref(child))
+            return child
+
+        try:
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter('always', ResourceWarning)
+                with mock.patch.object(render.subprocess, 'Popen', side_effect=launch):
+                    queued = render.start_detached(source, self.base / 'job', 'unused', views=views)
+                gc.collect()
+                self.assertEqual(queued['status'], 'QUEUED')
+                self.assertFalse(release.exists())
+                self.assertFalse([w for w in caught if issubclass(w.category, ResourceWarning)])
+                child = children[0]()
+                self.assertIsNotNone(child, 'Running child handle was discarded')
+                self.assertIsNone(child.returncode, 'Detached start waited for the child')
+                release.touch()
+                deadline = time.monotonic() + 10
+                # Do not call poll/wait here: the owner must reap automatically.
+                while child.returncode is None and time.monotonic() < deadline:
+                    time.sleep(.02)
+                self.assertEqual(child.returncode, 0)
+        finally:
+            release.touch(exist_ok=True)
+            for reference in children:
+                child = reference()
+                if child is not None:
+                    child.wait(timeout=15)
 
 
 class RenderCliTests(unittest.TestCase):

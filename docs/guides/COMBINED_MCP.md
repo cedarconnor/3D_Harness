@@ -2,14 +2,14 @@
 
 One installation provides the harness CLI, stdio MCP endpoint, build rules and a pinned Blender bridge. Construction uses the [managed execution service](MANAGED_EXECUTION.md) in autonomous or approval-gated mode, with background scripts or [bounded operations in the open scene](LIVE_BLENDER.md). The calling agent provides plans, parameters, scripts and visual judgment.
 
-Live inspection is advisory; saved checkpoint observations remain authoritative. Paired live writes use retained pre-copies, explicit recipes, independent verification and the same stage rules as background execution. Unpaired access remains read-only. Qualified local add-ons use the same managed service. Raw live Python, provider downloads and telemetry are not part of this endpoint.
+Live inspection is advisory; saved checkpoint observations remain authoritative. Paired live writes use retained pre-copies, explicit recipes, independent verification and the same stage rules as background execution. Unpaired access remains read-only. Qualified local add-ons use the same managed service. The public protocol exposes no raw live Python command. Qualified project-resident adapters still execute Python under the same trusted local user; their hashes are integrity checks, not a sandbox. Provider downloads and telemetry are not part of this endpoint.
 
 ## Install and connect
 
 Use Python 3.11 or newer in a dedicated environment. Install the built wheel with
 `python -m pip install PATH_TO/dcc_harness-0.23.0-py3-none-any.whl`, or install this
 checkout with `python -m pip install .`. Dependencies include the pinned MCP SDK.
-The existing `dcc-harness` CLI remains available.
+The existing `dcc-harness` CLI remains available. Installation registers both executables in this environment; adding the MCP to a client is separate. Only the direct MCP SDK version is pinned; transitive dependencies are not fully locked.
 
 Configure one stdio server in your MCP client with the environment's absolute
 `dcc-harness-mcp` executable and these arguments (replace paths):
@@ -49,7 +49,7 @@ The package does not include Blender itself. This release is qualified on Blende
 5. Gather native and visual evidence with `observe`, `render`, `relations`,
    `uv-report`, `harness_read` and the relevant craft rules. `requirements` supplies
    stage evidence requirements. Call `run-submit` once the evidence is ready.
-6. Autonomous mode advances valid agent-reviewed stages within the brief. Gated
+6. Autonomous mode advances valid agent-reviewed stages within the brief, preserving any manifest/binding `artist_required` policy. Gated
    mode returns `AWAITING_APPROVAL`; create a `review-page` and give its file and
    export/import instructions to the owner. The artist runs `review-import` or
    `stage-complete` in their own interactive terminal. There is no MCP approval
@@ -62,7 +62,7 @@ checkpoint is not automatically an artist-accepted stage. Budget exhaustion,
 unknown outcomes and missing evidence remain visible stops. Consult
 [managed execution](MANAGED_EXECUTION.md) for immutable mode/budget and restart
 semantics. A new package source digest cannot silently replace a project's pinned
-runtime; keep the qualified runtime for existing projects.
+runtime; keep the qualified runtime for existing projects. Rules include their recursive local references, including executable examples, schemas and tests. Installed wheels freeze that closure in `rules.zip`; editing the checkout changes its development catalog and intentionally invalidates a mismatched rules binding. Do not edit an exported rules bundle or rebind it to bypass a runtime mismatch.
 
 ## Reusable local add-ons
 

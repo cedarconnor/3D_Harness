@@ -1,11 +1,43 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
+import zipfile
 
 from dcc_harness import distribution
 
 
 class DistributionTests(unittest.TestCase):
+    def test_referenced_executable_rules_are_pinned_in_installed_archive(self):
+        """Executable examples stay usable; checkout edits cannot mutate installed rules."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'checkout'
+            for name in distribution.SEEDS:
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text('[Example](../../scripts/example.py)', encoding='utf-8')
+            example = root / 'scripts/example.py'
+            example.parent.mkdir()
+            example.write_bytes(b'print("original")\n')
+            original = distribution.source_rules(root)
+            self.assertEqual(original['scripts/example.py'], b'print("original")\n')
+            data = Path(tmp) / 'installed-data'
+            data.mkdir()
+            with zipfile.ZipFile(data / 'rules.zip', 'w') as archive:
+                for name, content in original.items():
+                    archive.writestr(name, content)
+            with mock.patch.object(distribution, 'DATA', data):
+                target = Path(tmp) / 'bound-rules'
+                distribution.export_rules(target)
+                pinned = distribution.verify_rules(target)
+                example.write_text('print("development change")\n', encoding='utf-8')
+                self.assertNotEqual(distribution.source_rules(root), original)
+                self.assertEqual(distribution.verify_rules(target), pinned)
+                self.assertEqual(distribution.read_rule('scripts/example.py'), 'print("original")\n')
+                (target / 'scripts/example.py').write_text('tampered', encoding='utf-8')
+                with self.assertRaisesRegex(ValueError, 'changed'):
+                    distribution.verify_rules(target)
+
     def test_recursive_capability_schema_manifest_and_missing_runtime(self):
         import json, zipfile
         from dcc_harness.bridge_integrity import verify_contents

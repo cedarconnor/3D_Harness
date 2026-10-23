@@ -62,6 +62,9 @@ An agent with an unrestricted shell on your account can still get around it:
 
 - remove the variables and fake a terminal;
 - construct an approval in Python;
+- inject a console object exposing `environ`, `isatty` and `ask` into `owner.confirm`, as the [synthetic qualification console](../../scripts/qualify_execution.py) does for tests;
 - rewrite the record files and their hashes.
 
 Real separation would mean the approvals are written by a process the agent's account cannot reach, and these sessions do not have that. To keep the guard meaningful, give agents their own sandbox or user account when you can, and tell them never to work around a refusal.
+
+The injectable console is an intentional trusted-local testing interface. A successful synthetic confirmation proves routing and payload binding, not an authenticated human decision. The qualification console must never be used to represent actual artist acceptance.

@@ -14,6 +14,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 
 from .continuity import _plain
@@ -224,8 +225,12 @@ def start_detached(source, out, blender, *, project=None, views=None):
     root = str(Path(__file__).resolve().parent.parent)
     environment = {**os.environ, 'PYTHONPATH': root + os.pathsep + os.environ.get('PYTHONPATH', '')}
     with (folder / 'job.log').open('x', encoding='utf-8') as log:
-        subprocess.Popen([sys.executable, '-m', 'dcc_harness', 'render-job', str(folder)], stdin=subprocess.DEVNULL,
-                         stdout=log, stderr=subprocess.STDOUT, cwd=root, env=environment, close_fds=True, **options)
+        process = subprocess.Popen(
+            [sys.executable, '-m', 'dcc_harness', 'render-job', str(folder)], stdin=subprocess.DEVNULL,
+            stdout=log, stderr=subprocess.STDOUT, cwd=root, env=environment, close_fds=True, **options)
+    # Retain and reap our handle without keeping the caller alive for a detached job.
+    # A short-lived CLI may exit first; the child remains independent in that case.
+    threading.Thread(target=process.wait, name='dcc-render-reaper', daemon=True).start()
     return {'schema': 'dcc.render.queued.v1', 'status': 'QUEUED', 'job': str(folder),
             'next_action': f'python -m dcc_harness render-wait "{folder}"'}
 

@@ -1,6 +1,6 @@
 # Managed execution
 
-The `dcc_harness.execution` service owns the complete edit lifecycle: admission, retained inputs, one background Blender invocation, independent saved-file observation, contract checking and checkpoint publication. CLI commands use the same service that a future MCP adapter will call.
+The `dcc_harness.execution` service owns the complete edit lifecycle: admission, retained inputs, one background Blender invocation, independent saved-file observation, contract checking and checkpoint publication. CLI commands and the shipped `dcc-harness-mcp` endpoint use this service.
 
 The calling agent still interprets the brief, writes the construction script, inspects images and supplies stage evidence. This package does not embed an LLM or start an unattended reasoning agent itself. An autonomous client can loop over the service without routine human gates; a gated client uses the same loop and waits for owner review between stages.
 
@@ -41,7 +41,7 @@ An identical operation ID and request recover the retained receipt; they never e
 python -m dcc_harness run-submit PROJECT --submission submission.json --evidence-root EVIDENCE_FOLDER
 ```
 
-In autonomous mode, `run-submit` attempts an agent stage completion after validating all evidence, feedback and pinned checks. Optional `--review review.json` supplies the agent's finding and answers to questions without defaults. Invalid or incomplete evidence leaves the submission unapproved. Agent completion always records `artistic_acceptance: not_evaluated`.
+In autonomous mode, `run-submit` attempts agent completion only when the effective manifest and binding policy permit it, after validating evidence, feedback and pinned checks. An `artist_required` stage returns `AWAITING_APPROVAL` in either mode. Optional `--review review.json` supplies the agent's finding and answers to questions without defaults. Invalid or incomplete evidence leaves the submission unapproved. Agent completion always records `artistic_acceptance: not_evaluated`. Fresh submissions and resumed agent completion enforce cancellation, deadline and runtime pins; completed identical submissions remain readable.
 
 In approval-gated mode, submission returns `AWAITING_APPROVAL`. The owner reviews the checkpoint using `review-page`/`review-import` or the existing `stage-complete` command from their terminal. Every stage requires artist review even if its original manifest allowed agent review. Approval refers to a specific submission, checkpoint and pinned workflow; intervening coordination activity or a changed checkpoint makes it stale. Existing terminal attribution is a guard, not a cryptographic identity system.
 
@@ -55,14 +55,18 @@ python -m dcc_harness run-reconcile PROJECT --operation-id OPERATION_UUID --reas
 python -m dcc_harness run-reconcile PROJECT --operation-id OPERATION_UUID --accept --reason "Candidate and preserved scene verified"
 ```
 
-Timeout/cancellation terminate and reap the owned Blender process. They do not mean that nothing ran. The accepted checkpoint stays unchanged until a passing candidate is published. Cancellation is irreversible for that run. Explicit reconciliation never reruns the script. It can finish an interrupted native check or recover a committed publication receipt. Rejecting an attempt closes its journal record without changing the accepted checkpoint.
+Timeout/cancellation terminate and reap the owned worker. They do not mean that nothing ran. MCP tool teardown records operation-specific cancellation; it does not terminally cancel the run. After reconciling that operation, a fresh operation can proceed within the remaining budget. Explicit `run-cancel` is irreversible for that run. Unresolved work takes precedence as `NEEDS_RECONCILIATION` in status, even on a terminally cancelled run.
+
+The accepted checkpoint stays unchanged until a passing candidate is published. Explicit reconciliation never reruns the script. It can finish an interrupted independent native check or recover a committed publication and its frozen capability receipt. An already verified candidate may publish after deadline through explicit reconciliation, while runtime, stage policy and terminal run cancellation still apply. Rejecting an attempt closes its journal record without changing the accepted checkpoint. Failed pre-dispatch staging is retained and listed by status; inspect it before deliberate cleanup.
+
+Saved external revisions in background managed projects use `accept-revision --stage STAGE`, consume ordinary admission/budget and reopen affected stages. The caller's review note is recorded without authenticating artist approval. Paired live projects refuse this import route; use measured live refresh/recovery. See [external revisions](EXTERNAL_REVISIONS.md).
 
 If the controller itself dies, its kernel lock releases, but its unresolved operation blocks new work. A surviving Blender process may still be working on that attempt's owned files; inspect and stop it before reconciling. Corrupted files, incomplete checkpoint bundles, and a crash-retained `workflow.lock` remain explicit inspection stops. Automatic recovery does not erase partial evidence or guess which files to delete.
 
 ## Qualification
 
-`scripts/verify_release.py` is the maintained local release entry point. It runs the source suite, builds and installs a wheel into an isolated target, runs the suite against that runtime, and runs native units, adoption and managed-execution qualifications when `--blender` is supplied. Native fixtures use owned background processes and fresh folders. The gated native fixture uses a synthetic owner console solely to test authority routing; it does not establish a real person's approval or artistic quality.
+`scripts/verify_release.py` is the maintained release entry point. It runs source and installed suites, builds wheel/sdist, compares rebuilt package members, and checks the installed CLI/MCP and bridge exports. The [portable CI workflow](../../.github/workflows/portable.yml) runs it without Blender. Supplying `--blender` adds local native units, adoption, managed/MCP, live preservation/transport and capability qualifications. Native GUI/background fixtures require owned fresh configuration directories and exact native CONFIG path guards before preference writes. The gated fixture's synthetic owner console tests authority routing; it does not establish a person's approval or artistic quality. The [external-review ledger](../archive/releases/EXTERNAL_REVIEW_0_23_RESULTS.md) records current evidence, historical failures and the unresolved preference incident.
 
-MCP installation, skill bundling and upstream add-on packaging are separate integration work. The runtime wheel currently contains the execution service and workers, not a registered MCP server.
+The wheel ships the execution service/workers, bundled rules and bridge, and registers the `dcc-harness` and `dcc-harness-mcp` executable entry points in its Python environment. `mcp==1.26.0` is the declared direct dependency; its transitive dependencies are not fully locked. Client registration is a separate explicit setup step: installation does not edit Codex or another client's configuration. See [combined setup](COMBINED_MCP.md).
 
 The [v0.20.0 verification report](../reference/MANAGED_EXECUTION_VERIFICATION_2026-10-22.md) records the passing source/installed suites, native checks, independent-review fixes and exact wheel hash.

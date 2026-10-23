@@ -66,7 +66,7 @@ Open the repository in your normal Codex, Claude Code, or Cursor workspace. Wher
 
 > Read `.agents/skills/dcc-harness/SKILL.md` and use its workflow to start or resume my Blender project. Preserve the accepted scene, inspect pending operations before editing, and load the craft skills relevant to the task.
 
-The source skills live in [`.agents/skills/`](.agents/skills/). The wheel includes their local reference closure, accessible through MCP or `--export-rules`, plus the exportable pinned observation add-on. It does not automatically register the MCP or configure Blender. See [combined package setup](docs/guides/COMBINED_MCP.md).
+The source skills live in [`.agents/skills/`](.agents/skills/). The wheel includes their local reference closure, accessible through MCP or `--export-rules`, plus the exportable pinned observation add-on. It registers the CLI/MCP executables in the selected Python environment. Configuring a client to launch the MCP and configuring Blender remain explicit setup steps. Referenced executable examples are intentionally bundled and pinned with the rules; use the matching installed wheel for older projects because checkout source/doc edits change its development catalog. See [combined package setup](docs/guides/COMBINED_MCP.md).
 
 ### Choose how the agent works
 
@@ -77,7 +77,7 @@ Choose the mode when creating the managed run or attaching an open scene. The mo
 | `autonomous` | The agent plans, executes, verifies and advances valid agent-reviewed stages within the brief and budgets | Missing evidence, unsupported work, uncertain outcomes, exhausted budgets or an explicit artist-only decision |
 | `approval_gated` | The agent prepares and verifies each stage, then returns `AWAITING_APPROVAL` | The owner reviews and approves through their own terminal or review-page import before advancement |
 
-Both modes enforce the same technical checks. MCP cannot provide owner approval or waive missing evidence. The host agent drives the work; the server does not run an unattended reasoning loop.
+An `artist_required` manifest stage or bound review policy requires owner review in either mode. Both modes enforce the same technical checks. MCP cannot provide owner approval or waive missing evidence. The host agent drives the work; the server does not run an unattended reasoning loop.
 
 ### Work directly in the open scene
 
@@ -93,9 +93,11 @@ Discover an installed provider with `blender_capabilities`, pin its environment,
 - **`prefer`:** use the provider when applicable; substitution or manual work requires an explicitly configured fallback.
 - **`best_qualified`:** timing selection is unavailable; only explicitly configured fallbacks may proceed. Whole-worker timing cannot rank provider performance.
 
-The agent checks capability requirements at stage boundaries and after refresh. Geometry/material edits or deleted effects trigger an update to the same effect; unchanged effects reuse evidence without another job. Another layer requires an explicit new slot. There is no background edit watcher.
+The agent checks capability requirements at stage boundaries and after refresh. Changes to declared dependencies or deletion/change of a claimed effect trigger an update to the same effect; unchanged effects reuse evidence without another job. Another layer requires an explicit new slot. Current effect attribution requires an independently measured native modifier; standalone geometry/material/shader-node outputs are refused. Legacy results lacking that native evidence require requalification. There is no background edit watcher.
 
 Once the artist confirms a capability policy, every revision requires owner confirmation. Add-ons are installed and licensed separately, and each real provider needs its own qualification. See the [add-on guide and executable onboarding example](docs/guides/ADDON_RECIPES.md).
+
+Portable [CI](.github/workflows/portable.yml) is configured to install the declared `mcp==1.26.0` dependency and run source/installed package checks on Windows and Linux. Transitive dependencies are not fully locked. Blender qualification remains a separate local Windows gate. The [external-review ledger](docs/archive/releases/EXTERNAL_REVIEW_0_23_RESULTS.md) records the measured follow-up limits, pending integrated gate and unresolved preference incident.
 
 ## Everyday workflow
 
