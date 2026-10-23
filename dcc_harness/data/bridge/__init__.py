@@ -28,7 +28,7 @@ COMMANDS = ('ping', 'get_addon_info', 'get_scene_info', 'get_object_info', 'list
 PAIRED_COMMANDS = ('session_describe', 'inspect', 'attach_begin', 'attach_apply', 'attach_check', 'attach_acknowledge', 'attach_rebind',
                    'job_prepare', 'job_submit', 'job_status', 'job_cancel', 'job_check', 'job_acknowledge',
                    'recovery_capture', 'recovery_acknowledge', 'preview_capture', 'addons_inventory')
-FEATURES = ('paired_sessions', 'document_generation', 'scoped_inspection', 'addon_profiles_v1')
+FEATURES = ('paired_sessions', 'document_generation', 'scoped_inspection', 'addon_profiles_v1', 'qualified_recipes_v1')
 server = None
 
 

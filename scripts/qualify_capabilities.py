@@ -295,12 +295,29 @@ bpy.data.libraries.write(request['output'],{tree})
     print('PASS: function/operator/node-asset qualification, context, reopen, repeat, failure and source-drift cases',flush=True)
 
 
+def all_cases(args):
+    from types import SimpleNamespace
+    from dcc_harness.evidence import write_json
+    from qualify_capability_routing import routing
+    from qualify_capability_revisions import revisions
+    from qualify_capability_mcp import mcp_cases
+    out=Path(args.out).resolve(); out.mkdir(parents=True,exist_ok=False)
+    reports=[]
+    for name,run in (('profiles',profiles),('onboarding',onboarding),('routing',routing),('revisions',revisions),('stdio',mcp_cases)):
+        item=SimpleNamespace(**{**vars(args),'out':str(out/name),'qualification_root':str(out/'onboarding') if name in ('routing','revisions','stdio') else None})
+        run(item); reports.append({'case':name,'report':str(out/name/'VERIFICATION.json')})
+        write_json(out/(name+'-completed.json'),reports[-1])
+    write_json(out/'VERIFICATION.json',{'passed':True,'case':'all','reports':reports})
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--runtime', required=True); parser.add_argument('--blender', required=True)
-    parser.add_argument('--out', required=True); parser.add_argument('--case', choices=['profiles','onboarding','routing','revisions'], default='profiles')
+    parser.add_argument('--out', required=True); parser.add_argument('--case', choices=['profiles','onboarding','routing','revisions','stdio','all'], default='all')
     parser.add_argument('--qualification-root',help='Existing current-runtime owned onboarding proof for revision checks')
     args = parser.parse_args()
     from qualify_capability_routing import routing
     from qualify_capability_revisions import revisions
-    {'profiles':profiles,'onboarding':onboarding,'routing':routing,'revisions':revisions}[args.case](args)
+    from qualify_capability_mcp import mcp_cases
+    sys.path.insert(0,str(Path(args.runtime).resolve()))
+    {'profiles':profiles,'onboarding':onboarding,'routing':routing,'revisions':revisions,'stdio':mcp_cases,'all':all_cases}[args.case](args)

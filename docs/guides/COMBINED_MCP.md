@@ -2,12 +2,12 @@
 
 One installation provides the harness CLI, stdio MCP endpoint, build rules and a pinned Blender bridge. Construction uses the [managed execution service](MANAGED_EXECUTION.md) in autonomous or approval-gated mode, with background scripts or [bounded operations in the open scene](LIVE_BLENDER.md). The calling agent provides plans, parameters, scripts and visual judgment.
 
-Live inspection is advisory; saved checkpoint observations remain authoritative. Paired live writes use retained pre-copies, explicit recipes, independent verification and the same stage rules as background execution. Unpaired access remains read-only. Raw live Python, paid providers and telemetry are not part of this endpoint.
+Live inspection is advisory; saved checkpoint observations remain authoritative. Paired live writes use retained pre-copies, explicit recipes, independent verification and the same stage rules as background execution. Unpaired access remains read-only. Qualified local add-ons use the same managed service. Raw live Python, provider downloads and telemetry are not part of this endpoint.
 
 ## Install and connect
 
 Use Python 3.11 or newer in a dedicated environment. Install the built wheel with
-`python -m pip install PATH_TO/dcc_harness-0.22.0-py3-none-any.whl`, or install this
+`python -m pip install PATH_TO/dcc_harness-0.23.0-py3-none-any.whl`, or install this
 checkout with `python -m pip install .`. Dependencies include the pinned MCP SDK.
 The existing `dcc-harness` CLI remains available.
 
@@ -63,6 +63,22 @@ unknown outcomes and missing evidence remain visible stops. Consult
 [managed execution](MANAGED_EXECUTION.md) for immutable mode/budget and restart
 semantics. A new package source digest cannot silently replace a project's pinned
 runtime; keep the qualified runtime for existing projects.
+
+## Reusable local add-ons
+
+`blender_capabilities` discovers installed providers, creates pinned profiles, binds
+selection policy, reports requirements, resolves candidates and prepares operations.
+`blender_recipe` scaffolds, retains, inspects, qualifies and registers adapters.
+`blender_execute` dispatches prepared operations through either managed backend.
+See [payload fields and a complete executable example](ADDON_RECIPES.md#mcp-and-cli-onboarding).
+
+Choose `require` when a stage must use a named qualified provider. Choose `prefer`
+with an explicit fallback when substitution is allowed. `best_qualified` compares
+measured fixture execution time only; it cannot decide which result looks better.
+Missing, changed or unverifiable required effects block both autonomous completion
+and gated approval. Source changes require requalification; unrelated scene changes
+can preserve receipts. No add-on is purchased, installed or enabled globally by this
+onboarding flow. There is still no MCP owner-approval action.
 
 ## Optional live bridge
 

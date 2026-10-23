@@ -2,6 +2,15 @@
 
 Each version is a bounded increment with its own qualification report. Test counts are portable-suite results on Windows; the two skips in each count are host symlink-permission cases. Native qualification uses Blender 5.1.1 on Windows. Studies are listed with the versions they exercised. The [build plan](docs/BUILD_PLAN.md) explains what remains open, and reports that link into `runs/` refer to local evidence excluded from Git.
 
+## 0.23.0 — October 22, 2026
+
+- Added static provider discovery and immutable source-pinned environments, with explicit session activation in execution and independent verification workers.
+- Added inert recipe bundles, a shared portable parameter schema, native function/operator/node-asset qualification, retained failure evidence and source-change invalidation.
+- Added preferred/required provider policies and measured timing comparisons. Stage gates require service-owned receipts for actual verified effects; prose and owner approval cannot override missing technical evidence.
+- Added dependency-aware reuse and updates under stable effect IDs. Geometry/material changes and deleted effects become stale; unrelated revisions preserve valid receipts, and new explicit slots permit layers.
+- Added `blender_capabilities`, `blender_recipe` and generic `blender_execute` routes for both managed backends, matching CLI actions, recursive standalone bridge manifests and executable synthetic onboarding examples.
+- All 17 release gates passed, with 588 tests each in source and installed packages (two existing skips), baseline native checks, 26 live scenarios and the full capability matrix. Real third-party products and visual superiority require separate qualification; see the [qualification report](docs/archive/releases/ADDON_CAPABILITIES_RESULTS.md).
+
 ## 0.22.0 — October 22, 2026
 
 - Added paired open-scene execution through the same reservation, budget, verification and publication service as background jobs. Initial recipes cover transforms, Principled inputs, bounded modifiers and qualified node assets.

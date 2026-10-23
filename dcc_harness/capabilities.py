@@ -307,7 +307,8 @@ def validate_receipt(value):
     if value['schema']!='dcc.capability.receipt.v1': raise ValueError('Unsupported capability receipt')
     c.identifier(value['operation_id'])
     for key in hashes: sha(value[key])
-    for key in ('target_id','capability','slot','provider'): identifier(value[key])
+    c.text(value['target_id'])
+    for key in ('capability','slot','provider'): identifier(value[key])
     exact(value['checkpoint'],{'checkpoint_id','checkpoint_sha256'})
     for item in value['checkpoint'].values(): sha(item)
     exact(value['evidence'],{'capability-output.json','capability-verified.json','observation.json'})
@@ -352,16 +353,17 @@ def admit(root,value):
     return cap
 
 
-def execute(root,requirement,resolution,parameters,operation_id,*,blender,contract,handoff,timeout=300):
+def prepare(root,requirement,resolution,parameters,operation_id,*,blender,contract,handoff,timeout=300):
+    """Retain input for the existing execution service, or return verified reuse."""
     from . import execution
     c.identifier(operation_id)
-    if resolution.get('selected') is None: raise ValueError('No qualified provider selected for execution')
     root=reject_links(root).resolve()
     existing=root / 'execution/operations' / operation_id / 'request.json'
     if not existing.exists():
         with execution._exclusive(root):
             reused=reuse(root,requirement,resolution,parameters)
             if reused is not None: return reused
+    if resolution.get('selected') is None: raise ValueError('No qualified provider selected for execution')
     folder=reject_links(root / 'capabilities/inputs' / operation_id)
     folder.mkdir(parents=True,exist_ok=True)
     script=folder / 'script.py'
@@ -378,11 +380,21 @@ def execute(root,requirement,resolution,parameters,operation_id,*,blender,contra
            'profile':recipes.profile_reference(root,resolution['selected']['profile_digest'])}
     if value['backend']=='live':
         value['live']={'recipe':'capability.recipe','target':requirement['target_id'],'parameters':{'operation_id':operation_id}}
-    return execution.execute_operation(root,value)
+    return {'status':'PREPARED','operation':value}
+
+
+def execute(root,requirement,resolution,parameters,operation_id,*,blender,contract,handoff,timeout=300):
+    from . import execution
+    result=prepare(root,requirement,resolution,parameters,operation_id,blender=blender,contract=contract,handoff=handoff,timeout=timeout)
+    return result if result['status']=='REUSED' else execution.execute_operation(root,result['operation'])
 
 
 def reuse(root,requirement,resolution,parameters):
     """Read-only reuse under the execution lock; no reservation, UUID consumption or job."""
+    from .execution import configuration
+    from .environment_workflow import runtime_stamp
+    config=configuration(root)
+    if config is None or config['runtime']!=runtime_stamp(): raise ValueError('Reuse requires the managed run pinned runtime')
     native=c.Continuity(root).status(); events=c.read(root)
     c.Context(Path(root),native,events,Path(root)).quiet()
     active=native['active']; observation=read_json(active['observation'])

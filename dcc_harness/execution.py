@@ -276,13 +276,13 @@ def execute_operation(root, value):
             if retained != request:
                 raise ValueError('Operation ID reused with different content')
             return _outcome(folder)
-        active, config = _admit(root, stage, expected_parent)
         if 'capability' in request:
             from .capabilities import admit, reuse
             admit(root,value)
             capability=request['capability']
             reused=reuse(root,capability['requirement'],capability['resolution'],capability['parameters'])
             if reused is not None: return reused
+        active, config = _admit(root, stage, expected_parent)
         if kind == 'live' and request.get('live', {}).get('recipe') != 'external.capture':
             from .live import ensure_aligned
             ensure_aligned(root)

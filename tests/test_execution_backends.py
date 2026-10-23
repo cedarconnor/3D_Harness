@@ -9,6 +9,14 @@ from dcc_harness.evidence import read_json, write_json, file_hash
 
 
 class BackendTests(Fixture):
+    def test_fresh_capability_reuses_before_mutation_only_admission(self):
+        from dcc_harness import capabilities
+        self.start(); request=self.request(); request['capability']={'requirement':{},'resolution':{},'parameters':{}}
+        with mock.patch.object(capabilities,'admit'),mock.patch.object(capabilities,'reuse',return_value={'status':'REUSED'}), \
+             mock.patch.object(execution,'_admit',side_effect=AssertionError('No mutation admission for reuse')):
+            self.assertEqual(execution.execute_operation(self.root,request)['status'],'REUSED')
+        self.assertFalse((self.root/'execution/operations').exists())
+
     def test_capability_uses_same_reservation_budget_and_independent_verifier(self):
         from dcc_harness import capabilities, environments, provider_sources
         self.start(); request=self.request(); request['capability']={'requirement':{},'resolution':{},'parameters':{}}

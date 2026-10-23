@@ -2,6 +2,27 @@
 
 Decision log, started October 3, 2026 and updated through version 0.5.0 on October 6. D1–D9 incorporate the user's goals and the supplied Claude critique; they were proposed before implementation. D10–D17 record choices made while building. The [build plan](BUILD_PLAN.md) owns sequencing and experiment budgets; this log owns architecture decisions. Supporting studies do not override either.
 
+## Qualified add-on capabilities — October 22, 2026
+
+Version 0.23.0 separates discovery, environment activation, recipe qualification,
+provider selection and actual project execution. Static inventory never imports a
+disabled provider. Immutable profiles pin source bytes, build and non-secret settings;
+recipe bundles pin adapters/assets and explicit input/output scope. An agent may draft
+a recipe, but only owned native cases and independent reopen can qualify it.
+
+Policies bind preferred or required providers to stages and targets. The existing
+execution journal publishes receipts only after native invocation and verification;
+neither prose nor owner approval substitutes for technical evidence. Live and background
+operations share this path. Reuse validates current inputs and effect measurements;
+relevant changes update a stable effect key, and an explicit new slot creates a layer.
+There are no edit watchers or hidden drafting agents. Timing benchmarks do not rank art.
+
+CLI and MCP share closed action APIs; `prepare` returns a typed operation or read-only
+reuse. `blender_execute` uses the generic `run-operation` route, retaining UUID,
+cancellation and budget behavior. Recursive explicit bridge manifests include the
+capability schemas and runtime. Private providers remain external and individually
+qualified; neither packaging nor qualification installs or licenses them for the user.
+
 ## Direct open-scene execution — October 22, 2026
 
 Version 0.22.0 adds a live backend under the existing managed service. Runtime/backend/mode pins remain immutable; replaceable paired-session bindings are separate. Fresh adoption preserves the artist's file and unsaved state. Existing live projects use explicit refresh/reconnect; background projects require a new live adoption rather than an implicit history/runtime migration.

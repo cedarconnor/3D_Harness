@@ -114,6 +114,12 @@ class MCPWorkflowTests(Fixture):
         self.assertEqual(execution.status(self.root)['status'], 'AWAITING_APPROVAL')
 
     def test_cancelled_controller_marks_run_and_reaps_real_child(self):
+        self.cancel_controller('run-execute')
+
+    def test_cancelled_typed_controller_marks_run_and_reaps_real_child(self):
+        self.cancel_controller('run-operation')
+
+    def cancel_controller(self, command):
         from dcc_harness import execution
         from dcc_harness.mcp_server import run_cli
         import sys
@@ -128,6 +134,10 @@ class MCPWorkflowTests(Fixture):
         args = ['run-execute', str(self.root), '--stage', 'direction', '--operation-id', str(uuid.uuid4()),
                 '--script', str(self.script), '--contract', str(self.contract), '--handoff', str(self.handoff),
                 '--blender', sys.executable, '--parent', self.packet['active']['id']]
+        if command == 'run-operation':
+            request = self.base / 'typed.json'
+            request.write_text(json.dumps({'blender': sys.executable}), encoding='utf-8')
+            args = [command, str(self.root), '--request', str(request)]
         async def trial():
             with mock.patch('asyncio.create_subprocess_exec', side_effect=slow_child):
                 task = asyncio.create_task(run_cli(args, self.base))

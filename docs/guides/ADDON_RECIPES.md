@@ -1,6 +1,6 @@
 # Reusable add-on recipes
 
-P22 development contract. A retained draft is not qualified, and technical qualification
+A retained draft is not qualified, and technical qualification
 is not evidence that an add-on produces better art. Product-specific compatibility must
 be established with the user's installed provider and its own recipe cases.
 
@@ -120,3 +120,55 @@ Initial managed support refuses recipes whose coverage includes custom propertie
 which P21 does not measure, and refuses policies that omit declared recipe inputs.
 The isolated qualifier can inspect broader recipe properties, but that does not make
 them eligible for managed use. Existing projects keep their pinned runtime and rules.
+
+## MCP and CLI onboarding
+
+The public MCP tools share the CLI service APIs. Each CLI action takes `--request`
+pointing to a JSON payload; native actions also accept `--blender PATH`. MCP uses its
+configured Blender executable. For example, `recipe-draft --request draft.json`
+and `blender_recipe(action="draft", payload=...)` retain the same inert bundle.
+
+| Tool/action | Required payload fields | Result |
+|---|---|---|
+| `blender_capabilities/inventory` | none; optional `binding`, `roots`, `out` | Discovered providers; roots are `{path, namespace}` entries |
+| `blender_capabilities/profile` | `project`, `inventory`, `selected`, `preferences` | Immutable selected environment; `selected` is a provider-ID list |
+| `blender_recipe/scaffold` | `recipe` | Incomplete adapter text; no native execution |
+| `blender_recipe/draft` | `project`, `recipe`, `adapter`, `assets` | `DRAFT` bundle; adapter/assets are explicit local paths |
+| `blender_recipe/inspect` | `project`, `recipe_id`, `recipe_digest` | Draft, failed, qualified or stale state |
+| `blender_recipe/qualify` | previous three plus `profile_digest`, `out` | Owned native qualification report; fresh output directory |
+| `blender_recipe/register` | `project`, `report` | Validated retained qualification registration |
+| `blender_capabilities/bind` | `project`, `policy`, `expected_revision`, `request_id`, `authority` | Versioned policy event; same authority guards as workflow binding |
+| `blender_capabilities/requirements` | `project`, `stage` | Current required effects, freshness and selection decisions |
+| `blender_capabilities/resolve` | `project`, `requirement` | Applicable qualified candidate or explicit stop/fallback |
+| `blender_capabilities/prepare` | `project`, `requirement`, `resolution`, `parameters`, `operation_id`, `contract`, `handoff`; optional `timeout` | Typed operation or verified `REUSED` result; no dispatch |
+
+Execute a prepared operation with `blender_execute(request={"project": PROJECT,
+"operation": PREPARED_OPERATION})`, or save just the operation JSON and run
+`run-operation PROJECT --request operation.json`. Both backends use the same
+reservation, budgets, publication and cancellation service. Inspect `run-status`
+after an uncertain response; repeat the same UUID only to retrieve its retained
+outcome. A fresh requirement already satisfied by an unchanged effect returns
+`REUSED` without allocating another operation. Background cancellation is
+`run-cancel`; live jobs also expose the existing `blender_job` status/cancel actions.
+
+For a complete executable example, run:
+
+```powershell
+python scripts/qualify_capabilities.py --runtime . --blender "C:/Program Files/Blender Foundation/Blender 5.1/blender.exe" --out runs/my-new-capability-proof --case stdio
+```
+
+This creates only disposable fixture projects. The [stdio example](../../scripts/qualify_capability_mcp.py)
+contains every payload in order: discover, profile, draft, qualify, register, bind,
+resolve, prepare, execute, reuse and submit in both modes and backends. Its
+[provider](../../tests/fixtures/addons/legacy/capability_fixture/__init__.py) and
+[adapter](../../tests/fixtures/addons/capability_adapter.py) are synthetic examples,
+not implementations for a particular commercial product. Their cases deliberately
+exercise failures; do not enable them in an artist project.
+
+For a private or paid add-on, the user installs and licenses it separately. Inventory
+its actual source, select it into a profile and author a recipe against its documented
+API. Keep proprietary code and licenses outside the distribution. Qualify representative
+inputs before binding a `require` rule; a generic operator listing cannot establish
+semantic suitability. The calling agent must read `requirements` at each stage and
+after refresh, then prepare missing/stale effects. The server enforces required use at
+submission/completion; it does not silently watch edits or run an unattended agent.

@@ -17,6 +17,13 @@ COORDINATION_COMMANDS = {
 def build_parser():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
+    from .capability_api import CAPABILITY_ACTIONS, RECIPE_ACTIONS
+    for family,actions in (('capability',CAPABILITY_ACTIONS),('recipe',RECIPE_ACTIONS)):
+        for action in actions:
+            p=sub.add_parser(f'{family}-{action}',help='Closed JSON action; see ADDON_RECIPES.md for payloads')
+            p.add_argument('--request',required=True); p.add_argument('--blender')
+    p=sub.add_parser('run-operation',help='Execute a typed managed operation through either native backend')
+    p.add_argument('project'); p.add_argument('--request',required=True)
     p = sub.add_parser('live-sessions', help='Discover explicitly paired local sessions without exposing secrets')
     p.add_argument('workspace')
     p = sub.add_parser('live-inspect'); p.add_argument('--request', required=True)
@@ -188,7 +195,14 @@ def main():
             except OSError as exc:
                 _write_failed(parser, exc)
         return
-    if args.command.startswith('live-'):
+    if args.command.startswith(('capability-','recipe-')):
+        from .capability_api import capability_action, recipe_action
+        family,action=args.command.split('-',1)
+        result=(capability_action if family=='capability' else recipe_action)(action,read_json(args.request),blender=args.blender)
+    elif args.command=='run-operation':
+        from .execution import execute_operation
+        result=execute_operation(args.project,read_json(args.request))
+    elif args.command.startswith('live-'):
         from . import live
         if args.command == 'live-sessions': result = live.sessions(args.workspace)
         elif args.command == 'live-inspect': result = live.inspect(read_json(args.request))
@@ -334,7 +348,7 @@ def main():
         except OSError as exc:
             _write_failed(parser, exc)
     nested = result.get("result")
-    if result.get("passed") is False or (isinstance(nested, dict) and nested.get("passed") is False):
+    if args.command != 'capability-requirements' and (result.get("passed") is False or (isinstance(nested, dict) and nested.get("passed") is False)):
         raise SystemExit(1)
 
 

@@ -4,4 +4,5 @@ recursive-include .agents/skills *
 recursive-include docs *.md *.json *.png *.txt
 recursive-include examples *.md *.json *.py *.txt
 recursive-include scripts *.py *.md
+recursive-include tests/fixtures/addons *.py *.toml
 global-exclude __pycache__ *.pyc

@@ -17,6 +17,7 @@ from urllib.parse import quote
 from . import distribution, execution
 from .bootstrap import bind_rules
 from .files import reject_links, write_exclusive, file_hash
+from .capability_api import CAPABILITY_ACTIONS, RECIPE_ACTIONS
 
 COMMANDS = frozenset(('brief', 'next', 'requirements', 'resume', 'review', 'start', 'new-project',
     'run-create', 'run-status', 'run-execute', 'run-submit', 'run-cancel', 'run-reconcile',
@@ -25,7 +26,8 @@ COMMANDS = frozenset(('brief', 'next', 'requirements', 'resume', 'review', 'star
     'observe', 'render', 'render-wait', 'relations', 'uv-report', 'deliver-glb',
     'adopt-preview', 'adopt-apply', 'review-page', 'check', 'diff', 'fill-hashes', 'pack-observation',
     'live-sessions', 'live-inspect', 'live-attach', 'live-refresh', 'live-execute', 'live-status',
-    'live-cancel', 'live-reconcile', 'live-preview'))
+    'live-cancel', 'live-reconcile', 'live-preview', 'run-operation')) | frozenset(
+    'capability-'+action for action in CAPABILITY_ACTIONS) | frozenset('recipe-'+action for action in RECIPE_ACTIONS)
 MAX_TEXT = 4 * 1024 * 1024
 
 
@@ -65,7 +67,7 @@ async def run_cli(arguments, workspace, blender=None, *, timeout=3600):
     if hasattr(parsed, 'blender') and parsed.blender and blender and Path(parsed.blender).resolve() != Path(blender).resolve():
         raise ValueError('Use the Blender executable configured for this MCP server')
     workspace = reject_links(workspace).resolve()
-    if parsed.command == 'live-execute':
+    if parsed.command in ('live-execute','run-operation'):
         source = Path(parsed.request)
         if not source.is_absolute(): source = workspace / source
         value = json.loads(reject_links(source).read_text(encoding='utf-8'))
@@ -91,7 +93,7 @@ async def run_cli(arguments, workspace, blender=None, *, timeout=3600):
             import anyio
             with anyio.CancelScope(shield=True):
                 write_exclusive(folder / 'cancel.request', b'Interrupted MCP request; inspect retained result before any retry.\n')
-                if parsed.command in ('run-execute', 'live-execute'):
+                if parsed.command in ('run-execute', 'live-execute','run-operation'):
                     root = Path(parsed.project)
                     if not root.is_absolute():
                         root = workspace / root
@@ -174,14 +176,43 @@ def create_server(workspace, blender=None, bridge_port=9878):
         return await run_cli(['live-inspect', '--request', retained_payload(query)], workspace, blender)
 
     @server.tool()
+    async def blender_capabilities(action: str, payload: dict) -> dict:
+        """Discover and enforce local add-on capabilities. No install, download or approval actions.
+
+        inventory: optional {binding,roots,out}; profile: {project,inventory,selected,preferences}.
+        bind: {project,policy,expected_revision,request_id,authority}; resolve: {project,requirement}.
+        requirements: {project,stage}; prepare: {project,requirement,resolution,parameters,operation_id,contract,handoff,timeout?}.
+        prepare returns REUSED or PREPARED with operation for blender_execute; it never dispatches a native edit.
+        Read bundled docs/guides/ADDON_RECIPES.md for the closed policy and recipe contracts.
+        """
+        if action not in CAPABILITY_ACTIONS: raise ValueError('Unknown capability action')
+        args=['capability-'+action,'--request',retained_payload(payload)]
+        if blender: args+=['--blender',blender]
+        return await run_cli(args,workspace,blender)
+
+    @server.tool()
+    async def blender_recipe(action: str, payload: dict) -> dict:
+        """Onboard a retained recipe without a hidden drafting model. scaffold: {recipe}.
+
+        draft: {project,recipe,adapter,assets}; inspect: {project,recipe_id,recipe_digest}.
+        qualify: {project,recipe_id,recipe_digest,profile_digest,out}; register: {project,report}.
+        Draft/inspect never import the adapter. Qualify executes only owned disposable workers and retains evidence.
+        Technical qualification does not rank artistic quality or grant stage approval.
+        """
+        if action not in RECIPE_ACTIONS: raise ValueError('Unknown recipe action')
+        args=['recipe-'+action,'--request',retained_payload(payload)]
+        if blender: args+=['--blender',blender]
+        return await run_cli(args,workspace,blender)
+
+    @server.tool()
     async def blender_execute(request: dict) -> dict:
-        """Execute {project, operation}; operation is dcc.execution.operation.v2 with backend=live and a closed live recipe.
+        """Execute {project, operation}; operation is dcc.execution.operation.v2 with background or live backend.
 
         Keep the UUID for identical retries, which return status only. Technical publication never grants owner approval.
         """
         if set(request) != {'project', 'operation'}: raise ValueError('Expected project and operation')
         required_blender()
-        return await run_cli(['live-execute', request['project'], '--request', retained_payload(request['operation'])], workspace, blender)
+        return await run_cli(['run-operation', request['project'], '--request', retained_payload(request['operation'])], workspace, blender)
 
     @server.tool()
     async def blender_job(action: str, operation_id: str, payload: dict) -> dict:

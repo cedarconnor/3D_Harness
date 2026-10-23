@@ -28,8 +28,8 @@ class LifecycleTests(Fixture):
         self.assertEqual(cap.changes(self.root,self.obs,changed)[0]['state'],'DEPENDENCIES_CHANGED')
         self.assertEqual(cap.requirements(self.root,'delivery',self.obs),[])
 
-    def evidence(self):
-        self.bind_capability()
+    def evidence(self,value=None):
+        self.bind_capability(value)
         execution.create(self.root,'autonomous')
         native=c.Continuity(self.root).status(); active=native['active']; observation=read_json(active['observation'])
         req=cap.requirements(self.root,'direction',observation)[0]
@@ -98,3 +98,19 @@ class LifecycleTests(Fixture):
     def test_effect_identity_is_stable_and_slots_are_explicit(self):
         self.assertEqual(cap.effect_key('surface.fixture','one','finish'),cap.effect_key('surface.fixture','one','finish'))
         self.assertNotEqual(cap.effect_key('surface.fixture','one','finish'),cap.effect_key('surface.fixture','one','second'))
+
+    def test_verified_best_selection_can_reuse_when_output_no_longer_matches_empty_benchmark_input(self):
+        native,req,folder,bundle=self.evidence(policy('best_qualified'))
+        decision={'state':'NO_COMPARABLE_EVIDENCE','selected':None}
+        with patch.object(recipes,'require_qualified',return_value=bundle),patch.object(cap,'resolve',return_value=decision):
+            result=cap.execute(self.root,req,decision,req['rule']['parameters'],str(uuid.uuid4()),
+                               blender='not invoked',contract=self.contract,handoff=self.handoff)
+        self.assertEqual(result['status'],'REUSED')
+
+    def test_reuse_still_requires_the_pinned_runtime(self):
+        native,req,folder,bundle=self.evidence()
+        config=execution.configuration(self.root); config['runtime']={'version':'old','source_digest':'a'*64}
+        decision={'state':'RESOLVED','selected':req['rule']['candidates'][0]}
+        with patch.object(execution,'configuration',return_value=config),patch.object(recipes,'require_qualified',return_value=bundle),patch.object(cap,'resolve',return_value=decision):
+            with self.assertRaisesRegex(ValueError,'runtime'):
+                cap.reuse(self.root,req,decision,req['rule']['parameters'])

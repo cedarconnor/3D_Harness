@@ -11,6 +11,8 @@ from .files import reject_links, write_exclusive
 DATA = Path(__file__).with_name('data')
 SEEDS = ('docs/guides/MANAGED_EXECUTION.md', 'docs/guides/COMBINED_MCP.md', 'docs/guides/ADDON_RECIPES.md')
 BRIDGE_FILES = {
+    'capabilities/policy.schema.json': DATA / 'capabilities/policy.schema.json',
+    'capabilities/receipt.schema.json': DATA / 'capabilities/receipt.schema.json',
     'offline.py': Path(__file__).with_name('offline.py'),
     'recipe.schema.json': DATA / 'capabilities/recipe.schema.json',
     'recipe_schema.py': Path(__file__).with_name('recipe_schema.py'),

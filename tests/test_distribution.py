@@ -6,6 +6,29 @@ from dcc_harness import distribution
 
 
 class DistributionTests(unittest.TestCase):
+    def test_recursive_capability_schema_manifest_and_missing_runtime(self):
+        import json, zipfile
+        from dcc_harness.bridge_integrity import verify_contents
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'bridge.zip'; distribution.export_addon(path)
+            with zipfile.ZipFile(path) as archive:
+                contents={name.split('/',1)[1]:archive.read(name) for name in archive.namelist()}
+            self.assertIn('capabilities/policy.schema.json',contents)
+            verify_contents(contents,distribution.bridge_manifest())
+            contents.pop('recipes.py')
+            with self.assertRaises(ValueError): verify_contents(contents,distribution.bridge_manifest())
+
+    def test_recursive_manifest_accepts_only_canonical_safe_members(self):
+        import json,hashlib
+        from dcc_harness.bridge_integrity import verify_contents
+        for name in ('nested/recipe.json','../escape.json','a/../escape.json','a//b','a\\b','C:/bad'):
+            contents={name:b'{}'}
+            contents['manifest.json']=json.dumps({'schema':'dcc.blender.bridge.manifest.v1',
+                'files':{name:hashlib.sha256(b'{}').hexdigest()}}).encode()
+            if name=='nested/recipe.json': verify_contents(contents)
+            else:
+                with self.assertRaises(ValueError): verify_contents(contents)
+
     def test_external_directory_contents_do_not_change_bundle(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -147,6 +147,8 @@ class CapabilityGateTests(Fixture):
                      target_id='ext.table.top',capability='surface.fixture',slot='finish',provider='primary',checkpoint=self.cp(),
                      evidence={name:'b'*64 for name in ('capability-output.json','capability-verified.json','observation.json')})
         self.assertEqual(capabilities.validate_receipt(value),value)
+        value['target_id']='object:模型 1'
+        self.assertEqual(capabilities.validate_receipt(value),value)
         value['evidence'].pop('observation.json')
         with self.assertRaises(ValueError): capabilities.validate_receipt(value)
 

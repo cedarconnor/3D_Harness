@@ -183,8 +183,8 @@ def routing(args):
     from dcc_harness.evidence import write_json,read_json
     from dcc_harness.native import run_worker
     out=Path(args.out).resolve(); out.mkdir(parents=True,exist_ok=False)
-    central=out / 'onboarding'
-    onboarding(SimpleNamespace(**{**vars(args),'out':str(central)}))
+    central=Path(args.qualification_root).resolve() if getattr(args,'qualification_root',None) else out / 'onboarding'
+    if not getattr(args,'qualification_root',None): onboarding(SimpleNamespace(**{**vars(args),'out':str(central)}))
     source=central / 'project/capabilities/qualifications/capability_fixture.python_function/background/before.blend'
     results=[]
     for backend in ('background','live'):
