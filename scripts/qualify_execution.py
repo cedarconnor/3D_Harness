@@ -9,6 +9,7 @@ import uuid
 import time
 import concurrent.futures
 import copy
+from unittest import mock
 
 p = argparse.ArgumentParser()
 p.add_argument('--blender', required=True); p.add_argument('--runtime', required=True); p.add_argument('--out', required=True)
@@ -64,7 +65,7 @@ for mode in ('autonomous', 'approval_gated'):
     binding = {'schema': 'dcc.environment.binding.v1', 'checkpoint': c.checkpoint_ref(workflow.resume(root)['active']),
                'authority': actor, 'review_policies': {}, 'inherited': {}, 'skill_files': {'dcc-plan-environment': [ref(skill)]}, 'references': []}
     ew.apply(root, 'workflow.bind', {'manifest': manifest, 'binding': binding}, 'none', str(uuid.uuid4()), out)
-    execution.create(root, mode, max_operations=4, seconds=600)
+    execution.create(root, mode, max_operations=6, seconds=900)
     for stage in ('direction', 'delivery'):
         active = workflow.resume(root)['active']; op = str(uuid.uuid4())
         result = execution.execute(root, stage, op, script, contract, handoff, a.blender, active['id'], timeout=90)
@@ -108,6 +109,40 @@ for mode in ('autonomous', 'approval_gated'):
         ew.apply(root, 'stage.reopen', {'schema': 'dcc.environment.reopen.v1', 'stage_id': 'direction',
                  'reason': 'Qualify failure handling', 'authority': actor}, c.read(root)[-1]['id'], str(uuid.uuid4()), out)
         active = workflow.resume(root)['active']
+        invalid = out / 'unlabelled.py'
+        invalid.write_text('import bpy\nbpy.ops.mesh.primitive_cube_add()\n', encoding='utf-8')
+        op = str(uuid.uuid4())
+        bad = execution.execute(root, 'direction', op, invalid, contract, handoff, a.blender, active['id'], timeout=90)
+        assert bad['status'] == 'NEEDS_RECONCILIATION', bad
+        folder = root / 'execution/operations' / op
+        assert read_json(folder / 'observation.json')['issues']
+        retained = {name: file_hash(folder / name) for name in ('candidate.blend', 'observation.json')}
+        try:
+            execution.reconcile(root, op, accept=True, reason='Unlabelled candidate must refuse')
+        except ValueError:
+            pass
+        else:
+            raise AssertionError('Invalid candidate accepted')
+        original_write = workflow.write_json
+        def interrupt_rejection(path, value, **kwargs):
+            if Path(path).name == 'native-outcome.json':
+                raise RuntimeError('Owned interruption after rejection check')
+            return original_write(path, value, **kwargs)
+        with mock.patch.object(workflow, 'write_json', side_effect=interrupt_rejection):
+            try:
+                execution.reconcile(root, op, accept=False, reason='Discard unlabelled fixture')
+            except RuntimeError as exc:
+                assert 'Owned interruption' in str(exc), str(exc)
+            else:
+                raise AssertionError('Rejection interruption did not fire')
+        assert execution.reconcile(root, op, accept=False, reason='Discard unlabelled fixture')['status'] == 'REJECTED'
+        assert workflow.resume(root)['active']['id'] == active['id']
+        assert retained == {name: file_hash(folder / name) for name in retained}
+        resumed = execution.execute(root, 'direction', str(uuid.uuid4()), script, contract, handoff, a.blender, active['id'], timeout=90)
+        assert resumed['status'] == 'PUBLISHED', resumed
+        active = workflow.resume(root)['active']
+        results[-1].update(native_publications=3, unlabelled_candidate_rejected=True, rejected_evidence_unchanged=True,
+                          interrupted_rejection_resumed=True, subsequent_native_edit_published=True)
         sleeping = out / 'sleep.py'; sleeping.write_text('import time\ntime.sleep(30)\n', encoding='utf-8')
         op = str(uuid.uuid4())
         timed = execution.execute(root, 'direction', op, sleeping, contract, handoff, a.blender, active['id'], timeout=3)

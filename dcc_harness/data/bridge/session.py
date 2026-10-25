@@ -15,6 +15,10 @@ except ModuleNotFoundError:
     from dcc_harness.files import json_bytes, reject_links, write_exclusive
 
 
+class StaleGenerationError(ValueError):
+    """Authenticated caller refers to a document that has since been replaced."""
+
+
 class Session:
     def __init__(self, workspace, port):
         self.workspace = reject_links(workspace).resolve(strict=True)
@@ -64,8 +68,10 @@ class Session:
     def authorize(self, token, session_id, generation):
         with self._lock:
             if (not isinstance(token, str) or not hmac.compare_digest(token, self._token)
-                    or session_id != self.session_id or generation != self.generation):
+                    or session_id != self.session_id):
                 raise ValueError('Unauthorized session or stale document generation')
+            if generation != self.generation:
+                raise StaleGenerationError('Unauthorized session or stale document generation')
 
     def invalidate(self, reason):
         with self._lock:

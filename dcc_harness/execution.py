@@ -14,7 +14,7 @@ import uuid
 from . import coordination as c, environment_workflow as ew, workflow
 from .continuity import Continuity
 from .evidence import digest, file_hash, finite_number, read_json, write_json
-from .files import reject_links, copy_verified
+from .files import reject_links, copy_verified, io_path, json_bytes, write_exclusive
 from .native import run_worker
 from .execution_backends import make_backend
 from .live_contracts import validate_operation
@@ -425,6 +425,32 @@ def execute_operation(root, value):
             return {**_outcome(folder), 'reason': str(exc)}
 
 
+def rejection_inputs(root, folder, edit):
+    """Freeze rejection inputs before finish_edit can freeze its check (caller holds the run lock)."""
+    path = reject_links(folder / 'rejection-inputs.json')
+    if path.exists():
+        record = read_json(path)
+    else:
+        accepted = Continuity(root).status()['active']
+        # Legacy interrupted publications have a candidate check but no selection
+        # record. New rejection retries always use their explicit frozen choice.
+        use_candidate = (edit / 'check.json').exists()
+        checkpoint = folder / 'candidate.blend' if use_candidate else Path(accepted['checkpoint'])
+        observation = folder / 'observation.json' if use_candidate else Path(accepted['observation'])
+        record = {name: {'path': str(reject_links(value).resolve()), 'sha256': file_hash(value)}
+                  for name, value in (('checkpoint', checkpoint), ('observation', observation))}
+        staged = reject_links(folder / ('rejection-inputs-' + str(uuid.uuid4()) + '.tmp'))
+        write_exclusive(staged, json_bytes(record))
+        io_path(staged).rename(io_path(path))
+    if not isinstance(record, dict) or set(record) != {'checkpoint', 'observation'}:
+        raise ValueError('Invalid retained rejection inputs')
+    for value in record.values():
+        if (not isinstance(value, dict) or set(value) != {'path', 'sha256'}
+                or file_hash(reject_links(value['path'])) != value['sha256']):
+            raise ValueError('Retained rejection input changed')
+    return record['checkpoint']['path'], record['observation']['path']
+
+
 def reconcile(root, operation_id, *, accept=False, reason):
     """Explicitly adopt a fully observed candidate or reject an attempt; never execute a script."""
     c.identifier(operation_id); c.text(reason)
@@ -474,10 +500,10 @@ def reconcile(root, operation_id, *, accept=False, reason):
         if (edit / 'outcome.json').exists():
             outcome = read_json(edit / 'outcome.json')
         else:
-            native = Continuity(root).status()['active']
-            observed_candidate = (folder / 'observation.json').exists() and (folder / 'candidate.blend').exists()
-            checkpoint = folder / 'candidate.blend' if accept or observed_candidate else native['checkpoint']
-            observation = folder / 'observation.json' if accept or observed_candidate else native['observation']
+            if accept:
+                checkpoint, observation = folder / 'candidate.blend', folder / 'observation.json'
+            else:
+                checkpoint, observation = rejection_inputs(root, folder, edit)
             token = _recovery.set(True)
             def before_publish():
                 if 'capability' in request:

@@ -133,10 +133,11 @@ class RecoveryEvidenceTests(unittest.TestCase):
                   'features':list(blender_bridge.FEATURES),'paired_commands':list(blender_bridge.PAIRED_COMMANDS),
                   'bridge_manifest':blender_bridge.bridge_manifest()}
             wire=[]; successful_captures=[]
-            def send(port,command,params,timeout):
+            def send(port,command,params,timeout,**kwargs):
                 if command=='get_addon_info': return info
                 if command=='attach_check': return {'fingerprint':'a'*64}
                 self.assertEqual(command,'recovery_capture')
+                if 'before_send' in kwargs: kwargs['before_send']()
                 payload=params['payload']; wire.append(payload)
                 if len(wire)==1:
                     result={'state':'REFUSED_BEFORE_MUTATION','request':payload,'reason':'BUSY: temporary'}
@@ -210,6 +211,8 @@ class RecoveryEvidenceTests(unittest.TestCase):
             captures=[]
             def call(command,payload,**kwargs):
                 if command=='attach_check': return {'fingerprint':'a'*64}
+                if 'before_dispatch' in kwargs:
+                    kwargs['before_dispatch'](blender_bridge.descriptor(session.descriptor_path))
                 captures.append(payload)
                 result={'state':'REFUSED_BEFORE_MUTATION','request':payload,'reason':'BUSY: fixture'}
                 session.retain_outcome(command,payload,result)

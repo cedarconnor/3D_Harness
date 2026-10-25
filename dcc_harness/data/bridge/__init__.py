@@ -19,7 +19,7 @@ else:
     if '_BRIDGE_IDENTITY' not in globals():
         _BRIDGE_IDENTITY = integrity.describe()
 from . import upstream, inspection, attachment, jobs, recovery
-from .session import Session
+from .session import Session, StaleGenerationError
 
 bl_info = {'name': '3D Harness observation bridge', 'author': '3D Harness contributors; Siddharth Ahuja (upstream)',
            'version': (0, 22, 0), 'blender': (5, 1, 0), 'category': 'Interface',
@@ -31,6 +31,7 @@ PAIRED_COMMANDS = ('session_describe', 'inspect', 'attach_begin', 'attach_apply'
 FEATURES = ('paired_sessions', 'document_generation', 'scoped_inspection', 'addon_profiles_v1', 'qualified_recipes_v1')
 DURABLE_COMMANDS = ('attach_begin', 'attach_apply', 'job_prepare', 'job_submit', 'recovery_capture',
                     'preview_capture', 'attach_acknowledge', 'job_acknowledge', 'recovery_acknowledge')
+SCENE_COMMANDS = DURABLE_COMMANDS + ('attach_check', 'attach_rebind', 'job_check')
 server = None
 
 
@@ -59,9 +60,16 @@ class ObservationServer(upstream.BlenderMCPServer):
                 auth = params['auth']
                 if not isinstance(auth, dict) or set(auth) != {'token', 'session_id', 'generation'}:
                     raise ValueError('Unauthorized paired session')
-                self.session.authorize(**auth)
                 if not isinstance(params['payload'], dict):
                     raise ValueError('Invalid paired payload')
+                try:
+                    self.session.authorize(**auth)
+                except StaleGenerationError as exc:
+                    if name != 'recovery_capture':
+                        raise
+                    result = {'state': 'REFUSED_BEFORE_MUTATION', 'request': params['payload'], 'reason': str(exc)}
+                    self.session.retain_outcome(name, params['payload'], result, generation=auth['generation'])
+                    return {'status': 'success', 'result': result}
                 if name == 'session_describe':
                     result = {**self.session.describe(), 'filepath': bpy.data.filepath,
                               'scenes': [s.name for s in bpy.data.scenes]}
@@ -102,10 +110,10 @@ class ObservationServer(upstream.BlenderMCPServer):
                 encoded = json.dumps({'status': 'success', 'result': result}, allow_nan=False).encode('utf-8')
             except (TypeError, ValueError) as exc:
                 raise ValueError('Result serialization failed: ' + str(exc)) from None
-            if len(encoded) > 8 * 1024 * 1024:
-                raise ValueError('Response exceeds byte limit; narrow query')
             if name in DURABLE_COMMANDS:
                 self.session.retain_outcome(name, params['payload'], result, generation=params['auth']['generation'])
+            if len(encoded) > 8 * 1024 * 1024:
+                raise ValueError('Response exceeds byte limit; narrow query')
             return {'status': 'success', 'result': result}
         except Exception as exc:
             message = str(exc)
@@ -139,8 +147,8 @@ class ObservationServer(upstream.BlenderMCPServer):
                     continue
                 # Read/queue admission is short; an admitted main-thread save can take longer.
                 # A disconnected caller does not cancel native work or erase its durable result.
-                command_deadline = time.monotonic() + (180 if isinstance(command, dict) and command.get('type') in (
-                    'attach_begin', 'attach_apply', 'job_prepare', 'recovery_capture', 'preview_capture') else 10)
+                command_deadline = time.monotonic() + (180 if isinstance(command, dict)
+                    and command.get('type') in SCENE_COMMANDS else 10)
                 self.command_queue.put((command, client, done, command_deadline))
                 done.wait(max(0, command_deadline - time.monotonic()))
                 return

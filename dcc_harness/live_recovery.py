@@ -81,16 +81,23 @@ def reconcile(root, operation_id, decision, expected_fingerprint):
                                           expected=(binding['session_id'], binding['generation']))
             if not current.get('matches', current['fingerprint'] == expected_fingerprint):
                 raise ValueError('STALE_SCENE: inspect later edits before choosing recovery')
-            attempt = attempts / str(uuid.uuid4()); attempt.mkdir(parents=True)
-            write_json(attempt / 'request.json', intent)
+            attempt = attempts / str(uuid.uuid4())
             payload = {**intent, 'attempt_id': attempt.name}
-            write_json(attempt / 'wire-payload.json', payload)
-            descriptor = Path(binding['descriptor'])
-            if descriptor.exists():
-                private = blender_bridge.descriptor(descriptor)
-                write_json(attempt / 'bridge.json', {k: private[k] for k in ('workspace', 'session_id', 'generation')})
+
+            def record_dispatch(private):
+                # No authoritative attempt exists until handshake and connection
+                # succeed. Publish all identity files before sending any bytes.
+                staging = reject_links(folder / 'reconcile-staging' / attempt.name)
+                staging.mkdir(parents=True)
+                write_json(staging / 'request.json', intent)
+                write_json(staging / 'wire-payload.json', payload)
+                write_json(staging / 'bridge.json', {k: private[k] for k in ('workspace', 'session_id', 'generation')})
+                attempts.mkdir(exist_ok=True)
+                staging.rename(attempt)
+
             receipt = blender_bridge.call('recovery_capture', payload, binding=binding['descriptor'],
-                                           expected=(binding['session_id'], binding['generation']))
+                                           expected=(binding['session_id'], binding['generation']),
+                                           before_dispatch=record_dispatch)
             if (isinstance(receipt, dict) and set(receipt) == {'state', 'request', 'reason'}
                     and receipt['state'] == 'REFUSED_BEFORE_MUTATION' and receipt['request'] == payload
                     and isinstance(receipt['reason'], str)):
@@ -120,10 +127,7 @@ def reconcile(root, operation_id, decision, expected_fingerprint):
         reserved = read_json(folder / 'reservation.json')
         edit = root / 'edits' / reserved['edit']
         if not (edit / 'outcome.json').exists():
-            # A previous publication attempt may already have frozen its check. Reuse it exactly.
-            candidate_observed = (folder / 'observation.json').exists() and (folder / 'candidate.blend').exists()
-            checkpoint = folder / 'candidate.blend' if candidate_observed else receipt['archive']['path']
-            check_observation = folder / 'observation.json' if candidate_observed else archive_observation
+            checkpoint, check_observation = execution.rejection_inputs(root, folder, edit)
             outcome = workflow.finish_edit(root, reserved['edit'], checkpoint, check_observation, folder / 'handoff.md', {},
                                            reconciled=True, reject_reason='Explicit live recovery: ' + decision)
         else:

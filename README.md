@@ -97,7 +97,7 @@ The agent checks capability requirements at stage boundaries and after refresh. 
 
 Once the artist confirms a capability policy, every revision requires owner confirmation. Add-ons are installed and licensed separately, and each real provider needs its own qualification. See the [add-on guide and executable onboarding example](docs/guides/ADDON_RECIPES.md).
 
-Portable [CI](.github/workflows/portable.yml) is configured to install the declared `mcp==1.26.0` dependency and run source/installed package checks on Windows and Linux. Transitive dependencies are not fully locked. Blender qualification remains a separate local Windows gate. The [external-review ledger](docs/archive/releases/EXTERNAL_REVIEW_0_23_RESULTS.md) records the completed local integrated gate, measured limits and unresolved preference incident. At this documentation checkpoint, whole-branch review completed and its I1 recovery defect was corrected; scoped rereview, hosted CI and delivery remain pending.
+Portable [CI](.github/workflows/portable.yml) installs the declared `mcp==1.26.0` dependency and runs source/installed package checks on Windows and Linux. All four hosted jobs [passed on main at `7b6e470`](https://github.com/cedarconnor/3D_Harness/actions/runs/40042644685). Transitive dependencies are not fully locked. Blender checks remain a separate local Windows gate. The [external-review ledger](docs/archive/releases/EXTERNAL_REVIEW_0_23_RESULTS.md) records the earlier integrated gate and unresolved preference incident; the [recovery follow-up](docs/archive/releases/RECOVERY_FOLLOWUP_2026_10_25.md) records the subsequent defects, corrections and remaining limits.
 
 ## Everyday workflow
 
@@ -177,7 +177,7 @@ Read [craft capabilities and recipe boundaries](docs/guides/CRAFT_SKILLS.md) bef
 
 ## Validation and current limits
 
-The v0.23.0 follow-up passed its frozen local gate on Blender 5.1.1 and Python 3.11.9 on Windows. At this documentation checkpoint, whole-branch review completed and its I1 recovery defect was corrected; scoped rereview, hosted CI and delivery remain pending. The measured results are:
+The earlier v0.23.0 follow-up passed its frozen local gate on Blender 5.1.1 and Python 3.11.9 on Windows. Its hosted CI also passed, but a subsequent review found recovery deadlocks outside that coverage. Those historical results do not establish general artist-scene readiness. The [recovery follow-up](docs/archive/releases/RECOVERY_FOLLOWUP_2026_10_25.md) tracks the new fixes and their bounded verification. The earlier measured results were:
 
 | Verification | Result |
 |---|---|
@@ -210,6 +210,8 @@ The harness's own overhead has improved. On the same one-parameter revision, a f
 
 Current boundaries:
 
+- Whole-scene checkpoint validation still refuses material node groups, unsupported Geometry Nodes setups, empty material slots and missing textures. An unrelated unsupported object can therefore block a capability. Supporting realistic node groups is the next priority; this recovery fix does not expand observation coverage.
+- The follow-up review also reports modifier-panel state affecting effect reuse, mutable provider-call provenance, incomplete declared dependencies, inconsistent cancellation markers, non-atomic outcome writes and self-attributed network review. These remain outside the recovery correction; add-on receipts must not be treated as proof against hostile adapters.
 - Managed execution enforces reservations, verification, publication and stage policy. It is not a native sandbox, an unconditional exactly-once guarantee, an external-write interceptor or an unattended agent scheduler.
 - Windows deep Python evidence and recipe-bundle I/O are qualified at retained paths. Long native Blender `.blend`/asset paths remain unsupported; deep provider discovery/import remains unqualified.
 - Real add-ons require provider-specific qualification. Managed recipes initially cover measured MESH cases and qualified engines/contexts; arbitrary custom properties and GUI-only providers without independent background verification remain unsupported. Provider-dependent preview/recovery beyond the retained fixtures needs additional native proof.

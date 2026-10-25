@@ -89,6 +89,7 @@ class RecoveryRefusalTests(unittest.TestCase):
             captures = []
             def call(command, payload, **kwargs):
                 if command == 'attach_check': return {'fingerprint':'a' * 64}
+                kwargs['before_dispatch']({'workspace': tmp, 'session_id': 's', 'generation': 'g'})
                 captures.append(payload)
                 if len(captures) == 1:
                     return {'state':'REFUSED_BEFORE_MUTATION', 'request':payload, 'reason':'BUSY: still running'}
