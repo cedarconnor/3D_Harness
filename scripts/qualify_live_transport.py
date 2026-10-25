@@ -18,6 +18,7 @@ def worker(config_path):
     import bpy
     config = json.loads(Path(config_path).read_text())
     out = Path(config['out']); control = Path(config['control'])
+    assert Path(bpy.utils.user_resource('CONFIG')).resolve() == (control / 'user-config').resolve()
     sys.path.insert(0, str(out / 'addon'))
     outbound = []
     def audit(event, args):
@@ -63,6 +64,9 @@ def worker(config_path):
     snapshot_count = 0
     def snapshot(scene):
         nonlocal snapshot_count
+        if (control / 'slow-snapshot-once').exists():
+            (control / 'slow-snapshot-once').unlink()
+            time.sleep(11)
         result = original_snapshot(scene)
         if (control / 'debug-snapshots').exists():
             snapshot_count += 1
@@ -95,6 +99,11 @@ def worker(config_path):
                 jobs.status = original_status
         result = original_capture(jobs, payload)
         if result.get('state') != 'REFUSED_BEFORE_MUTATION':
+            if (control / 'oversized-recovery').exists():
+                # Exercise the response boundary without claiming 16k-object
+                # scene support: the actual saved scene remains 32 objects.
+                result['qualification_padding'] = 'x' * (8 * 1024 * 1024)
+                (jobs.folder(payload['operation_id']) / 'recovery/receipt.json').write_text(json.dumps(result))
             path = out / 'capture-count.json'
             count = json.loads(path.read_text()) if path.exists() else 0
             path.write_text(json.dumps(count + 1))
@@ -102,7 +111,7 @@ def worker(config_path):
     bridge.recovery.capture = capture
     bridge.register(); bridge.server = bridge.ObservationServer(config['port'], out); bridge.server.start()
     (control / 'ready.json').write_text(json.dumps({'descriptor': str(bridge.server.session.descriptor_path)}))
-    deadline = time.monotonic() + 480
+    deadline = time.monotonic() + 900
     def tick():
         if (control / 'clean-image').exists():
             (control / 'clean-image').unlink(); bpy.data.images['OwnedTexture'].reload()
@@ -196,17 +205,40 @@ def qualify(args):
         operation = request(target); failed = live.execute(root, operation)
         assert failed['status'] == 'NEEDS_RECONCILIATION', failed
         (control / 'debug-snapshots').write_text('retain')
+        (control / 'slow-snapshot-once').write_text('11 seconds')
+        snapshot_started = time.monotonic()
         current = blender_bridge.call('attach_check', {}, binding=descriptor)
+        snapshot_seconds = time.monotonic() - snapshot_started
+        assert snapshot_seconds >= 11
         write_json(out / 'recovery-fingerprint.json', current)
+        original_request = blender_bridge._request
+        handshake_count = 0
+        with socket.socket() as unavailable:
+            unavailable.bind(('127.0.0.1', 0))  # Owned port deliberately not listening.
+            unavailable_port = unavailable.getsockname()[1]
+            def disconnected_handshake(port, command, payload, timeout, **kwargs):
+                nonlocal handshake_count
+                if command == 'get_addon_info':
+                    handshake_count += 1
+                    if handshake_count == 2:
+                        port = unavailable_port
+                return original_request(port, command, payload, timeout, **kwargs)
+            blender_bridge._request = disconnected_handshake
+            try:
+                try: live.reconcile(root, operation['operation_id'], 'keep-current', current['fingerprint'])
+                except blender_bridge.BridgeTransportError as exc: assert exc.unavailable
+                else: raise AssertionError('Unavailable recovery handshake unexpectedly succeeded')
+            finally: blender_bridge._request = original_request
+        assert not (root / 'execution/operations' / operation['operation_id'] / 'reconcile-attempts').exists()
         (control / 'refuse-recovery-once').write_text('temporary BUSY')
         try: live.reconcile(root, operation['operation_id'], 'keep-current', current['fingerprint'])
         except RuntimeError as exc: assert 'BUSY' in str(exc), str(exc)
         else: raise AssertionError('Recovery did not issue its native pre-mutation refusal')
         attempts_folder = root / 'execution/operations' / operation['operation_id'] / 'reconcile-attempts'
         refused_attempt = next(attempts_folder.iterdir()).name
-        original_request = blender_bridge._request
-        def short_reply(port, command, payload, timeout):
-            return original_request(port, command, payload, .2 if command == 'recovery_capture' else timeout)
+        (control / 'oversized-recovery').write_text('synthetic response boundary')
+        def short_reply(port, command, payload, timeout, **kwargs):
+            return original_request(port, command, payload, .2 if command == 'recovery_capture' else timeout, **kwargs)
         blender_bridge._request = short_reply
         try:
             try: live.reconcile(root, operation['operation_id'], 'keep-current', current['fingerprint'])
@@ -255,6 +287,8 @@ def qualify(args):
             'dirty_attach_refusal_retried_safely':True,'prepare_refusal_closed_without_dispatch':True,
             'lost_capture_reply_resolved_without_recapture':True,'capture_count':1,
             'same_intent_refusal_then_success':True, 'native_recovery_attempts':len(native_attempts),
+            'failed_handshake_did_not_record_dispatch':True, 'snapshot_delay_seconds':snapshot_seconds,
+            'oversized_recovery_retained':True, 'oversized_fixture':'8 MiB synthetic padding on real native receipt',
             'crashed_descriptor_reconnected':True,'image_preservation':read_json(out/'image-preservation.json'),
             'crash_between_publication_and_ack_realigned':True, 'alignment_did_not_publish_checkpoint':True,
             'limits':'Owned GUI Blender main-thread bridge fixtures; no arbitrary-scene or saved stale-cache claim.'}

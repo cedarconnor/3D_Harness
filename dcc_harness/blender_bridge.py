@@ -16,6 +16,8 @@ PAIRED_COMMANDS = frozenset(('session_describe', 'inspect', 'attach_begin', 'att
                             'job_prepare', 'job_submit', 'job_status', 'job_cancel', 'job_check', 'job_acknowledge',
                             'recovery_capture', 'recovery_acknowledge', 'preview_capture', 'addons_inventory'))
 COPY_COMMANDS = frozenset(('attach_begin', 'attach_apply', 'job_prepare', 'recovery_capture', 'preview_capture'))
+SCENE_COMMANDS = COPY_COMMANDS | {'attach_check', 'attach_acknowledge', 'attach_rebind',
+                                  'job_submit', 'job_check', 'job_acknowledge', 'recovery_acknowledge'}
 DURABLE_COMMANDS = COPY_COMMANDS | {'job_submit', 'attach_acknowledge', 'job_acknowledge', 'recovery_acknowledge'}
 
 
@@ -83,12 +85,14 @@ def session_presence(binding):
         return 'UNKNOWN'
 
 
-def _request(port, command, params, timeout):
+def _request(port, command, params, timeout, *, before_send=None):
     encoded = json.dumps({'type': command, 'params': params}, allow_nan=False).encode('utf-8')
     if len(encoded) > MAX_REQUEST:
         raise ValueError('Blender request exceeds byte limit')
     deadline = time.monotonic() + timeout
     with socket.create_connection(('127.0.0.1', port), timeout=timeout) as connection:
+        if before_send is not None:
+            before_send()
         connection.sendall(encoded)
         data = bytearray()
         while True:
@@ -140,9 +144,9 @@ def descriptor(path):
     return value
 
 
-def call(command, payload, *, binding, timeout=None, expected=None):
+def call(command, payload, *, binding, timeout=None, expected=None, before_dispatch=None):
     """Resolve an explicit private descriptor; never expose its pairing token."""
-    timeout = (180 if command in COPY_COMMANDS else 10) if timeout is None else timeout
+    timeout = (180 if command in SCENE_COMMANDS else 10) if timeout is None else timeout
     if command not in PAIRED_COMMANDS or not isinstance(payload, dict) or not 0 < timeout <= 180:
         raise ValueError('Invalid paired bridge command or deadline')
     private = descriptor(binding)
@@ -165,7 +169,8 @@ def call(command, payload, *, binding, timeout=None, expected=None):
         raise ValueError('Incompatible live bridge manifest; install the add-on exported by this runtime')
     auth = {key: private[key] for key in ('token', 'session_id', 'generation')}
     try:
-        result = _request(private['port'], command, {'auth': auth, 'payload': payload}, timeout)
+        callbacks = {} if before_dispatch is None else {'before_send': lambda: before_dispatch(private)}
+        result = _request(private['port'], command, {'auth': auth, 'payload': payload}, timeout, **callbacks)
     except Exception as exc:
         # Error replies are untrusted; do not reflect authentication material.
         retained = retained_outcome(command, payload, private)

@@ -14,17 +14,17 @@ except ModuleNotFoundError:
 
 
 def capture(jobs, payload):
-    if set(payload) != {'operation_id', 'decision', 'expected_fingerprint', 'attempt_id'}:
-        raise ValueError('Explicit recovery decision and current fingerprint required')
-    if str(uuid.UUID(payload['attempt_id'])) != payload['attempt_id']:
-        raise ValueError('Canonical recovery attempt UUID required')
-    op, decision = payload['operation_id'], payload['decision']
-    if decision not in ('keep-current', 'restore-precopy'):
-        raise ValueError('Unsupported recovery decision')
-    session, folder = jobs.session, jobs.folder(op)
     # Only this read-only region can issue a definitive no-mutation refusal.
     # Every exception after destination creation remains an uncertain outcome.
     try:
+        if set(payload) != {'operation_id', 'decision', 'expected_fingerprint', 'attempt_id'}:
+            raise ValueError('Explicit recovery decision and current fingerprint required')
+        if str(uuid.UUID(payload['attempt_id'])) != payload['attempt_id']:
+            raise ValueError('Canonical recovery attempt UUID required')
+        op, decision = payload['operation_id'], payload['decision']
+        if decision not in ('keep-current', 'restore-precopy'):
+            raise ValueError('Unsupported recovery decision')
+        session, folder = jobs.session, jobs.folder(op)
         state = jobs.status(op)
         if ((state['state'] in ('RUNNING', 'QUEUED') and state.get('generation') == session.generation)
                 or session.active not in (None, op)):
@@ -39,7 +39,7 @@ def capture(jobs, payload):
             if file_hash(pre['path']) != pre['sha256']:
                 raise ValueError('Pre-operation copy changed; restore refused')
         archived_inventory = inventory(scene)
-    except (ValueError, OSError, KeyError) as exc:
+    except Exception as exc:
         return {'state': 'REFUSED_BEFORE_MUTATION', 'request': payload, 'reason': str(exc)}
     destination = reject_links(folder / 'recovery'); destination.mkdir(exist_ok=False)
     write_exclusive(destination / 'request.json', json_bytes(payload))
