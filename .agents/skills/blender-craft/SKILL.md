@@ -56,6 +56,10 @@ These skills say *how* to do the craft inside that workflow. The [library guide]
 | | [blender-matchmove](../blender-matchmove/SKILL.md) | Camera tracking, solving, scene orientation, CG over footage |
 | Delivery | [blender-realtime-assets](../blender-realtime-assets/SKILL.md) | Game and web assets: budgets, LODs, collision, glTF and FBX export |
 
+## Animatica add-ons
+
+For Animatica work, load [animatica-choreographer](../animatica-choreographer/SKILL.md) for generated motion, prompt blocks, take review and MMCP, or [animatica-marionette](../animatica-marionette/SKILL.md) for offline posing and keyed-motion repair. These documentation-based add-on skills have separate qualification limits; the Blender verification claims above do not cover them.
+
 ## Common combinations
 
 - **Product shot:** reference-modeling → hard-surface → uv → shading → lighting → camera → rendering, with visual-design for the frame.

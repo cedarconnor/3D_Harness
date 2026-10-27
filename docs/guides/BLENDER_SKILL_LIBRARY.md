@@ -13,6 +13,12 @@ Added October 11, 2026, after 0.18.0. Twenty-five `blender-*` skills under [`.ag
 | Effects and integration | `blender-simulation`, `blender-matchmove` |
 | Delivery | `blender-realtime-assets` |
 
+## Animatica add-on skills
+
+Added October 27, 2026: [animatica-choreographer](../../.agents/skills/animatica-choreographer/SKILL.md) covers motion generation, prompt blocks, take review and self-hosted MMCP; [animatica-marionette](../../.agents/skills/animatica-marionette/SKILL.md) covers local posing and animation repair. Both are discoverable under `.agents/skills/` and linked from the craft index. The existing rules bundler includes their files and references automatically.
+
+These skills summarize the linked official Animatica documentation in original wording. Their frontmatter, references and scenario guidance are checked separately from the native `blender-*` examples. This addition does not install or license either add-on, configure a server, implement a managed provider, or qualify native execution. The Blender verification results below apply to the existing craft examples only.
+
 ## How the skills were written
 
 Seven research passes read the 30 sources the owner supplied, plus Blender's manual, Python API and 4.0–5.2 release notes.
