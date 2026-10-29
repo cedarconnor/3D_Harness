@@ -38,6 +38,7 @@ These skills say *how* to do the craft inside that workflow. The [library guide]
 | | [blender-sculpt-retopo](../blender-sculpt-retopo/SKILL.md) | Organic sculpting, remeshing, retopology and deformation topology |
 | | [blender-precision-cad](../blender-precision-cad/SKILL.md) | Exact dimensions, tolerances, CAD/STEP/STL interchange, 3D printing |
 | | [blender-geometry-nodes](../blender-geometry-nodes/SKILL.md) | Procedural modeling, scattering, instancing, node-based motion, simulation zones |
+| | [blender-vegetation](../blender-vegetation/SKILL.md) | Trees, shrubs, leaf cards and atlases, wind attributes, canopy LODs and impostors |
 | Surfaces | [blender-uv](../blender-uv/SKILL.md) | Seams, unwrapping, packing, texel density, UDIMs, lightmap UVs |
 | | [blender-shading](../blender-shading/SKILL.md) | Principled BSDF, PBR values, procedural textures, glass, wear |
 | | [blender-baking](../blender-baking/SKILL.md) | Procedural-to-image, high-to-low normal and AO bakes, channel packing |

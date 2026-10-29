@@ -19,3 +19,13 @@ original upstream SHA-256 and the modified bundled SHA-256, plus modification de
 The MCP Python SDK is a separately installed dependency, pinned in pyproject.toml;
 its own distribution contains its license. These notices do not select a license
 for owner-authored 3D Harness code.
+
+## Blender Skills reference methods
+
+The October 29, 2026 vegetation, visual-style and LOD guidance adapts selected
+methods from [arjun988/blender-skills](https://github.com/arjun988/blender-skills/tree/8f778d2405a214b508d4c7d80742be8e43acdd52),
+commit `8f778d2405a214b508d4c7d80742be8e43acdd52`. The harness instructions and
+verification fixtures were written for this repository. The upstream MIT license,
+Copyright (c) 2026 blender-skills contributors, is retained in
+[the craft references](.agents/skills/blender-craft/references/blender-skills-LICENSE.txt)
+and is included with the packaged rules.

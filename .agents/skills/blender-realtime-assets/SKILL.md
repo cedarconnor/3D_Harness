@@ -21,6 +21,34 @@ A realtime asset is judged in its engine at its viewing distance. Budgets, LODs 
 - **LODs.** Make them on purpose. As a starting point, LOD1 has 50–60% of LOD0's triangles and LOD2 25–30%. Keep the silhouette and the rhythm of repeated features, and bake the small detail into the normal map. Test at the switch distance. Rebuild the LODs whenever LOD0 changes; a stale LOD is a common shipped bug.
 - **Collision.** Build simple convex proxies with low counts. Unreal imports `UCX_<MeshName>_00` convex pieces from FBX. Other engines take a primitive or a simplified mesh. Never use the render mesh as collision for dynamic objects.
 
+## Accept a LOD chain
+
+Record a row per LOD: source revision/hash, evaluated triangles, expected UV and
+colour layers (name/domain/type), ordered material mapping, pivot/bounds, intended
+switch screen size or distance, and visual findings. Engine screen-size conventions
+differ; calibrate in the actual engine rather than transferring a generic percentage.
+
+- **Shader data:** preserve required UVs, wind masks, colour channels and their
+  semantics through simplification and export. Check evaluated data and a saved,
+  reopened file. Matching layer names is insufficient: check finite values,
+  required ranges and root/tip or other semantic samples. Interpolated values can
+  be valid where topology changes; define tolerances before accepting them.
+- **Material mapping:** compare ordered slots and face assignments, not just slot
+  count. A legitimate remap needs explicit correspondence and verification that
+  leaves, glass or other regions still use the intended material. Check for empty
+  slots and out-of-range indices. The fixture below checks used slots but does not
+  prove spatial equivalence of every material region.
+- **Visual transition:** render LOD0 and each lower LOD from the same camera at
+  its switch size, then inspect silhouette, holes, shading and alpha coverage.
+  Check multiple directions and a camera sweep for popping. Keep the accepted
+  editable LOD0; regenerate dependent LODs after relevant source/shader changes.
+
+A lower triangle count cannot compensate for a lost canopy, changed pivot or
+missing shader attribute. Retain the failed candidate and repair the specific
+defect. See [vegetation](../blender-vegetation/SKILL.md) for foliage-specific LODs.
+Blender checks establish native preparation; claim engine transitions, physics,
+wind and performance only after checking them in the destination runtime.
+
 ## Textures and materials
 
 - **Texel density.** Keep it consistent across a kit; measure it with the harness [`uv-report`](../../../docs/guides/UV_REPORT.md) or the [UV skill](../blender-uv/SKILL.md). Use power-of-two sizes. Pad islands about 8 px at 2K, and dilate the baked maps past the island edges.
@@ -53,6 +81,35 @@ crate.name = 'SM_Crate'
 bevel = crate.modifiers.new('bevel', 'BEVEL'); bevel.width, bevel.segments = 0.02, 2
 crate.modifiers.new('tri', 'TRIANGULATE')
 
+# Two material regions and a declared wind-mask schema must survive simplification.
+for name in ('wood', 'trim'):
+    crate.data.materials.append(bpy.data.materials.new(name))
+for polygon in crate.data.polygons:
+    polygon.material_index = polygon.index % 2
+wind = crate.data.color_attributes.new(name='VC_Wind', type='FLOAT_COLOR', domain='POINT')
+crate.data.color_attributes.active_color = wind
+for vertex, colour in zip(crate.data.vertices, wind.data):
+    colour.color = (vertex.co.z + 0.5, 0, 0, 1)
+
+def shader_contract(obj):
+    import math
+    evaluated = obj.evaluated_get(bpy.context.evaluated_depsgraph_get())
+    mesh = evaluated.to_mesh()
+    try:
+        assert [m.name if m else None for m in mesh.materials] == ['wood', 'trim'], 'material order'
+        assert {p.material_index for p in mesh.polygons} == {0, 1}, 'material regions'
+        assert 'UVMap' in mesh.uv_layers, 'UV layer'
+        attribute = mesh.color_attributes.get('VC_Wind')
+        assert attribute is not None, 'wind attribute'
+        assert (attribute.domain, attribute.data_type) == ('POINT', 'FLOAT_COLOR'), 'wind schema'
+        for vertex, colour in zip(mesh.vertices, attribute.data):
+            weight = colour.color[0]
+            assert math.isfinite(weight) and -1e-6 <= weight <= 1 + 1e-6, 'wind range'
+            # The cube's linear Z mask permits interpolation as vertices change.
+            assert abs(weight - (vertex.co.z + 0.5)) < 0.03, 'wind semantics'
+    finally:
+        evaluated.to_mesh_clear()
+
 # Budget from the evaluated mesh, after modifiers and triangulation.
 depsgraph = bpy.context.evaluated_depsgraph_get()
 eval_mesh = crate.evaluated_get(depsgraph).to_mesh(); eval_mesh.calc_loop_triangles()
@@ -68,15 +125,53 @@ m1 = lod1.evaluated_get(depsgraph).to_mesh(); m1.calc_loop_triangles(); lod1_tri
 lod1.evaluated_get(depsgraph).to_mesh_clear()
 assert 0.4 * lod0 <= lod1_tris <= 0.7 * lod0, (lod0, lod1_tris)
 
-# Export only the LOD0 crate as GLB with modifiers applied, then re-import into an empty scene and measure.
+shader_contract(crate); shader_contract(lod1)
+assert (crate.matrix_world.translation - lod1.matrix_world.translation).length < 1e-7
+# A damaged LOD must be rejected even when its triangle reduction still passes.
+bad = lod1.copy(); bad.data = lod1.data.copy(); scene.collection.objects.link(bad)
+bad.data.color_attributes.remove(bad.data.color_attributes['VC_Wind'])
+try:
+    shader_contract(bad)
+except AssertionError as error:
+    assert str(error) == 'wind attribute', str(error)
+else:
+    raise AssertionError('lost shader data was accepted')
+bad.data.materials.clear()
+bad.data.materials.append(bpy.data.materials['trim']); bad.data.materials.append(bpy.data.materials['wood'])
+try:
+    shader_contract(bad)
+except AssertionError as error:
+    assert str(error) == 'material order', str(error)
+else:
+    raise AssertionError('reordered materials were accepted')
+bpy.data.objects.remove(bad, do_unlink=True)
+native = str(WORK / 'lod-chain.blend')
+bpy.ops.wm.save_as_mainfile(filepath=native)
+bpy.ops.wm.open_mainfile(filepath=native)
+crate = bpy.data.objects['SM_Crate']; lod1 = bpy.data.objects['SM_Crate_LOD1']
+shader_contract(crate); shader_contract(lod1)
+
+# Export both LODs, with explicit colour export; check the lower LOD too.
 glb = str(WORK / 'SM_Crate.glb')
-bpy.ops.object.select_all(action='DESELECT'); crate.select_set(True)
-bpy.ops.export_scene.gltf(filepath=glb, export_format='GLB', use_selection=True, export_apply=True)
+bpy.ops.object.select_all(action='DESELECT'); crate.select_set(True); lod1.select_set(True)
+bpy.ops.export_scene.gltf(filepath=glb, export_format='GLB', use_selection=True,
+                          export_apply=True, export_vertex_color='ACTIVE')
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=glb)
 meshes = [o for o in bpy.context.scene.objects if o.type == 'MESH']
-assert [o.name for o in meshes] == ['SM_Crate'], [o.name for o in meshes]
-imported = meshes[0].data; imported.calc_loop_triangles()
-assert len(imported.loop_triangles) == lod0, (len(imported.loop_triangles), lod0)
-assert all(abs(d - 1.0) < 1e-4 for d in meshes[0].dimensions), tuple(meshes[0].dimensions)
+assert {o.name for o in meshes} == {'SM_Crate', 'SM_Crate_LOD1'}
+for obj in meshes:
+    imported = obj.data; imported.calc_loop_triangles()
+    expected = lod0 if obj.name == 'SM_Crate' else lod1_tris
+    assert len(imported.loop_triangles) == expected
+    assert all(abs(d - 1.0) < 0.03 for d in obj.dimensions), tuple(obj.dimensions)
+    assert [m.name for m in imported.materials] == ['wood', 'trim']
+    assert {p.material_index for p in imported.polygons} == {0, 1}
+    assert 'UVMap' in imported.uv_layers
+    colour = imported.color_attributes.active_color
+    assert colour is not None
+    for index, loop in enumerate(imported.loops):
+        data_index = index if colour.domain == 'CORNER' else loop.vertex_index
+        expected_weight = imported.vertices[loop.vertex_index].co.z + 0.5
+        assert abs(colour.data[data_index].color[0] - expected_weight) < 0.03
 ```

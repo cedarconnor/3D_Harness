@@ -5,6 +5,10 @@ description: Assemble Blender terrain, architecture, vegetation and activity int
 
 # Make a coherent place
 
+For plant asset construction, leaf atlases, wind attributes and foliage LODs, load
+[blender-vegetation](../blender-vegetation/SKILL.md). This skill governs site assembly
+and review of those assets in context.
+
 Define the site's circulation, ground levels, boundaries and transitions before placing small props. Review near, middle and far distances together. Extending a textured plane to the horizon rarely supplies convincing context; use terrain shape and deliberate boundary/planting layers appropriate to the reference.
 
 For a bounded regular-grid surround, the [terrain extension helpers](../../../docs/recipes/TERRAIN_RECIPE.md) can preserve a declared inner square while expanding and shaping the outside without adding polygons. Preserve protected vertex positions and UVs against a source snapshot; check grid folds and between-vertex support. Set vertical probe origins above the resulting terrain bounds, since combined hills can exceed individual amplitudes. Check the background from both the main camera and a lower or side view before accepting it.

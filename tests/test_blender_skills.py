@@ -22,7 +22,7 @@ REQUIRED = {
     'blender-lighting', 'blender-rendering', 'blender-compositing', 'blender-camera', 'blender-animation',
     'blender-motion-design', 'blender-rigging', 'blender-skinning', 'blender-mocap', 'blender-matchmove',
     'blender-simulation', 'blender-hair', 'blender-grease-pencil', 'blender-realtime-assets',
-    'blender-pipeline', 'blender-visual-design',
+    'blender-pipeline', 'blender-visual-design', 'blender-vegetation',
 }
 
 

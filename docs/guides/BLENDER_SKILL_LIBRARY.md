@@ -1,11 +1,11 @@
 # Blender craft skill library
 
-Added October 11, 2026, after 0.18.0. Twenty-five `blender-*` skills under [`.agents/skills/`](../../.agents/skills/) teach general Blender 5.x craft. The [`blender-craft`](../../.agents/skills/blender-craft/SKILL.md) index routes a task to the right ones, and [`dcc-harness`](../../.agents/skills/dcc-harness/SKILL.md) points to that index. The existing `dcc-*` skills still govern harness projects. The new skills cover what those do not: how to do the craft itself.
+Added October 11, 2026, after 0.18.0; expanded October 29. Twenty-six craft skills under [`.agents/skills/`](../../.agents/skills/), plus the [`blender-craft`](../../.agents/skills/blender-craft/SKILL.md) index, teach general Blender 5.x craft. [`dcc-harness`](../../.agents/skills/dcc-harness/SKILL.md) points to that index. The existing `dcc-*` skills still govern harness projects. The craft skills cover how to do the craft itself.
 
 | Area | Skills |
 |---|---|
 | Foundations | `blender-python`, `blender-visual-design`, `blender-pipeline` |
-| Modeling | `blender-reference-modeling`, `blender-hard-surface`, `blender-sculpt-retopo`, `blender-precision-cad`, `blender-geometry-nodes` |
+| Modeling | `blender-reference-modeling`, `blender-hard-surface`, `blender-sculpt-retopo`, `blender-precision-cad`, `blender-geometry-nodes`, `blender-vegetation` |
 | Surfaces | `blender-uv`, `blender-shading`, `blender-baking` |
 | Look | `blender-lighting`, `blender-camera`, `blender-rendering`, `blender-compositing` |
 | Motion | `blender-animation`, `blender-motion-design`, `blender-grease-pencil` |
@@ -20,6 +20,29 @@ Added October 27, 2026: [animatica-choreographer](../../.agents/skills/animatica
 These skills summarize the linked official Animatica documentation in original wording. Their frontmatter, references and scenario guidance are checked separately from the native `blender-*` examples. This addition does not install or license either add-on, configure a server, implement a managed provider, or qualify native execution. The Blender verification results below apply to the existing craft examples only.
 
 ## How the skills were written
+
+### October 29 additions
+
+Reviewed [arjun988/blender-skills at commit 8f778d2](https://github.com/arjun988/blender-skills/tree/8f778d2405a214b508d4c7d80742be8e43acdd52).
+The selected methods were adapted to the existing harness workflow with newly
+authored instructions and native examples:
+
+- [Vegetation](../../.agents/skills/blender-vegetation/SKILL.md): plant structure,
+  leaf atlases, attachment/root pivots, declared wind data, canopy LODs and impostors.
+- [Visual design](../../.agents/skills/blender-visual-design/SKILL.md): selectively
+  loaded references for cel/NPR, retro, isometric, voxel and horror direction.
+  Shader to RGB is scoped to EEVEE and Toon BSDF to Cycles, correcting upstream's
+  mixed renderer guidance using the linked Blender manuals and native fixtures.
+- [Realtime assets](../../.agents/skills/blender-realtime-assets/SKILL.md): LOD
+  material ordering/regions, UV and colour schemas, semantic samples, switch-view
+  review, source freshness and explicit engine-runtime qualification limits.
+
+The upstream director, raw MCP execution/retry instructions, fixed visual scoring
+thresholds and engine export presets were not imported. Style parameters remain
+project choices. Its MIT notice is retained through the [third-party notices](../../THIRD_PARTY_NOTICES.md).
+All new skill resources are included automatically by `distribution.source_rules`.
+
+### Original library research
 
 Seven research passes read the 30 sources the owner supplied, plus Blender's manual, Python API and 4.0–5.2 release notes.
 
@@ -67,6 +90,11 @@ python scripts/qualify_blender_skills.py --blender "<BLENDER>" --out runs/<NEW-F
 | Blender 5.1.1 | 25 blocks in 25 skills passed |
 | Blender 5.2.1 LTS | 25 passed, after gating the Geometry Nodes modifier-input change described below |
 | Both, October 15 | 28 blocks in 25 skills passed on each, after P17 added blocks to `blender-shading`, `blender-lighting` and `blender-python` |
+| Both, October 29 | 4 blocks in 3 affected skills: vegetation, visual design and realtime assets. Passed on 5.1.1 and 5.2.1 LTS; the other skills were not rerun for this documentation addition |
+
+October 29 run summaries: [Blender 5.1.1](../../runs/blender-skills-final-2026-10-29-51/summary.json)
+and [Blender 5.2.1 LTS](../../runs/blender-skills-final-2026-10-29-52/summary.json).
+These local reports are excluded from the reusable rules distribution.
 
 Among other things, the blocks run:
 
@@ -123,7 +151,16 @@ The review also reported that JPEG ICC profiles are ignored and that some progre
 
 - **What the blocks prove.** They establish that each skill's API calls and mechanics work on Blender 5.1.1 and 5.2.1. They do not establish that following a skill produces good-looking work. That needs renders reviewed by the artist.
 - **Guidance numbers.** Texel-density tiers, light ratios, LOD ratios, bevel widths and timing rules are starting points from the sources and common practice, not measurements of this project.
-- **No fresh-agent test yet.** No fresh agent has been tested with the new skills. The P5 regression suite covers the harness workflow, not these craft skills, and should be rerun because `dcc-harness` now links the index.
+- **Agent evidence.** The original library has no full fresh-agent production trial. On October 29, a read-only baseline/application comparison covered game foliage, combined styles and a damaged LOD. The baseline found missing wind/atlas, renderer-specific cel and LOD shader-data guidance. A separate agent using the additions retrieved the relevant contracts and rejected the damaged LOD. Its review led to stronger UV and lower-LOD round-trip assertions and a spatial toon-render check. This is retrieval/application evidence, not autonomous asset production or a measured artistic improvement. The P5 regression suite covers the harness workflow rather than craft quality.
 - **Interactive tools.** Several interactive tools (sculpt brushes, texture painting, the Graph Editor's Euler filter, Rigify's snapping UI) need a viewport. The skills give background-safe alternatives where they exist.
 - **Clip editor workaround.** The matchmove block borrows a background window's area as a Clip Editor. That works on 5.1 and 5.2, but it is an implementation detail, not a documented API.
 - **Upgrades.** Rerun `qualify_blender_skills.py` after every Blender upgrade. When a block fails, update the skill text along with the code.
+
+The October 29 vegetation fixture checks saved root pivot, atlas UV bounds and
+wind-colour semantics, plus an active-colour GLB round trip. The LOD fixture checks
+evaluated and reopened shader data, rejects missing wind data and reordered
+materials, and checks both exported LODs for material slots, UV presence and
+wind-colour semantics. The cel fixture renders both renderer-specific routes at 64 × 64.
+These fixtures do not establish species fidelity, good art direction, engine
+wind, overdraw, impostor quality, temporal stability or production LOD transitions.
+Those require project images, motion and destination-runtime checks as applicable.
