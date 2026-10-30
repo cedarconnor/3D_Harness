@@ -13,18 +13,127 @@ try:
     from . import provider_sources
     from .evidence import digest
     from .files import file_hash, reject_links
-    from .offline import scope
+    from .offline import scope, begin_lease, end_lease
 except ImportError:
     from dcc_harness import provider_sources
     from dcc_harness.evidence import digest
     from dcc_harness.files import file_hash, reject_links
-    from dcc_harness.offline import scope
+    from dcc_harness.offline import scope, begin_lease, end_lease
 
 PINS = {}
 ACTIVE_PROFILE = None
 ACTIVE_CONFIGURATION = None
 LAST_ACTIVATION = None
 NETWORK_ATTEMPTS = []
+ACTIVE_LEASE = None
+
+
+class AsyncProfileLease:
+    """Explicit temporary preferences and offline audit lifetime across UI ticks.
+
+    A failed close retains the singleton and offline guard. The caller must report
+    reconciliation and may retry close; artist providers are never disabled.
+    """
+    def __init__(self, profile, operation_id):
+        global ACTIVE_LEASE
+        if ACTIVE_LEASE is not None:
+            raise ValueError('An asynchronous profile lease is already active')
+        self.operation_id = operation_id
+        self.closed = False
+        self.restore_errors = []
+        self.setup_error = None
+        self.previous = []
+        self.prefs = bpy.context.preferences
+        self.auto = self.prefs.use_preferences_save
+        self.entries = {entry.module for entry in self.prefs.addons}
+        self.repos = {repo.module for repo in self.prefs.extensions.repos}
+        begin_lease(NETWORK_ATTEMPTS, operation_id)
+        ACTIVE_LEASE = self
+        try:
+            self.prefs.use_preferences_save = False
+            provider_sources.validate_profile(profile, inventory(roots_for(profile)))
+            if ACTIVE_CONFIGURATION is not None and digest(ACTIVE_CONFIGURATION) != digest(profile):
+                raise ValueError('Asynchronous profile differs from the active provider configuration')
+            for pin in profile['providers']:
+                name = pin['module']
+                if not name.startswith('bl_ext.'):
+                    continue
+                if PINS.get(name) != pin:
+                    raise ValueError('Extension activation has no verified source pin')
+                repo_name = name.split('.')[1]
+                expected = str(Path(pin['path']).parent)
+                found = [repo for repo in self.prefs.extensions.repos if repo.module == repo_name]
+                if not found:
+                    self.prefs.extensions.repos.new(name='Harness profile ' + repo_name,
+                        module=repo_name, custom_directory=expected, remote_url='')
+                elif len(found) != 1 or str(Path(found[0].directory).resolve()) != expected:
+                    raise ValueError('Profile extension repository changed')
+                if not getattr(sys.modules.get(name), '__addon_enabled__', False):
+                    failures = []
+                    module = addon_utils.enable(name, default_set=False, persistent=True,
+                        handle_error=lambda error: failures.append(type(error).__name__))
+                    if module is None or failures:
+                        raise ValueError('Session extension activation failed')
+            for name, values in profile.get('preferences', {}).items():
+                entry = self.prefs.addons.get(name)
+                if entry is None:
+                    entry = self.prefs.addons.new()
+                    entry.module = name
+                if entry.preferences is None:
+                    raise ValueError('Provider has no session preference entry: ' + name)
+                for key, value in values.items():
+                    if not isinstance(value, (str, bool, int, float)):
+                        raise ValueError('Only whitelisted scalar preferences are supported')
+                    self.previous.append((entry.preferences, key, getattr(entry.preferences, key)))
+                    setattr(entry.preferences, key, value)
+                    if getattr(entry.preferences, key) != value:
+                        raise ValueError('Provider preference was clamped or refused')
+        except Exception as exc:
+            self.setup_error = f'{type(exc).__name__}: {exc}'
+            try:
+                self.close()
+            except Exception as restore:
+                raise RuntimeError('Async profile setup failed; rollback requires reconciliation') from restore
+            raise
+
+    def close(self):
+        global ACTIVE_LEASE
+        if self.closed:
+            return
+        errors = []
+        pending = []
+        for owner, key, value in reversed(self.previous):
+            try:
+                setattr(owner, key, value)
+                if getattr(owner, key) != value:
+                    raise ValueError('Preference restoration was clamped or refused')
+            except Exception as exc:
+                pending.append((owner, key, value))
+                errors.append(f'preference {key}: {type(exc).__name__}: {exc}')
+        self.previous = list(reversed(pending))
+        # Keep failed preference owners alive for a later reconciliation attempt.
+        if not pending:
+            for collection, original, label in ((self.prefs.addons, self.entries, 'addon'),
+                                                (self.prefs.extensions.repos, self.repos, 'repository')):
+                for item in list(collection):
+                    if item.module not in original:
+                        try:
+                            collection.remove(item)
+                        except Exception as exc:
+                            errors.append(f'{label} {item.module}: {type(exc).__name__}: {exc}')
+        if not errors:
+            try:
+                self.prefs.use_preferences_save = self.auto
+                if self.prefs.use_preferences_save != self.auto:
+                    raise ValueError('Preference autosave restoration was refused')
+            except Exception as exc:
+                errors.append(f'autosave: {type(exc).__name__}: {exc}')
+        self.restore_errors = errors
+        if errors:
+            raise RuntimeError('Async profile restoration requires reconciliation: ' + '; '.join(errors))
+        end_lease(self.operation_id)
+        self.closed = True
+        ACTIVE_LEASE = None
 
 
 @contextmanager

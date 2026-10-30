@@ -11,6 +11,11 @@ from .files import reject_links, write_exclusive
 DATA = Path(__file__).with_name('data')
 SEEDS = ('docs/guides/MANAGED_EXECUTION.md', 'docs/guides/COMBINED_MCP.md', 'docs/guides/ADDON_RECIPES.md')
 BRIDGE_FILES = {
+    'shader_graph.py': Path(__file__).with_name('shader_graph.py'),
+    'effect_evidence.py': Path(__file__).with_name('effect_evidence.py'),
+    'async_recipe.py': Path(__file__).with_name('async_recipe.py'),
+    'recipe_effects.py': DATA / 'bridge/recipe_effects.py',
+    'recipe_v2.py': DATA / 'bridge/recipe_v2.py',
     'capability_projection.py': Path(__file__).with_name('capability_projection.py'),
     'capabilities/policy.schema.json': DATA / 'capabilities/policy.schema.json',
     'capabilities/receipt.schema.json': DATA / 'capabilities/receipt.schema.json',

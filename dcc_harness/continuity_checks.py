@@ -12,6 +12,7 @@ CONTRACT_FIELDS = {"schema", "spec", "allowed_object_prefixes", "allowed_materia
                    "allowed_new_prefixes", "centers", "center_tolerance", "preserve_centers",
                    "exact_asset_counts", "sharing_groups", "allowed_deleted_ids", "allowed_new_lights",
                    "allowed_scene_fields", "allowed_modifier_settings", "allowed_material_node_fields"}
+CONTRACT_FIELDS.update({"allowed_unbound_material_ids", "allowed_material_graphs"})
 OBJECT_FIELDS = {"name", "type", "asset_id", "matrix_world", "parent", "collections", "visibility",
                  "material_ids", "vertices", "triangles", "geometry_hash", "uv_hash", "uv_layers",
                  "bounds", "dimensions", "light", "camera", "source_mesh_hash", "source_uv_hash",
@@ -22,6 +23,10 @@ OBJECT_FIELDS = {"name", "type", "asset_id", "matrix_world", "parent", "collecti
 def _prefixes(items, label):
     if not isinstance(items, list) or any(not isinstance(p, str) or not p or any(c in p for c in "*?[]") for p in items):
         raise ValueError(f"{label} requires nonempty string prefixes")
+
+
+def _exact_material_id(value):
+    return isinstance(value, str) and bool(value.strip()) and not any(c in value for c in '*?[]')
 
 
 def validate_contract(contract):
@@ -91,6 +96,19 @@ def validate_contract(contract):
         for node, sockets in nodes.items():
             if not isinstance(node, str) or not isinstance(sockets, dict) or not sockets or any(not isinstance(s, str) for s in sockets):
                 raise ValueError("Invalid allowed shader socket declaration")
+    unbound = contract.get('allowed_unbound_material_ids', [])
+    if (not isinstance(unbound, list) or any(not _exact_material_id(mid) for mid in unbound)
+            or len(set(unbound)) != len(unbound)):
+        raise ValueError('allowed_unbound_material_ids requires distinct exact nonempty material IDs')
+    graphs = contract.get('allowed_material_graphs', {})
+    if not isinstance(graphs, dict) or any(
+            not _exact_material_id(mid) or not isinstance(graph, dict)
+            or not isinstance(graph.get('nodes'), list) or not isinstance(graph.get('links'), list)
+            for mid, graph in graphs.items()):
+        raise ValueError('allowed_material_graphs maps exact material IDs to complete nodes/links graphs')
+    narrowed = set(materials) | set(node_fields)
+    if set(graphs) & (narrowed | set(unbound)) or set(unbound) & narrowed:
+        raise ValueError('Full graph, unbinding and narrowed material permissions cannot overlap')
     groups = contract.get("sharing_groups", [])
     if not isinstance(groups, list):
         raise ValueError("sharing_groups must be a list")
@@ -184,6 +202,22 @@ def evaluate_stage(before, after, contract):
             allow["objects"][iid] = ["created"]
     for mid in after["materials"].keys() - before["materials"].keys():
         allow["materials"][mid] = ["created"]
+    for mid in contract.get('allowed_unbound_material_ids', []):
+        if mid not in before['materials']:
+            failures.append(f'Unbound material target missing before stage: {mid}')
+        elif mid in after['materials'] or any(mid in obj.get('material_ids', []) for obj in after['objects'].values()):
+            failures.append(f'Unbound material target is still observed or bound after stage: {mid}')
+        else:
+            allow['materials'][mid] = ['deleted']
+    for mid, expected_graph in contract.get('allowed_material_graphs', {}).items():
+        expected = copy.deepcopy(before['materials'].get(mid))
+        if expected is None:
+            failures.append(f'Material graph target missing before stage: {mid}')
+            continue
+        expected['graph'] = copy.deepcopy(expected_graph)
+        if expected != after['materials'].get(mid):
+            failures.append(f'Material differs beyond the exact requested graph: {mid}')
+        allow['materials'][mid] = ['graph']
     node_fields = contract.get("allowed_material_node_fields", {})
     for mid in sorted(set(contract.get("allowed_material_inputs", {})) | set(node_fields)):
         node_inputs = contract.get("allowed_material_inputs", {}).get(mid, {})

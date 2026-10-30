@@ -139,6 +139,9 @@ def enhance(raw, *, saved=True):
             }} for mod in obj.modifiers
         ]
         for modifier, settings in zip(obj.modifiers, record['modifier_settings']):
+            owner=obj.get('dcc_modifier_effects',{}).get(modifier.name)
+            if owner is not None:
+                settings['dcc_effect_id']=owner
             if modifier.type == 'NODES':
                 from .node_asset_blender import modifier_record
                 try:

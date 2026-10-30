@@ -20,6 +20,8 @@ except ModuleNotFoundError:
 class Jobs:
     def __init__(self, session):
         self.session = session
+        self.async_operations = {}
+        self.async_cleanup = set()
 
     def folder(self, operation_id):
         if str(uuid.UUID(operation_id)) != operation_id or self.session.project is None:
@@ -124,6 +126,8 @@ class Jobs:
                 or (self.session.project / 'execution/cancel.json').exists() or time.time() >= request['deadline'])
 
     def run(self, operation_id):
+        if operation_id in self.async_operations:
+            return self.advance_async(operation_id)
         folder = self.folder(operation_id)
         request = json.loads((folder / 'live-request.json').read_text())
         prepared = json.loads((folder / 'live-prepared.json').read_text())
@@ -148,6 +152,13 @@ class Jobs:
                 addons.assert_profile(profile)
                 if not attachment.equivalent(before,attachment.snapshot(scene)) or measured!=recipes.measurements(scene,target,scope):
                     raise ValueError('Provider activation changed the scene; reconcile before invoking the recipe')
+                if bundle['recipe']['invocation']['completion']=='asynchronous':
+                    from . import recipe_v2
+                    execution=recipe_v2.start(*recipes.managed_args(request,profile,scene),
+                        folder=folder / 'async-provider',cancelled=lambda:self.cancelled(operation_id,request),
+                        operation_id=operation_id)
+                    self.async_operations[operation_id]=(execution,request,prepared['generation'])
+                    return self.advance_async(operation_id)
                 output=recipes.apply(*recipes.managed_args(request,profile,scene))
                 write_exclusive(folder / 'capability-output.json',json_bytes(output))
             else:
@@ -164,11 +175,63 @@ class Jobs:
             self.write(operation_id, 'NEEDS_RECONCILIATION', error=str(exc), error_type=type(exc).__name__)
         return None
 
+    def advance_async(self, operation_id):
+        execution,request,generation=self.async_operations[operation_id]
+        folder=self.folder(operation_id)
+        try:
+            if self.session.generation!=generation or self.session.active!=operation_id:
+                raise ValueError('Asynchronous session generation or reservation changed')
+            status=execution.step()
+            if status['state']=='PENDING':
+                self.write(operation_id,'RUNNING',phase=status['phase'],progress=status.get('progress'),
+                    target_scope=request['live']['target'],provider_operation=status['operation_id'])
+                # The original timer callback returns this interval; provider timers
+                # and UI events can run before the next lifecycle step.
+                return status['poll_interval']
+            if status['state']!='SUCCEEDED':
+                self.write(operation_id,'NEEDS_RECONCILIATION',provider_state=status['state'],
+                    error=status.get('error',status.get('reason','Provider did not finish')))
+                return None
+            write_exclusive(folder / 'capability-output.json',json_bytes(status['result']))
+            scene=attachment.scene_for(self.session.scene)
+            candidate=attachment.save_copy(self.session,request['output'])
+            captured=attachment.snapshot(scene)
+            write_exclusive(folder / 'live-snapshot.json',json_bytes(captured))
+            state='NEEDS_RECONCILIATION' if self.cancelled(operation_id,request) else 'SAVED'
+            self.write(operation_id,state,candidate=candidate['path'],sha256=candidate['sha256'],
+                fingerprint=attachment.fingerprint(captured),snapshot=str(folder / 'live-snapshot.json'),
+                inventory=inventory(scene),scene=scene.name,cancellation_requested=state!='SAVED')
+        except Exception as exc:
+            self.write(operation_id,'NEEDS_RECONCILIATION',error=str(exc),error_type=type(exc).__name__)
+        return None
+
     def cancel(self, operation_id):
         path = self.folder(operation_id) / 'live-cancel.json'
         if not path.exists():
             write_exclusive(path, json_bytes({'operation_id': operation_id}))
+        retained = self.async_operations.get(operation_id)
+        if (retained is not None and not getattr(retained[0], 'closed', False)
+                and self.status(operation_id)['state'] == 'NEEDS_RECONCILIATION'
+                and operation_id not in self.async_cleanup):
+            self.async_cleanup.add(operation_id)
+            bpy.app.timers.register(lambda: self.stop_async(operation_id), first_interval=.01)
         return {'operation_id': operation_id, 'state': 'CANCEL_REQUESTED'}
+
+    def stop_async(self, operation_id):
+        """Separate explicit cleanup timer; it never publishes or releases the job."""
+        try:
+            execution, request, generation = self.async_operations[operation_id]
+            if self.session.generation != generation or self.session.active != operation_id:
+                raise ValueError('Provider cleanup session or reservation changed')
+            execution.request_stop()
+            status = execution.confirm_stopped()
+            self.write(operation_id, 'NEEDS_RECONCILIATION', termination=status['state'])
+            if status['state'] == 'PENDING':
+                return status['poll_interval']
+        except Exception as exc:
+            self.write(operation_id, 'NEEDS_RECONCILIATION', termination='UNKNOWN', error=str(exc), error_type=type(exc).__name__)
+        self.async_cleanup.discard(operation_id)
+        return None
 
     def check(self, payload):
         op = payload['operation_id']; status = self.status(op)

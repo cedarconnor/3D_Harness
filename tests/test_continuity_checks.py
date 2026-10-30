@@ -40,6 +40,79 @@ def contract():
 
 
 class ContinuityCheckTests(unittest.TestCase):
+    def test_explicit_original_material_unbinding_allows_owned_replacement(self):
+        before = observation()
+        after = copy.deepcopy(before)
+        after['materials']['owned'] = after['materials'].pop('stone')
+        after['materials']['owned']['name'] = 'Owned'
+        after['objects']['ext.table.top']['material_ids'] = ['owned']
+        c = contract()
+        c['spec']['required']['ext.table.top']['material_ids'] = ['owned']
+        c['allowed_object_prefixes'] = {'ext.table.top': ['material_ids']}
+        self.assertFalse(evaluate_stage(before, resign(after), c)['passed'])
+        c['allowed_unbound_material_ids'] = ['stone']
+        self.assertTrue(evaluate_stage(before, resign(after), c)['passed'])
+
+    def test_unbound_material_permission_requires_exact_existing_absent_id(self):
+        before = observation()
+        for ids in (['unknown'], ['stone']):
+            c = contract()
+            c['allowed_unbound_material_ids'] = ids
+            self.assertFalse(evaluate_stage(before, before, c)['passed'])
+        for invalid in (['stone', 'stone'], [''], ['stone*'], ['stone?'], 'stone', [1]):
+            c = contract()
+            c['allowed_unbound_material_ids'] = invalid
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                validate_contract(c)
+        after = copy.deepcopy(before)
+        after['materials'].pop('stone')
+        c = contract()
+        c['allowed_unbound_material_ids'] = ['stone']
+        self.assertFalse(evaluate_stage(before, resign(after), c)['passed'])
+
+    def test_exact_graph_replacement_preserves_all_other_material_fields(self):
+        before = observation()
+        graph = {'nodes': [{'name': 'Owned', 'type': 'ShaderNodeRGB', 'outputs': {'Color': [1, 0, 0, 1]}},
+                           {'name': 'Output', 'type': 'ShaderNodeOutputMaterial', 'inputs': {}}],
+                 'links': [['Owned', 'Color', 'Output', 'Surface']], 'interface': []}
+        c = contract()
+        c['allowed_material_graphs'] = {'stone': copy.deepcopy(graph)}
+        after = copy.deepcopy(before)
+        after['materials']['stone']['graph'] = copy.deepcopy(graph)
+        self.assertTrue(evaluate_stage(before, resign(after), c)['passed'])
+        for edit in ('extra_node', 'name', 'diffuse', 'new_metadata'):
+            bad = copy.deepcopy(after)
+            material = bad['materials']['stone']
+            if edit == 'extra_node': material['graph']['nodes'].append({'name': 'Sneaky'})
+            if edit == 'name': material['name'] = 'Changed'
+            if edit == 'diffuse': material['diffuse_color'] = [1, 0, 0, 1]
+            if edit == 'new_metadata': material['dcc_effect_id'] = 'unrequested'
+            with self.subTest(edit=edit):
+                self.assertFalse(evaluate_stage(before, resign(bad), c)['passed'])
+
+    def test_graph_replacement_requires_existing_material_and_valid_graph(self):
+        before = observation()
+        c = contract()
+        c['allowed_material_graphs'] = {'unknown': {'nodes': [], 'links': []}}
+        self.assertFalse(evaluate_stage(before, before, c)['passed'])
+        for invalid in ({'stone': {}}, {'stone': {'nodes': {}, 'links': []}},
+                        {'stone': {'nodes': [], 'links': None}}, {'': {'nodes': [], 'links': []}},
+                        {'stone*': {'nodes': [], 'links': []}}, []):
+            c['allowed_material_graphs'] = invalid
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                validate_contract(c)
+
+    def test_full_graph_permissions_cannot_overlap_narrow_fields_or_unbinding(self):
+        for field, value in (
+                ('allowed_material_inputs', {'stone': {'Principled BSDF': {'Roughness': .9}}}),
+                ('allowed_material_node_fields', {'stone': {'Principled BSDF': {'settings': {}}}}),
+                ('allowed_unbound_material_ids', ['stone'])):
+            c = contract()
+            c['allowed_material_graphs'] = {'stone': {'nodes': [], 'links': []}}
+            c[field] = value
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                validate_contract(c)
+
     def test_allowed_geometry_edit_only(self):
         before = observation()
         after = copy.deepcopy(before)

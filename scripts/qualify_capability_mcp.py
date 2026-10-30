@@ -69,12 +69,15 @@ async def project_case(args,folder,central,source,backend,mode,binding=None):
                     await call('harness_bind',{'project':str(root),'expected_revision':'none','request_id':str(uuid.uuid4())})
                     await cli('run-create',str(root),'--mode',mode,'--seconds','1800')
                 inventory=await cap('inventory',{'roots':[{'path':str(central/'providers'),'namespace':''}],'out':str(folder/'inventory')})
-                provider=next(p for p in inventory['providers'] if p['id']=='capability_fixture')
-                profile=await cap('profile',{'project':str(root),'inventory':inventory,'selected':['capability_fixture'],'preferences':{}})
-                value=fixture_recipe(provider,'python_function','capability_fixture.mark',
-                    [fixture_case('background'),fixture_case('live','live')],name='public.function')
+                provider_id=getattr(args,'provider_id','capability_fixture')
+                provider=next(p for p in inventory['providers'] if p['id']==provider_id)
+                profile=await cap('profile',{'project':str(root),'inventory':inventory,'selected':[provider_id],
+                    'preferences':getattr(args,'provider_preferences',{})})
+                value=(args.recipe_factory(provider) if getattr(args,'recipe_factory',None) else
+                    fixture_recipe(provider,'python_function','capability_fixture.mark',
+                        [fixture_case('background'),fixture_case('live','live')],name='public.function'))
                 draft=await recipe('draft',{'project':str(root),'recipe':value,
-                    'adapter':str(Path(__file__).resolve().parents[1]/'tests/fixtures/addons/capability_adapter.py'),'assets':[]})
+                    'adapter':str(getattr(args,'adapter',Path(__file__).resolve().parents[1]/'tests/fixtures/addons/capability_adapter.py')),'assets':[]})
                 assert draft['state']=='DRAFT'
                 assert (await recipe('inspect',{'project':str(root),'recipe_id':draft['id'],'recipe_digest':draft['digest']}))['state']=='DRAFT'
                 qualified=await recipe('qualify',{'project':str(root),'recipe_id':draft['id'],'recipe_digest':draft['digest'],
@@ -83,11 +86,11 @@ async def project_case(args,folder,central,source,backend,mode,binding=None):
                 await recipe('register',{'project':str(root),'report':qualified['report']})
                 observation=read_json(workflow.resume(root)['active']['observation']); target=next(k for k,o in observation['objects'].items() if o['type']=='MESH')
                 policy={'schema':'dcc.capability.policy.v1','id':'public-policy','version':1,'rules':[{
-                    'id':'finish','capability':'surface.fixture','mode':'require','providers':['capability_fixture'],
-                    'fallback_providers':[],'allow_manual':False,'candidates':[{'provider':'capability_fixture','recipe_id':draft['id'],
+                    'id':'finish','capability':value['capabilities'][0],'mode':'require','providers':[provider_id],
+                    'fallback_providers':[],'allow_manual':False,'candidates':[{'provider':provider_id,'recipe_id':draft['id'],
                     'recipe_digest':draft['digest'],'profile_digest':profile['digest']}],
                     'selectors':{'instance_ids':[target],'prefixes':[],'types':[]},'stages':['direction'],'slot':'finish',
-                    'parameters':{'amount':.15,'behavior':'normal'},'dependencies':['geometry','materials'],'benchmark':None}]}
+                    'parameters':value['cases'][0]['parameters'],'dependencies':sorted(set(value['coverage']['reads']+value['coverage']['dependencies'])),'benchmark':None}]}
                 await cap('bind',{'project':str(root),'policy':policy,'expected_revision':c.read(root)[-1]['id'],
                                  'request_id':str(uuid.uuid4()),'authority':actor})
                 # Only the owned fixture's synthetic owner may establish/change artist authority.
@@ -100,8 +103,16 @@ async def project_case(args,folder,central,source,backend,mode,binding=None):
                         'policy':{**policy,'version':3,'rules':[]},'expected_revision':c.read(root)[-1]['id'],
                         'request_id':str(uuid.uuid4()),'authority':authority}},True)
                 handoff=await input_file('handoff.md','Synthetic capability evidence only.')
-                contract=await input_file('contract.json',json.dumps({'schema':'dcc.continuity.contract.v1',
-                    'spec':{'schema':'dcc.spec.v1','required':{target:{}}},'allowed_object_prefixes':{target:sorted(OBJECT_FIELDS)}}))
+                change_contract={'schema':'dcc.continuity.contract.v1',
+                    'spec':{'schema':'dcc.spec.v1','required':{target:{}}},'allowed_object_prefixes':{target:sorted(OBJECT_FIELDS)}}
+                effect=value.get('effect',{})
+                if effect.get('kind') in ('material','shader_nodes') and effect.get('material_id')=='{effect_name}':
+                    slots=observation['objects'][target]['material_ids']
+                    old=slots[effect['slot']] if effect['slot']<len(slots) else None
+                    users=[oid for oid,obj in observation['objects'].items() if old in obj.get('material_ids',[])]
+                    if old is not None and users==[target]:
+                        change_contract['allowed_unbound_material_ids']=[old]
+                contract=await input_file('contract.json',json.dumps(change_contract))
                 async def submit(name,error=False):
                     payload={'schema':'dcc.environment.submission.v1','stage_id':'direction','checkpoint':c.checkpoint_ref(workflow.resume(root)['active']),
                         'deliverables':{k:'Synthetic direction' for k in ew.default_manifest()['stages'][0]['deliverables']},

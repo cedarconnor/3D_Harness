@@ -18,7 +18,20 @@ args=[cap['root'],ref['recipe_id'],ref['recipe_digest'],load_profile(request['pr
       bpy.context.scene,req['target_id'],cap['parameters'],cap['effect_id']]
 if action=='execute':
     if Path(request['output']).exists(): raise ValueError('Never replay a native capability mutation')
-    result=recipes.apply(*args)
+    bundle=recipes.inspect_bundle(*args[:3])
+    if bundle['recipe']['invocation']['completion']=='asynchronous':
+        import os, time
+        from dcc_harness.data.bridge import recipe_v2
+        cancel_path=os.environ.get('DCC_HARNESS_CANCEL_FILE')
+        root=Path(cap['root'])
+        cancelled=lambda: ((bool(cancel_path) and Path(cancel_path).exists())
+            or (root / 'execution/cancel.json').exists()
+            or (root / 'execution/cancellations' / (request['operation_id']+'.json')).exists()
+            or time.time()>=request.get('deadline',float('inf')))
+        result=recipe_v2.drive(recipe_v2.start(*args,folder=folder / 'async-provider',
+            cancelled=cancelled,operation_id=request['operation_id']))
+    else:
+        result=recipes.apply(*args)
     write_json(folder / 'capability-output.json',result)
     bpy.ops.wm.save_as_mainfile(filepath=request['output'])
 elif action=='capability-verify':

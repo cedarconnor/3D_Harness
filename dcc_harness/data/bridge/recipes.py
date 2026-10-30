@@ -13,6 +13,7 @@ try:
     from .evidence import digest
     from .continuity_blender import measure_live
     from .files import file_hash, io_path, reject_links
+    from .effect_evidence import native_effect
 except ModuleNotFoundError:
     from dcc_harness.recipe_store import load
     from dcc_harness.recipe_schema import validate_parameters, sha
@@ -20,6 +21,7 @@ except ModuleNotFoundError:
     from dcc_harness.evidence import digest
     from dcc_harness.continuity_blender import measure_live
     from dcc_harness.files import file_hash, io_path, reject_links
+    from dcc_harness.effect_evidence import native_effect
 
 # Evidence of completed calls, never a validation cache: every use still measures
 # current bytes/state. Cross-process reuse belongs to verified host receipts.
@@ -122,7 +124,7 @@ def prepare_context(root, recipe_id, identity, profile, scene, target, parameter
                'recipe':recipe, 'parameters':parameters, 'effect_id':effect_id, 'provider':provider,
                'mode':mode, 'shared_users':sorted({o.get('dcc_instance_id','') for o in bpy.data.objects
                    if any(s.material and any(t.material == s.material for t in obj.material_slots) for s in o.material_slots)})}
-    if recipe['update']['shared_materials'] == 'none' and 'materials' in recipe['coverage']['writes']:
+    if recipe['update']['shared_materials'] == 'none' and set(recipe['coverage']['writes']) & {'materials','nodes'}:
         raise ValueError('Material edits require explicit shared user policy')
     return bundle, context
 
@@ -180,22 +182,6 @@ def output_record(adapter, context):
     return output
 
 
-def native_effect(measured, target, effect_id, *, required=True):
-    """Resolve the claimed identity from native RNA measurement, never adapter JSON.
-
-    Modifier editor expansion/activation are UI state, not provider output work.
-    They remain in the full preservation measurements checked around the call.
-    """
-    name='DCC::'+effect_id[:48]
-    matches=[(index,row) for index,row in enumerate(measured['modifiers'])
-             if row['settings'].get('name')==name]
-    if not matches and not required: return None
-    if len(matches)!=1: raise ValueError('Claimed output requires exactly one measured owned effect (native modifier)')
-    index,row=matches[0]; state=copy.deepcopy(row)
-    for field in ('show_expanded','is_active'): state['settings'].pop(field,None)
-    return {'kind':'modifier','target_id':target,'name':name,'stack_index':index,'state':state}
-
-
 def other_materials(scene, target):
     current = measure_live(scene)
     return {key:{'bindings':record['material_ids'], 'materials':{
@@ -207,12 +193,22 @@ def other_materials(scene, target):
 def apply(root, recipe_id, identity, profile, scene, target, parameters, effect_id):
     bundle, context = prepare_context(root, recipe_id, identity, profile, scene, target, parameters, effect_id)
     recipe = bundle['recipe']; scope = sorted(set(sum(recipe['coverage'].values(), [])))
+    if recipe['invocation']['completion'] != 'synchronous':
+        raise ValueError('Asynchronous recipe requires cooperative start/step execution')
+    v2 = recipe['schema'] == 'dcc.capability.recipe.v2'
+    if v2:
+        from . import recipe_effects
+        originals = recipe_effects.ownership_before(context)
+        allowed = recipe_effects.allowed_materials(context)
+        protected = recipe_effects.preserved(context, allowed)
     before = measurements(scene, target, scope)
-    prior_effect = native_effect(before,target,effect_id,required=False)
+    prior_effect = native_effect(before,target,effect_id,required=False,recipe=recipe)
     protected_materials = other_materials(scene,target) if recipe['update']['shared_materials']=='single_user_copy' else None
     shared = [(index,slot.material) for index,slot in enumerate(context['target'].material_slots) if slot.material
               and any(o != context['target'] and any(s.material == slot.material for s in o.material_slots) for o in bpy.data.objects)]
     adapter = adapter_for(bundle); called = []
+    if v2 and recipe_effects.preserved(context,allowed) != protected:
+        raise ValueError('Adapter import mutated protected scene state')
     proof_key=digest({'root':str(Path(root).resolve()),'recipe':identity,'profile':profile,
         'target':target,'effect_id':effect_id,'parameters':parameters,'invocation':recipe['invocation']})
     def invoke(**kwargs):
@@ -236,9 +232,13 @@ def apply(root, recipe_id, identity, profile, scene, target, parameters, effect_
             if returned.as_pointer() in existing and returned.name!=context['effect_name']:
                 raise ValueError('Provider invocation cannot adopt an unowned existing modifier')
             returned.name=context['effect_name']
+        if v2:
+            recipe_effects.claim(context, originals)
+            if recipe_effects.preserved(context, allowed) != protected:
+                raise ValueError('Provider changed protected scene state outside declared writes')
         bpy.context.view_layer.update()
         after=measurements(scene,target,scope)
-        effect=native_effect(after,target,effect_id)
+        effect=native_effect(after,target,effect_id,recipe=recipe)
         output=output_record(adapter,context)
         if measurements(scene,target,scope)!=after:
             raise ValueError('Output inspector mutated state after provider invocation')
@@ -271,26 +271,43 @@ def apply(root, recipe_id, identity, profile, scene, target, parameters, effect_
                 raise ValueError('Shared material copy policy requires isolated copies and unchanged other users')
     addons.assert_profile(profile); load(root,recipe_id,identity)
     after = measurements(scene,target,scope)
-    effect=native_effect(after,target,effect_id)
+    if v2 and recipe_effects.preserved(context,allowed) != protected:
+        raise ValueError('Adapter or inspector mutated protected scene state')
+    effect=native_effect(after,target,effect_id,recipe=recipe)
     PROVEN_INVOCATIONS[called[0]['intent']]=digest({'after':after,'output':output,'native_effect':effect})
     return {'output':output, 'before':before, 'after':after, 'invocations':[row['invocation'] for row in called],
             'invocation_evidence':called,'native_effect':effect,
+            **({'protected_fingerprint':digest(protected)} if v2 else {}),
             'output_fingerprint':digest(output), 'changed':before != after}
 
 
 @addons.offline_call
 def verify(root, recipe_id, identity, profile, scene, target, parameters, effect_id, expected):
     bundle, context = prepare_context(root,recipe_id,identity,profile,scene,target,parameters,effect_id,verify=True)
-    adapter = adapter_for(bundle)
     scope=sorted(set(sum(bundle['recipe']['coverage'].values(),[])))
     before=measurements(scene,target,scope)
+    v2=bundle['recipe']['schema']=='dcc.capability.recipe.v2'
+    if v2:
+        from . import recipe_effects
+        allowed=recipe_effects.allowed_materials(context)
+        protected=recipe_effects.preserved(context,allowed)
+        if digest(protected)!=expected.get('protected_fingerprint'):
+            raise ValueError('Saved protected scene state differs from applied evidence; requalify legacy v2 output')
+    adapter = adapter_for(bundle)
+    if measurements(scene,target,scope)!=before:
+        raise ValueError('Adapter import mutated saved state')
     output = output_record(adapter,context)
     observed = measurements(scene,target,scope)
-    effect=native_effect(observed,target,effect_id)
+    effect=native_effect(observed,target,effect_id,recipe=bundle['recipe'])
+    if bundle['recipe']['schema']=='dcc.capability.recipe.v2':
+        from . import recipe_effects
+        recipe_effects.ownership_before(context)
     if observed!=before: raise ValueError('Output inspector mutated saved state')
     if effect!=expected.get('native_effect'): raise ValueError('Saved native modifier effect differs from applied evidence; requalify legacy output')
     if output != expected['output'] or observed != expected['after']: raise ValueError('Saved output differs from applied measurements')
     validation = adapter.verify_saved(observed,output)
     if not isinstance(validation,dict) or validation.get('passed') is not True: raise ValueError('Saved output validator failed')
+    if measurements(scene,target,scope)!=before or (v2 and recipe_effects.preserved(context,allowed)!=protected):
+        raise ValueError('Saved adapter or validators mutated native state')
     addons.assert_profile(profile); load(root,recipe_id,identity)
     return {'passed':True,'output':output,'native_effect':effect,'measurements':observed,'output_fingerprint':digest(output)}

@@ -99,9 +99,41 @@ def parameter_value(schema, value):
     return value
 
 
+def callable_entry(value):
+    if (not isinstance(value,str) or len(value) > 128
+            or re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+',value) is None):
+        raise ValueError('Invalid bounded lifecycle callable entry')
+
+
+def effect_schema(value):
+    if not isinstance(value,dict) or value.get('kind') not in ('modifier','material','shader_nodes'):
+        raise ValueError('Unsupported native effect kind')
+    kind = value['kind']
+    exact(value, {'kind'} | ({'material_id','slot'} if kind != 'modifier' else set())
+          | ({'nodes'} if kind == 'shader_nodes' else set()))
+    if kind == 'modifier': return
+    if type(value['slot']) is not int or not 0 <= value['slot'] <= 1023:
+        raise ValueError('Native material slot must be an integer from zero to 1023')
+    material_id = value['material_id']
+    if kind == 'material' and material_id != '{effect_name}':
+        raise ValueError('Owned material requires the deterministic effect_name selector')
+    if material_id != '{effect_name}': identifier(material_id)
+    if kind == 'shader_nodes':
+        nodes = value['nodes']; strings(nodes)
+        if len(nodes) > 256: raise ValueError('Too many owned native node selectors')
+        for name in nodes:
+            if (not name.startswith('{effect_name}') or any(ord(ch)<32 or ord(ch)==127 for ch in name)
+                    or any(not 32 <= ord(ch) <= 126 or ch in '{}' for ch in name[13:])
+                    or len(name[13:].encode('utf-8')) > 10):
+                raise ValueError('Owned node selectors require effect_name and a bounded native suffix')
+
+
 def validate(value):
-    exact(value, FIELDS)
-    if value['schema'] != 'dcc.capability.recipe.v1': raise ValueError('Unknown recipe schema')
+    if not isinstance(value, dict) or value.get('schema') not in ('dcc.capability.recipe.v1','dcc.capability.recipe.v2'):
+        raise ValueError('Unknown recipe schema')
+    v2 = value['schema'] == 'dcc.capability.recipe.v2'
+    exact(value, FIELDS | ({'effect'} if v2 else set()))
+    if v2: effect_schema(value['effect'])
     identifier(value['id'])
     if type(value['version']) is not int or value['version'] < 1: raise ValueError('Positive recipe version required')
     strings(value['capabilities'])
@@ -118,9 +150,15 @@ def validate(value):
     strings(compat['contexts'], {'background','live'})
     exact(value['coverage'], {'reads','writes','dependencies'})
     for fields in value['coverage'].values(): strings(fields, MEASUREMENTS)
-    if 'modifiers' not in value['coverage']['writes']:
+    if (not v2 or value['effect']['kind'] == 'modifier') and 'modifiers' not in value['coverage']['writes']:
         raise ValueError('Supported claimed output requires a native modifier effect: include modifiers in coverage.writes and create or update the owned modifier; standalone geometry/material/node effects are unsupported')
-    invocation = value['invocation']; exact(invocation, {'kind','entry','completion','cancellation'} | ({'arguments'} if 'arguments' in invocation else set()))
+    if v2 and value['effect']['kind'] != 'modifier' and not {'materials','nodes'}.intersection(value['coverage']['writes']):
+        raise ValueError('Material and shader effects require materials or nodes in coverage.writes')
+    invocation = value['invocation']
+    if not isinstance(invocation,dict): raise ValueError('Invalid invocation object')
+    asynchronous = v2 and invocation.get('completion') == 'asynchronous'
+    lifecycle = {'poll','cancel','collect','poll_interval','timeout','cancel_grace'} if asynchronous else set()
+    exact(invocation, {'kind','entry','completion','cancellation'} | lifecycle | ({'arguments'} if 'arguments' in invocation else set()))
     if 'arguments' in invocation:
         if invocation['kind']!='python_function' or not isinstance(invocation['arguments'],dict):
             raise ValueError('Argument mapping requires a Python function')
@@ -130,7 +168,15 @@ def validate(value):
             if not isinstance(source,str) or (source not in ('target','effect_name','effect_id','parameters','context') and source not in {
                     'parameter:'+key for key in value['parameters']['properties']}):
                 raise ValueError('Unknown invocation argument source')
-    if (invocation['kind'] not in ('python_function','operator','node_asset') or invocation['completion'] != 'synchronous'
+    if asynchronous:
+        if invocation['kind'] != 'python_function' or invocation['cancellation'] != 'cooperative':
+            raise ValueError('Asynchronous invocation requires cooperative Python lifecycle wrappers')
+        for key in ('poll','cancel','collect'): callable_entry(invocation[key])
+        for key, low, high in (('poll_interval',.05,5), ('timeout',.1,3600), ('cancel_grace',.1,60)):
+            item = invocation[key]
+            if type(item) not in (int,float) or not math.isfinite(item) or not low <= item <= high:
+                raise ValueError('Invalid bounded asynchronous timing: ' + key)
+    elif (invocation['kind'] not in ('python_function','operator','node_asset') or invocation['completion'] != 'synchronous'
             or invocation['cancellation'] != 'between_calls'):
         raise ValueError('Unsupported invocation or completion protocol')
     entry=invocation['entry']
@@ -146,6 +192,8 @@ def validate(value):
     exact(value['update'], {'identity','shared_materials'})
     if value['update']['identity'] != 'effect_key' or value['update']['shared_materials'] not in ('none','all_users','single_user_copy'):
         raise ValueError('Explicit effect identity and material scope required')
+    if v2 and {'materials','nodes'}.intersection(value['coverage']['writes']) and value['update']['shared_materials'] == 'none':
+        raise ValueError('Material and node writes require an explicit shared material policy')
     if value['validators'] != ['inspect_output','verify_saved']: raise ValueError('Both independent validators required')
     if not isinstance(value['cases'],list) or not value['cases']: raise ValueError('Qualification cases required')
     names = set()

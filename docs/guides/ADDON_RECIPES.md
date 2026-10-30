@@ -33,7 +33,7 @@ evidence and reports its path. Explicit `out` directories always remain.
 
 Each recipe declares semantic capability IDs, a provider source digest, parameter
 bounds, Blender/engine/target compatibility, supported live/background context,
-read/write/dependency coverage, deterministic entry point, synchronous completion,
+read/write/dependency coverage, deterministic entry point, completion protocol,
 effect identity, shared-material policy, validators and qualification cases.
 Negative cases name a specific expected failure reason; an unrelated setup failure
 does not satisfy them. The full effect ID stays in evidence even when Blender's
@@ -68,7 +68,7 @@ mean vertex radius and material roughness determine bevel width. Its geometry an
 material refreshes therefore produce measurable modifier changes. The fixed-width
 provider remains a refusal case; these fixtures make no artistic quality claim.
 
-Claimed outputs currently require one native modifier on the target, named
+Version-one claimed outputs require one native modifier on the target, named
 `DCC::` plus the first 48 characters of the effect ID. `coverage.writes` must include
 `modifiers`; standalone geometry, material and shader-node effects are refused at
 draft/load admission. Node assets use their owned geometry-node modifier. Declared
@@ -82,6 +82,108 @@ Editor expansion/active flags do not count as effect changes. Saved verification
 requires the same retained native effect evidence; legacy outputs without it must be
 requalified. Whole-scene preservation and unsupported-surrounding-state refusal still
 apply.
+
+## Version-two shader and asynchronous recipes
+
+Use `schema: "dcc.capability.recipe.v2"` for the extended contracts. Existing
+immutable v1 bundles keep their meaning. A changed runtime requires new technical
+qualification; projects keep their pinned runtime until explicitly moved.
+
+Every v2 recipe adds one closed `effect` selector:
+
+```json
+{"kind":"modifier"}
+{"kind":"material","material_id":"{effect_name}","slot":0}
+{"kind":"shader_nodes","material_id":"stone","slot":0,"nodes":["{effect_name}"]}
+```
+
+These are three alternative effect objects, not one JSON document. Material effects
+own their material ID and name. Shader-node effects own named nodes in the selected
+material. Slot selectors range from zero to 1023. `{effect_name}` expands to `DCC::` plus the first 48 effect-key characters;
+node selectors may append up to ten printable ASCII characters. The full key is
+retained in `dcc_effect_id`; modifier ownership uses a reserved
+`dcc_modifier_effects` mapping on the target object because Blender modifiers do
+not support arbitrary custom properties. Pre-existing unowned effects are refused.
+
+Shader writes require `materials` or `nodes` coverage and an explicit shared-user
+policy. Native graph evidence includes nested groups, sockets, interfaces, settings,
+links, image hashes and ownership. Unknown relevant graph state remains a coverage
+failure. The preservation guard protects other nodes, materials, object slots and
+worlds, including transitive shared groups. Effects cannot adopt unrelated artist
+data. Geometry-only effects remain outside this v2 contract.
+
+Synchronous invocation keeps the existing adapter protocol. An asynchronous v2
+invocation uses a pinned Python submit wrapper and these additional fields:
+
+```json
+{
+  "kind":"python_function",
+  "entry":"provider.submit",
+  "completion":"asynchronous",
+  "cancellation":"cooperative",
+  "poll":"provider.poll",
+  "cancel":"provider.cancel",
+  "collect":"provider.collect",
+  "poll_interval":0.1,
+  "timeout":120,
+  "cancel_grace":5
+}
+```
+
+`entry` has the usual `(context, parameters, effect_id)` signature or the optional
+native keyword mapping. The adapter's `apply` calls `context['invoke']()` exactly
+once and returns the submit handle. `poll(context, handle)` reports a JSON object
+whose `state` is `PENDING`, `SUCCEEDED`, `FAILED` or `CANCELLED`, optionally with
+`progress` and `error`. Poll must not mutate native scene data. The provider may
+advance external work or use its qualified Blender callbacks between ticks.
+`cancel(context, handle)` requests termination without native scene mutation;
+subsequent polling must confirm termination. `collect(context, handle)` returns
+`{"status":"FINISHED"}` after successful completion and may finalize the declared
+native output. Handles and callback responses must be JSON values bounded to 64 KiB.
+The independent native inspector still establishes the actual effect.
+
+The bounds are 0.05–5 seconds between regular polls, 0.1–3600 seconds for timeout,
+and 0.1–60 seconds for cancellation grace. Cancellation/deadline scheduling can
+advance sooner than the regular poll interval. Submit, cancel and collect intent
+are persisted before dispatch. A reconstructed unfinished operation requires
+reconciliation and never repeats mutation. Live status exposes its target scope,
+phase and progress through the existing job APIs. Pending work has no saved
+candidate or completion-valid receipt.
+
+Live execution returns control to Blender between steps, allowing provider timers
+and modal wrappers to run. A modal operator requires an explicit source-pinned
+completion/cancellation wrapper; `RUNNING_MODAL` alone is insufficient. Background
+qualification is separate and requires progress independent of a GUI event loop.
+GUI-only execution still needs independent background reopening of the saved result.
+
+Temporary profile preferences and offline auditing remain active across provider
+callbacks, with preference autosave disabled until cleanup. Confirmed terminal work
+restores the prior settings. Uncertain termination retains the reservation and guard
+for reconciliation; stopping polling does not prove a provider has stopped. Manual
+artist edits inside the active write scope cannot always be distinguished from
+provider progress. Avoid editing that scope while its operation is pending.
+
+For uncertain live work, request cancellation through the existing job API. Its
+cleanup timer records cancellation intent once and polls for confirmed termination
+without collecting output. Recovery capture and acknowledgement refuse an active
+lease, even if its original execution mapping is lost. Only confirmed cleanup can
+restore the lease and allow a separate recovery decision; a failed stop still needs
+external reconciliation or a fresh Blender session.
+
+The portable tests and owned native fixtures cover synthetic providers. Run the
+[shader/async matrix](../../scripts/qualify_shader_async.py) with a fresh output
+directory and Blender 5.1.1; it records native renders, repeat/update, cancellation
+and independent saved-file reopen. The [managed MCP qualifier](../../scripts/qualify_shader_async_managed.py)
+adds public qualification/registration, required-provider enforcement, managed
+publication, receipt reuse and both execution/approval modes. These do not qualify
+an untested third-party product. Qualify the installed provider's own cases before
+binding it into an artist project.
+
+Reproducible sources are the [provider](../../tests/fixtures/addons/legacy/shader_async_fixture/__init__.py),
+[adapter](../../tests/fixtures/addons/shader_async_adapter.py) and
+[owned native worker](../../scripts/_shader_async_qualify.py).
+See the [0.24.0 qualification results](../archive/releases/SHADER_ASYNC_0_24_0_RESULTS.md)
+for the measured source, installed-package and native evidence and their limits.
 
 Parameter schemas use a strict, portable JSON Schema subset shared with Blender:
 closed objects (`properties`, `required`, `additionalProperties: false`), arrays with

@@ -2,6 +2,17 @@
 
 Each version is a bounded increment with its own qualification report. Test counts are portable-suite results on Windows; the two skips in each count are host symlink-permission cases. Native qualification uses Blender 5.1.1 on Windows. Studies are listed with the versions they exercised. The [build plan](docs/BUILD_PLAN.md) explains what remains open, and reports that link into `runs/` refer to local evidence excluded from Git.
 
+## 0.24.0 - October 30, 2026
+
+- Added version-two recipes for standalone owned materials and shader nodes, with
+  recursive native graph evidence and independent saved-file verification.
+- Added durable cooperative submit/poll/cancel/collect operations for source-pinned
+  providers in background workers and live Blender, preserving the shared managed
+  publication, cancellation and receipt contracts.
+- Retained version-one recipe admission and added shader rendering, ownership,
+  shared-group preservation, cancellation, lost-response and runtime qualification
+  fixtures. Existing projects retain their pinned runtime.
+
 ## 0.23.0 — October 22, 2026
 
 - Added static provider discovery and immutable source-pinned environments, with explicit session activation in execution and independent verification workers.

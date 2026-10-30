@@ -15,6 +15,7 @@ from mathutils import Matrix, Vector
 
 from .evidence import digest, file_hash, write_json
 from .project import now
+from .shader_graph import graph as _shader_graph, graph_issues
 
 
 def value(v):
@@ -41,23 +42,7 @@ def image_record(image):
 
 
 def graph(tree):
-    if tree is None:
-        return None
-    nodes = []
-    for node in sorted(tree.nodes, key=lambda n:n.name):
-        rec = {"name":node.name,"type":node.bl_idname,"inputs":{
-            s.identifier:value(s.default_value) for s in node.inputs if hasattr(s,"default_value")}}
-        for attr in ("operation","blend_type","projection","projection_blend","interpolation","extension","noise_dimensions","normalize"):
-            if hasattr(node,attr): rec[attr] = value(getattr(node,attr))
-        if getattr(node,"image",None): rec["image"] = image_record(node.image)
-        if getattr(node,"node_tree",None):
-            rec["group"] = node.node_tree.name
-            rec["unsupported_group"] = True
-        if hasattr(node,"color_ramp"):
-            rec["ramp"] = [[value(e.position),value(e.color)] for e in node.color_ramp.elements]
-        nodes.append(rec)
-    links = sorted([[l.from_node.name,l.from_socket.identifier,l.to_node.name,l.to_socket.identifier] for l in tree.links])
-    return {"nodes":nodes,"links":links}
+    return _shader_graph(tree, value=value, image_record=image_record)
 
 
 def mesh_record(obj, deps):
@@ -272,13 +257,13 @@ def observe(scene=None):
             pointer = mat.as_pointer()
             if pointer not in material_records:
                 material_records[pointer] = {"name":mat.name,"diffuse_color":value(mat.diffuse_color),"graph":graph(mat.node_tree)}
+                if mat.get("dcc_effect_id") is not None:
+                    material_records[pointer]["dcc_effect_id"] = value(mat.get("dcc_effect_id"))
             materials[mid] = material_records[pointer]
         objects[iid] = rec
     world = graph(scene.world.node_tree) if scene.world else None
     for data in [m["graph"] for m in materials.values()] + [world]:
-        for node in data["nodes"] if data else []:
-            if node.get("image") and not node["image"]["exists"]: issues.append(f"Missing image: {node['image']['path']}")
-            if node.get("unsupported_group"): issues.append(f"Unmeasured node group: {node['group']}")
+        issues.extend(graph_issues(data))
     config = {"name":scene.name,"units":{"system":scene.unit_settings.system,"scale_length":scene.unit_settings.scale_length},
               "world":world,"camera":scene.camera.get("dcc_instance_id") if scene.camera else None,
               "frame":scene.frame_current,"fps":[scene.render.fps,scene.render.fps_base],

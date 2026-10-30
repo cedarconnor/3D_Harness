@@ -1,5 +1,6 @@
 """Explicit recovery preserves current work before opening a separate restored working file."""
 import json
+import sys
 import uuid
 from pathlib import Path
 
@@ -11,6 +12,21 @@ try:
 except ModuleNotFoundError:
     from dcc_harness.files import copy_verified, file_hash, json_bytes, reject_links, write_exclusive
     from dcc_harness.adoption_inventory_blender import inventory
+
+
+def require_stopped(jobs, operation_id):
+    """Read-only admission: recovery must never run provider callbacks."""
+    # A lease can only exist in an already-loaded provider runtime. Do not
+    # import/activate provider infrastructure from recovery's read-only guard.
+    addons = sys.modules.get(__package__ + '.addons')
+    lease = getattr(addons, 'ACTIVE_LEASE', None)
+    if lease is not None and not getattr(lease, 'closed', False):
+        raise ValueError('BUSY: provider lease requires confirmed termination before recovery')
+    retained = getattr(jobs, 'async_operations', {}).get(operation_id)
+    if retained:
+        execution = retained[0]
+        if getattr(execution, 'lease', None) is not None and not getattr(execution, 'closed', False):
+            raise ValueError('BUSY: provider termination and lease cleanup required before recovery')
 
 
 def capture(jobs, payload):
@@ -25,6 +41,7 @@ def capture(jobs, payload):
         if decision not in ('keep-current', 'restore-precopy'):
             raise ValueError('Unsupported recovery decision')
         session, folder = jobs.session, jobs.folder(op)
+        require_stopped(jobs, op)
         state = jobs.status(op)
         if ((state['state'] in ('RUNNING', 'QUEUED') and state.get('generation') == session.generation)
                 or session.active not in (None, op)):
@@ -71,6 +88,7 @@ def capture(jobs, payload):
 
 def acknowledge(jobs, payload):
     op = payload['operation_id']; session = jobs.session
+    require_stopped(jobs, op)
     receipt = json.loads(reject_links(jobs.folder(op) / 'recovery/receipt.json').read_text())
     state = attachment.check(session, {'fingerprint': receipt['fingerprint'], 'snapshot': receipt['snapshot']})
     if state['generation'] != receipt['generation'] or not state['matches']:
