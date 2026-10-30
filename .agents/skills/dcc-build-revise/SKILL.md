@@ -19,7 +19,7 @@ Begin with silhouette, proportions and construction. Check modular joins and sig
 
 Use `dcc_instance_id` per placement, `dcc_asset_id` per definition and `dcc_material_id` per shared material. Detect duplicate IDs after copying; do not identify an ambiguous duplicate by guesswork. Linked mesh edits affect all users: decide explicitly between editing the shared definition and making a local variant.
 
-Reserve the planned script with `begin-edit` before dispatch. Do not retry an unresolved write. Observe native state, then complete the edit with `finish-edit`, or with `finish-edit --reconciled` after inspecting an uncertain outcome. Legacy journal-only projects use the pilot `begin`/`finish` journal instead. This is a single-writer advisory system; direct MCP writes are not intercepted.
+For advisory projects, reserve the planned script with `begin-edit` before dispatch. Do not retry an unresolved write. Observe native state, then complete the edit with `finish-edit`, or with `finish-edit --reconciled` after inspecting an uncertain outcome. Legacy journal-only projects use the pilot `begin`/`finish` journal instead. This is a single-writer advisory system; direct MCP writes are not intercepted.
 
 Keep each dispatched script immutable, including failed attempts; save a corrected script under a new name so its journal hash remains meaningful. For continuity stages use the pinned `continuity_blender.observe` and `continuity_checks.evaluate_stage` runtime described in `docs/guides/CONTINUITY_USAGE.md`. Keep independently corrected evaluations separate from a frozen worker's evidence.
 
@@ -29,3 +29,5 @@ For an A/B/C experiment, B uses written procedures with native inspection; added
 
 
 At stage entry and after geometry, material, provider or recipe changes, check capability requirements and actual saved-output freshness. Stable capability/target/slot identity updates one owned effect. A separate layer needs an explicit new slot. Use the shared execution service and normal budgets; inspect failures rather than looping. Refresh direct user edits before using saved receipts. Unrelated measured changes can retain valid evidence; deleted or edited effects cannot.
+
+For add-on authoring, follow [managed add-on effects](../dcc-harness/references/addon-effects.md). On runtime 0.24.0, v2 material/shader-node recipes can qualify without modifiers; async providers use a qualified submit/poll/cancel/collect wrapper. Declare exact material-unbinding or graph changes in the continuity contract when needed. Execute once through the managed service, inspect status by operation UUID after uncertainty, and wait for independent saved verification and publication before reporting completion. Preserve existing project pins and unresolved reservations.
