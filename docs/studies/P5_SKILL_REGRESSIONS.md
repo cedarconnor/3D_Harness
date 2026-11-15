@@ -101,3 +101,22 @@ G1's second criterion was that a fresh agent on the 0.7.0 one-parameter task res
 The criterion was missed by six seconds. About a minute of the wall time went on the rejected reservation described above. The agent read the `managed-execution` and `review-and-approval` references, neither of which this task needed, so the routing table did not stop it reading ahead. One run per arm, so this is directional.
 
 Evidence (grades, handoffs, the packet manifest and the timing measurement) is under `runs/g1-short-entry-skill-2026-11-14/`, excluded from Git. The packets and transcripts are in the session scratch folder.
+
+## Rerun after the audit and review-sheet clauses, November 15
+
+Rerun for the generation quality plan. After the November 14 pass, the entry skill's measure step gained two clauses, one naming `audit` (G3) and one naming `review-sheet` (G4), which took it from 502 to 519 words. The packets were rebuilt with the same builder from the source tree at commit `94d2c3c`, each run in a fresh agent with the same one-line prompt. All six passed.
+
+| | Result | Minutes | Turns | Cache-read share | References read | `audit` runs |
+|---|---|---|---|---|---|---|
+| S1 | Inspected the saved candidate, then `finish-edit --reconciled`; 0 script reruns; crate +0.050 m | 1.4 | 9 | 87.2% | none | 1 |
+| S2 | Roughness 0.8 published; the response cites renders of the published file, never `renders/latest/` | 2.8 | 17 | 92.8% | none | 1 |
+| S3 | Made `timber.aged` for the crate only; bench and shelf unchanged | 2.6 | 17 | 95.0% | none | 1 |
+| S4 | Wall warmed and published; rendered through a views file with the existing camera; no camera added; responded | 3.6 | 20 | 95.4% | none | 1 |
+| S5 | Accepted the shelf as an external revision (+0.100 m), then raised the crate (+0.020 m) | 3.4 | 21 | 95.8% | `external-revisions` | 2 |
+| S6 | No edit; a `deferred` response explains the conflict with `bench_locked` | 1.3 | 9 | 91.1% | none | 0 |
+
+- **The new clauses did not disturb the six behaviours.** Every packet passed on the same grader as before.
+- **`audit` was taken up.** The five agents that produced a file each ran `audit` on it without being asked; S6 made no file and ran none. Each reported its warnings (a deliberately raised crate as `FLOATING_PART`, the fixture's scaled cubes as `SCALE_NONUNIFORM`) and left them alone as outside the request, which is the right call.
+- **`review-sheet` was not used.** No agent ran it. The skill offers it for looking at one asset from all sides, and none of these tasks needed that, so this run says nothing about whether the clause works when it applies.
+- **Routing.** S5 opened `external-revisions`, the right reference. S6 answered correctly from the entry skill alone this time; on November 14 it had opened `review-and-approval`.
+- **Limits.** One run per situation. Minutes are comparable with the November 14 table, which used the same rebuilt baseline, and not with the October tables.
