@@ -290,6 +290,73 @@ class ContinuityCheckTests(unittest.TestCase):
         after["materials"]["stone"]["graph"]["links"] = []
         self.assertFalse(evaluate_stage(before, resign(after), c)["passed"])
 
+    def test_requested_shader_input_also_covers_its_recorded_socket_default(self):
+        # Observations since 0.24.0 record each input twice: in `inputs` and in `sockets.inputs`.
+        before = observation()
+        node = before["materials"]["stone"]["graph"]["nodes"][0]
+        node["sockets"] = {"inputs": [
+            {"identifier": name, "default_value": copy.deepcopy(value), "is_linked": False}
+            for name, value in node["inputs"].items()], "outputs": []}
+        resign(before)
+        other = next(name for name in node["inputs"] if name != "Base Color")
+        desired = [.38, .43, .48, 1]
+        c = contract()
+        c["allowed_material_inputs"] = {"stone": {"Principled BSDF": {"Base Color": desired}}}
+
+        def edited(extra=None):
+            after = copy.deepcopy(before)
+            target = after["materials"]["stone"]["graph"]["nodes"][0]
+            target["inputs"]["Base Color"] = desired
+            for socket in target["sockets"]["inputs"]:
+                if socket["identifier"] == "Base Color":
+                    socket["default_value"] = desired
+                if socket["identifier"] == extra:
+                    socket["default_value"] = .123
+            return resign(after)
+
+        self.assertTrue(evaluate_stage(before, edited(), c)["passed"])
+        self.assertFalse(evaluate_stage(before, edited(extra=other), c)["passed"])
+        mismatch = edited()
+        mismatch["materials"]["stone"]["graph"]["nodes"][0]["sockets"]["inputs"][0]["is_linked"] = True
+        self.assertFalse(evaluate_stage(before, resign(mismatch), c)["passed"])
+
+    def test_coverage_gaps_are_listed_and_do_not_fail_a_stage(self):
+        gap = {"code": "GEOMETRY_NODES_UNDESCRIBED", "object": "ext.table.top", "modifier": "Scatter",
+               "detail": "node asset contains an unqualified node type", "opaque_sha256": "a" * 64, "hash_complete": True}
+
+        def gapped(opaque):
+            obs = observation()
+            obs["objects"]["ext.table.top"]["modifier_settings"] = [
+                {"type": "NODES", "settings": {}, "node_asset": {"unmeasured": gap["detail"], "opaque_sha256": opaque}}]
+            obs["coverage"]["gaps"] = {"version": 1, "records": [dict(gap, opaque_sha256=opaque)]}
+            return resign(obs)
+
+        before = gapped("a" * 64)
+        c = contract()
+        result = evaluate_stage(before, gapped("a" * 64), c)
+        self.assertTrue(result["passed"], result["failures"])
+        self.assertEqual(result["coverage_gaps"], [gap])
+        # The gap record itself is not compared; the object's own opaque hash is.
+        changed = evaluate_stage(before, gapped("b" * 64), c)
+        self.assertFalse(changed["passed"])
+        self.assertIn({"category": "objects", "id": "ext.table.top", "field": "modifier_settings", "allowed": False},
+                      changed["preservation"]["changes"])
+        c["allowed_object_prefixes"] = {"ext.table.top": ["modifier_settings"]}
+        self.assertTrue(evaluate_stage(before, gapped("b" * 64), c)["passed"])
+        # A gap appearing or disappearing is not a coverage mismatch either.
+        plain = observation()
+        plain["objects"]["ext.table.top"]["modifier_settings"] = before["objects"]["ext.table.top"]["modifier_settings"]
+        self.assertTrue(evaluate_stage(resign(plain), before, contract())["passed"])
+        self.assertEqual(evaluate_stage(observation(), observation(), contract())["coverage_gaps"], [])
+
+    def test_malformed_coverage_gaps_are_refused(self):
+        for gaps in ([], {"version": 2, "records": []}, {"version": 1, "records": [{"code": "X"}]},
+                     {"version": 1, "records": [{"code": 1, "object": "a"}]}, {"version": 1}):
+            obs = observation()
+            obs["coverage"]["gaps"] = gaps
+            with self.subTest(gaps=gaps), self.assertRaises(ValueError):
+                evaluate_stage(resign(obs), observation(), contract())
+
     def test_linked_or_missing_shader_inputs_fail(self):
         before = observation()
         before["materials"]["stone"]["graph"]["links"].append(["Tint", "Color", "Principled BSDF", "Base Color"])

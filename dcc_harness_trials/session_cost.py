@@ -5,7 +5,7 @@ records only counts, never content. Streamed rows of one model request share a m
 request is counted once, with its final usage. Spend is reported only when the transcript carries a
 cost; otherwise it is unavailable, never estimated, because a subscription run is not free.
 
-    python -m dcc_harness.session_cost TRANSCRIPT.jsonl [--ceiling-minutes 90] [--ceiling-usd 25] [--out FILE]
+    python -m dcc_harness_trials.session_cost TRANSCRIPT.jsonl [--ceiling-minutes 90] [--ceiling-usd 25] [--out FILE]
 """
 from __future__ import annotations
 
@@ -14,8 +14,8 @@ from datetime import datetime
 import json
 from pathlib import Path
 
-from .evidence import write_json
-from .files import file_hash
+from dcc_harness.evidence import write_json
+from dcc_harness.files import file_hash
 
 SCHEMA = 'dcc.trial.session-cost.v1'
 TOKENS = {'input': 'input_tokens', 'cache_creation': 'cache_creation_input_tokens',

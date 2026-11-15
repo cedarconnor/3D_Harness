@@ -6,7 +6,8 @@ import sys
 import tempfile
 import unittest
 
-from dcc_harness.blind import HELPER_FILES, prepare_round, release_revision, verify_packet, accept_revision
+import trial_path  # noqa: F401  (puts the checkout on the path for dcc_harness_trials)
+from dcc_harness_trials.blind import HELPER_FILES, prepare_round, release_revision, verify_packet, accept_revision
 
 
 class BlindPacketTests(unittest.TestCase):
@@ -190,7 +191,7 @@ class BlindPacketTests(unittest.TestCase):
         manifest = self.prepare()
         run_id = manifest["runs"][0]["run_id"]
         result = subprocess.run(
-            [sys.executable, "-m", "dcc_harness.blind", "verify", "--root", str(self.root), "--run-id", run_id],
+            [sys.executable, "-m", "dcc_harness_trials.blind", "verify", "--root", str(self.root), "--run-id", run_id],
             cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True, check=True,
         )
         receipt = json.loads(result.stdout)

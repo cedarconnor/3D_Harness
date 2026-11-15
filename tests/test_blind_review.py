@@ -8,7 +8,8 @@ import unittest
 from unittest.mock import patch
 import zlib
 
-from dcc_harness.blind_review import CAMERAS, PHASES, _strip_png_metadata, export_review
+import trial_path  # noqa: F401  (puts the checkout on the path for dcc_harness_trials)
+from dcc_harness_trials.blind_review import CAMERAS, PHASES, _strip_png_metadata, export_review
 
 
 # Valid 1x1, 8-bit grayscale + alpha PNG. Fixture is deliberately independent
@@ -155,7 +156,7 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(self.entries, entry_snapshot)
 
     def test_labels_and_display_order_do_not_encode_run_order(self):
-        with patch("dcc_harness.blind_review.secrets.SystemRandom") as random_source, patch("dcc_harness.blind_review.secrets.token_hex", side_effect=[f"{index:016x}" for index in range(6)]):
+        with patch("dcc_harness_trials.blind_review.secrets.SystemRandom") as random_source, patch("dcc_harness_trials.blind_review.secrets.token_hex", side_effect=[f"{index:016x}" for index in range(6)]):
             random_source.return_value.shuffle.side_effect = lambda entries: entries.reverse()
             self.export()
         receipt = json.loads(self.receipt.read_text())

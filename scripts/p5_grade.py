@@ -17,7 +17,8 @@ _parser.add_argument('--transcripts', required=True, help='Folder holding the ag
 _parser.add_argument('--runtime', required=True)
 _args = _parser.parse_args()
 sys.path.insert(0, str(Path(_args.runtime).resolve()))
-from dcc_harness import coordination as c, session_cost
+from dcc_harness import coordination as c
+from dcc_harness_trials import session_cost
 from dcc_harness.continuity import Continuity
 from dcc_harness.evidence import read_json
 

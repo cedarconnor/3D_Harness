@@ -1,0 +1,42 @@
+{
+  "schema": "dcc.blockout.v1",
+  "name": "potting-shed-garden",
+  "units": "metres",
+  "up": "Z",
+  "tolerance": {"size": 0.25, "position": 0.5},
+  "parts": [
+    {"name": "ground", "category": "ground", "primitive": "box", "position": [0, 0, -0.115], "size": [80, 80, 0.47], "ids": ["ext.ground", "ext.site.terrain"]},
+    {"name": "walls", "category": "structure", "primitive": "box", "position": [0, 3.26, 0], "size": [6.3, 3.7, 3.56], "group": "shed",
+     "ids": ["ext.building.facade", "ext.building.back", "ext.building.return.*", "ext.building.gable.*"]},
+    {"name": "roof", "category": "roof", "primitive": "wedge", "position": [0.06, 3.25, 2.58], "size": [6.8, 4.9, 1.17], "group": "shed", "ids": ["ext.building.roof.*"]},
+    {"name": "door", "category": "opening", "primitive": "box", "position": [1.35, 1.38, 0], "size": [1.48, 0.69, 2.46], "ids": ["ext.building.door.*"]},
+    {"name": "window", "category": "opening", "primitive": "box", "position": [-1.38, 1.43, 1.14], "size": [1.85, 0.71, 1.33], "ids": ["ext.building.window.*"]},
+    {"name": "bench", "category": "furniture", "primitive": "box", "position": [-1.2, 0.25, 0.015], "size": [1.8, 0.65, 0.885], "ids": ["ext.bench.*"]},
+    {"name": "bench-pots", "category": "prop", "primitive": "cylinder", "position": [-1.26, 0.36, 0.9], "size": [1.42, 0.29, 0.225], "ids": ["ext.prop.pot.bench.*"]},
+    {"name": "work-path", "category": "path", "primitive": "box", "position": [-0.21, 0.18, -0.027], "size": [6.18, 2.22, 0.06], "ids": ["ext.path.work.*"]},
+    {"name": "gate", "category": "boundary", "primitive": "box", "position": [-6.34, 2.9, 0.008], "size": [0.22, 1.54, 1.53], "ids": ["ext.site.gate.*"]},
+    {"name": "boundary", "category": "boundary", "primitive": "box", "position": [-0.05, 8.61, -0.013], "size": [26.02, 0.135, 1.67], "ids": ["ext.site.boundary.*"]}
+  ],
+  "proportions": [
+    {"id": "bench-working-height", "value": {"part": "bench", "measure": "top"}, "min": 0.85, "max": 0.95},
+    {"id": "bench-depth", "value": {"part": "bench", "measure": "depth"}, "min": 0.5, "max": 0.8},
+    {"id": "door-frame-height", "value": {"part": "door", "measure": "height"}, "min": 1.9, "max": 2.6},
+    {"id": "door-frame-width", "value": {"part": "door", "measure": "width"}, "min": 0.8, "max": 1.6},
+    {"id": "door-below-eaves", "ratio": [{"part": "door", "measure": "top"}, {"part": "roof", "measure": "bottom"}], "max": 1.0},
+    {"id": "window-sill-height", "value": {"part": "window", "measure": "bottom"}, "min": 0.8, "max": 1.2},
+    {"id": "eaves-height", "value": {"part": "roof", "measure": "bottom"}, "min": 1.8, "max": 2.7},
+    {"id": "gate-height", "value": {"part": "gate", "measure": "height"}, "min": 0.9, "max": 1.8},
+    {"id": "gate-opening", "value": {"part": "gate", "measure": "depth"}, "min": 0.8, "max": 1.6},
+    {"id": "boundary-height", "value": {"part": "boundary", "measure": "height"}, "min": 1.2, "max": 2.0}
+  ],
+  "never": [
+    {"id": "bench-clear-of-walls", "rule": "no_overlap", "parts": ["bench", "walls"]},
+    {"id": "pots-on-the-bench", "rule": "within", "part": "bench-pots", "footprint": "bench"},
+    {"id": "path-not-buried", "rule": "not_below", "part": "work-path", "z": -0.2},
+    {"id": "roof-above-head-height", "rule": "not_below", "part": "roof", "z": 1.8}
+  ],
+  "avoid": [
+    "The shed must not read as a house: one room, one door, one window.",
+    "The bench must stay the working centre of the front view."
+  ]
+}

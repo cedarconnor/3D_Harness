@@ -89,7 +89,7 @@ def _registry(obs):
         if ((aid is not None and (not isinstance(aid, str) or not aid)) or
                 (obj["type"] == "MESH" and not aid) or
                 (parent is not None and parent not in obs["objects"]) or
-                not isinstance(mids, list) or any(not isinstance(m, str) or m not in materials for m in mids) or
+                not isinstance(mids, list) or any(m is not None and (not isinstance(m, str) or m not in materials) for m in mids) or
                 not isinstance(collections, list) or any(not isinstance(c, str) for c in collections)):
             raise ValueError(f"Invalid measured identity/dependency on {iid}")
         instances[iid] = {"name": obj.get("name"), "type": obj["type"], "asset_id": aid,
@@ -99,8 +99,8 @@ def _registry(obs):
         if aid:
             asset = assets.setdefault(aid, {"instances": [], "material_ids": []})
             asset["instances"].append(iid)
-            asset["material_ids"].extend(mids)
-        for mid in set(mids):
+            asset["material_ids"].extend(m for m in mids if m is not None)
+        for mid in set(mids) - {None}:
             materials[mid]["users"].append(iid)
             if aid:
                 materials[mid]["asset_ids"].append(aid)

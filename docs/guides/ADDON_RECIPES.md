@@ -1,5 +1,7 @@
 # Reusable add-on recipes
 
+**Frozen at 0.24.0 behaviour.** Add-on capabilities (provider discovery, version-one and version-two recipes, asynchronous operations and capability routing) get fixes only. No new capability features are planned until a real third-party add-on has been qualified through them. The fixtures qualified so far are this project's own. This is build-plan item G8. StableGen, kept as an optional tool after its [trial](../studies/G7_STABLEGEN_TRIAL.md), is the first candidate.
+
 A retained draft is not qualified, and technical qualification
 is not evidence that an add-on produces better art. Product-specific compatibility must
 be established with the user's installed provider and its own recipe cases.

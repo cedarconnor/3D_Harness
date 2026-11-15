@@ -10,7 +10,7 @@ import secrets
 import struct
 import zlib
 
-from .evidence import write_json
+from dcc_harness.evidence import write_json
 
 
 CAMERAS = ("hero", "reverse", "detail")

@@ -13,6 +13,8 @@ Inspect the live document and connection first. Preserve unsaved work in a recov
 
 Write a brief with the intended composition, six to eight asset families where appropriate, dimensions in meters, shared material families, lighting intent, and three fixed review views. Classify references as dimension evidence, construction evidence or mood guidance; mark inferred dimensions. Do not use image overlap against a mood board as a dimensional requirement.
 
+When the layout has sizes you can state, write it as a [blockout spec](../../../docs/guides/BLOCKOUT_SPEC.md): named primitives in metres, proportions with tolerances and rules for what must never happen. `spec-check` validates it, `blockout-build` builds it with stable IDs, and `spec-compare` measures any later file against it.
+
 Confirm that at least one detail view actually shows the proposed edit at a useful scale; an unchanged set of cameras may miss a new task region. Freeze comparison views before authoring. When occlusion is a requirement, define the target, camera and supported visibility measurement in the brief; a generic clearance box does not prove visibility.
 
 For an edit, state the requested delta and the locks: unrelated geometry, placements, cameras, shared material definitions and lighting. Assign one scope to each task. Repeated placements share an asset definition but have different instance IDs.

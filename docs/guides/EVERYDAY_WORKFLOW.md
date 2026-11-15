@@ -18,7 +18,7 @@ Before `start`, save an owned `.blend` and observe it. Since 0.6.0 one command d
 python -m dcc_harness observe C:/project/baseline.blend --blender "C:/Program Files/Blender Foundation/Blender 5.1/blender.exe" --output-dir C:/project/observe-baseline
 ```
 
-It writes `observation.json` in the new folder and reports `READY`, or `HAS_ISSUES` with exit status 1. The report lists the issues, such as missing IDs or an unsupported instancer. Collection instances are supported since 0.10.0; see [collection instances and linked libraries](#collection-instances-and-linked-libraries). Use the same command for every saved file that `begin-edit`, `finish-edit` or `preview-revision` needs observed. Calling `dcc_harness.continuity_blender.observe()` in a background Blender script is equivalent only straight after opening or saving the file: Blender does not mark edits made from Python as modified, so a script that edits and then observes without saving records the saved file's hash beside a different scene. An interactive session therefore always observes `native_dirty: true` with a `native_dirty_reason`, since 0.18.1. The observation must match the native hash, have no observation issues, and report `native_dirty: false`. For a saved scene missing stable identities, version 0.4.9 adds [preview/apply adoption commands](SCENE_ADOPTION.md). They write a new native file and independently observe it; setup does not silently rewrite the input.
+It writes `observation.json` in the new folder and reports `READY`, or `HAS_ISSUES` with exit status 1. The report lists the issues, such as missing IDs or an unsupported instancer. Content the observer records without being able to describe it is listed as [coverage gaps](#coverage-gaps) and does not make the file `HAS_ISSUES`. Collection instances are supported since 0.10.0; see [collection instances and linked libraries](#collection-instances-and-linked-libraries). Use the same command for every saved file that `begin-edit`, `finish-edit` or `preview-revision` needs observed. Calling `dcc_harness.continuity_blender.observe()` in a background Blender script is equivalent only straight after opening or saving the file: Blender does not mark edits made from Python as modified, so a script that edits and then observes without saving records the saved file's hash beside a different scene. An interactive session therefore always observes `native_dirty: true` with a `native_dirty_reason`, since 0.18.1. The observation must match the native hash, have no observation issues, and report `native_dirty: false`. For a saved scene missing stable identities, version 0.4.9 adds [preview/apply adoption commands](SCENE_ADOPTION.md). They write a new native file and independently observe it; setup does not silently rewrite the input.
 
 ```powershell
 python -m dcc_harness start C:/project/state --checkpoint C:/project/baseline.blend --observation C:/project/baseline.json --brief-file C:/project/BRIEF.md --decisions C:/project/decisions.json --handoff C:/project/CONTINUE.md
@@ -94,3 +94,22 @@ Observations and render receipts remain trusted producer claims; hashes detect c
 Read [CRAFT_SKILLS.md](CRAFT_SKILLS.md) for the four task-specific skills and tested recipe boundaries. `scripts/qualify_workflow.py` exercises the entry points on a separate saved shed file, including fresh-process unresolved-state detection, independent native reopen, narrow material revision and two architectural aperture configurations. It is an engineering exercise, separate from the frozen blind comparison.
 
 Version 0.4.3 adds the [seeded broadleaf study](../recipes/VEGETATION_RECIPE.md), used through the same reservation workflow. Its consumer creates new native geometry but does not save, place roots or manage project state. Review both representative close-ups and destination views before publishing. The [garden results](../archive/releases/VEGETATION_0_4_3_RESULTS.md) retain a numerically passing visual rejection and a bounded repair.
+
+## Coverage gaps
+
+Unreleased, build-plan item G2. Some content is valid but outside what the observer can describe. It used to make the whole scene `HAS_ISSUES`, so one unrelated object could block every checkpoint. It is now recorded and listed.
+
+| Code | What it is | How a later change is detected |
+|---|---|---|
+| `GEOMETRY_NODES_UNDESCRIBED` | A Geometry Nodes modifier outside the small described subset, for example a scatter tree | The object's `modifier_settings` holds an opaque hash of the tree, its nested groups and the modifier's inputs |
+| `EMPTY_MATERIAL_SLOT` | A material slot with no material | The object's `material_ids` holds a null for the slot |
+
+- `observe` reports `READY` and lists the records under `coverage_gaps`. The observation stores them under `coverage.gaps`, which is present only when a scene has such content, so other scenes observe exactly as before and older observations still read.
+- `finish-edit` and stage checks list the result's gaps under `coverage_gaps`. A gap never fails a check by itself.
+- Changing gapped content fails a contract that does not grant it. Grant `modifier_settings` on the object to change an undescribed Geometry Nodes setup, or `material_ids` to fill or empty a slot.
+- `hash_complete: false` on a record means the generic reader met something inside the tree it could not record, so a change there may go unnoticed. Animation, drivers and the contents of datablocks the tree references are not hashed.
+- Geometry that such a tree instances is still not measured; only the tree and its inputs are.
+
+Still refused as issues: missing textures, unsaved image pixels, shader graphs past the reader's limits or with animation, missing or duplicate IDs, vertex, face and particle instancing, and library overrides.
+
+`scripts/qualify_coverage_gaps.py` builds the fixtures and checks all of this natively.

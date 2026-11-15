@@ -64,8 +64,8 @@ For Animatica work, load [animatica-choreographer](../animatica-choreographer/SK
 ## Common combinations
 
 - **Product shot:** reference-modeling → hard-surface → uv → shading → lighting → camera → rendering, with visual-design for the frame.
-- **Game prop:** hard-surface → uv → baking → realtime-assets, using `uv-report` for texel density.
-- **3D-printed part:** precision-cad, with pipeline for STL and STEP exchange.
+- **Game prop:** hard-surface → uv → baking → realtime-assets, using `uv-report` for texel density and `audit --profile game` for geometry defects.
+- **3D-printed part:** precision-cad, with pipeline for STL and STEP exchange and `audit --profile print` for closed, connected parts.
 - **Animated character:** sculpt-retopo → uv → shading → rigging → skinning → animation (or mocap), with hair where needed.
 - **Environment:** the harness `dcc-plan-environment` and `dcc-environment-assembly`, with geometry-nodes for scattering, shading and lighting.
 - **CG in live footage:** matchmove → lighting (match the plate) → rendering (shadow catcher, holdouts) → compositing.

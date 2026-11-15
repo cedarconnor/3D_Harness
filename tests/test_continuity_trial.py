@@ -6,7 +6,8 @@ import tempfile
 import unittest
 
 from dcc_harness.continuity import Continuity
-from dcc_harness.continuity_trial import (HELPER_FILES, accept_stage, issue_stage,
+import trial_path  # noqa: F401  (puts the checkout on the path for dcc_harness_trials)
+from dcc_harness_trials.continuity_trial import (HELPER_FILES, accept_stage, issue_stage,
                                          prepare_round, verify_packet)
 from dcc_harness.evidence import digest, file_hash, read_json, write_json
 from dcc_harness.project import Project

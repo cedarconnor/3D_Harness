@@ -4,7 +4,7 @@ from pathlib import Path
 from html.parser import HTMLParser
 repo=Path(__file__).resolve().parents[1];sys.path.insert(0,str(repo))
 from dcc_harness.evidence import read_json,write_json,file_hash
-from dcc_harness.blind_review import _strip_png_metadata
+from dcc_harness_trials.blind_review import _strip_png_metadata
 from PIL import Image
 p=argparse.ArgumentParser();p.add_argument('--root',required=True);p.add_argument('--out',required=True);a=p.parse_args()
 root=Path(a.root).resolve();out=Path(a.out).resolve();out.mkdir(exist_ok=False);(out/'images').mkdir()

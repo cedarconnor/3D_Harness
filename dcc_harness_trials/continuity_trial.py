@@ -15,9 +15,9 @@ import secrets
 from .blind import (_absolute, _check_hashes, _copy_file, _copy_tree, _digest,
                     _inventory, _read_json, _read_template, _reject_link,
                     _write_json, _write_text, POLICY)
-from .continuity import Continuity, _load_observation
-from .evidence import canonical, validate_observation
-from .project import Project
+from dcc_harness.continuity import Continuity, _load_observation
+from dcc_harness.evidence import canonical, validate_observation
+from dcc_harness.project import Project
 
 
 SCHEMA = "dcc.continuity-trial.v1"

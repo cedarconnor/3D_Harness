@@ -35,13 +35,30 @@ def describe(tree):
     return {'schema': 'dcc.node-asset.graph.v1', 'interface': interface, 'graph': result}
 
 
+def stored_input(modifier, identifier, default=None):
+    """One exposed input as (value, driven by an attribute, attribute name), on either storage layout.
+
+    Blender 5.2 moved these from ID properties on the modifier to `modifier.properties.inputs`.
+    """
+    interface = getattr(modifier, 'properties', None)
+    if interface is not None:
+        entry = getattr(interface.inputs, identifier, None)
+        if entry is None:
+            return default, False, ''
+        return (getattr(entry, 'value', default), getattr(entry, 'type', 'VALUE') == 'ATTRIBUTE',
+                getattr(entry, 'attribute_name', ''))
+    return (modifier.get(identifier, default), bool(modifier.get(identifier + '_use_attribute', False)),
+            modifier.get(identifier + '_attribute_name', ''))
+
+
 def modifier_record(modifier):
     tree = modifier.node_group
     description = describe(tree)
-    inputs = {s['identifier']: value(modifier.get(s['identifier'], s.get('default_value')))
+    stored = {s['identifier']: stored_input(modifier, s['identifier'], s.get('default_value'))
               for s in description['interface'] if s['direction'] == 'INPUT' and s['socket_type'] != 'NodeSocketGeometry'}
+    inputs = {key: value(item[0]) for key, item in stored.items()}
     # Attribute-driven input selection is not part of this initial subset.
-    if any(modifier.get(key + '_use_attribute', False) for key in inputs):
+    if any(item[1] for item in stored.values()):
         raise ValueError('UNSUPPORTED_COVERAGE: attribute-driven node asset inputs')
     return {'description': description, 'graph_sha256': digest(description), 'inputs': inputs,
             'source_sha256': tree.get('dcc_asset_source'), 'source_group': tree.get('dcc_asset_group')}

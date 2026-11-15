@@ -12,7 +12,7 @@ Use a fresh geometry-free native starter and the pinned asset kit. The supplied 
 
 ```powershell
 & 'C:/Program Files/Blender Foundation/Blender 5.1/blender.exe' --background --factory-startup --python-exit-code 1 --python scripts/blind_starter.py -- --out runs/new-fixtures/starter.blend --kit runs/engineering-2026-10-03/assets
-python -m dcc_harness.blind prepare --root runs/new-round --starter runs/new-fixtures/starter.blend --kit runs/engineering-2026-10-03/assets --templates experiments/courtyard-blind --helper-root dcc_harness
+python -m dcc_harness_trials.blind prepare --root runs/new-round --starter runs/new-fixtures/starter.blend --kit runs/engineering-2026-10-03/assets --templates experiments/courtyard-blind --helper-root dcc_harness
 ```
 
 The destination must not exist. Preparation copies the fixed inputs and hashes them, including the exact prompts, skills and five-file runtime helper. The private assignment manifest is `private/manifest.json`; production agents receive only `trials/<opaque-id>/`. No generated scene, fixture construction code, earlier transcript or private manifest is included. Global skills are not copied into packets. A receives no process skill bodies or helper. B receives three frozen task-specific skills. C receives exactly the same skills plus the measurement package and instructions.
@@ -26,7 +26,7 @@ In this host's October 3 session, live `execute_blender_code` works. The MCP bac
 Verify frozen inputs before and after each agent:
 
 ```powershell
-python -m dcc_harness.blind verify --root runs/new-round --run-id t-0123456789ab
+python -m dcc_harness_trials.blind verify --root runs/new-round --run-id t-0123456789ab
 ```
 
 The common brief requires a packed `output/pre.blend` and `output/CONTINUE.md`. Record agent task identity, start/end time, output hashes, known render/capture usage and any leaks privately. Time and capture ceilings are coordinator obligations; the file packager is not a resource sandbox. Keep failed/capped trials in the six-slot comparison. Do not silently replace them, coach one method using another's results, or revise the frozen method halfway through a round.
@@ -34,15 +34,15 @@ The common brief requires a packed `output/pre.blend` and `output/CONTINUE.md`. 
 ## Replace the context
 
 ```powershell
-python -m dcc_harness.blind release-revision --root runs/new-round --run-id t-0123456789ab
-python -m dcc_harness.blind verify --root runs/new-round --run-id t-0123456789ab --phase revision
+python -m dcc_harness_trials.blind release-revision --root runs/new-round --run-id t-0123456789ab
+python -m dcc_harness_trials.blind verify --root runs/new-round --run-id t-0123456789ab --phase revision
 ```
 
 Release accepts the pre-revision bytes once and copies only the native scene and handoff note into a new `revisions/<opaque-id>/` context. It reissues the frozen common inputs and assigned methods plus the identical late revision. It deliberately excludes builder scripts, logs and transcript. It rejects missing handoffs, changed frozen inputs and repeated publication. File acceptance is not native validity or artistic approval.
 
 Spawn a new agent with `fork_turns="none"`; do not use a follow-up on the original builder. The revision changes the shared stone color and bench-seat width while preserving layout, lighting, cameras and unrelated assets. The pre-revision lighting is a preservation baseline, not an assertion that an artist approved every build. The new agent writes `output/post.blend` and `output/CONTINUE.md`.
 
-Historical paths in the handoff are informational; uniformly instruct revision agents to open only their packet's supplied `pre.blend`. After the writer stops, `python -m dcc_harness.blind accept-revision --root runs/new-round --run-id t-0123456789ab` verifies its inputs and freezes only the two result files under `private/completed/`. Evaluate that immutable snapshot. Missing files, changed inputs and repeated acceptance are refused; byte acceptance still does not imply a passed trial.
+Historical paths in the handoff are informational; uniformly instruct revision agents to open only their packet's supplied `pre.blend`. After the writer stops, `python -m dcc_harness_trials.blind accept-revision --root runs/new-round --run-id t-0123456789ab` verifies its inputs and freezes only the two result files under `private/completed/`. Evaluate that immutable snapshot. Missing files, changed inputs and repeated acceptance are refused; byte acceptance still does not imply a passed trial.
 
 ## Independent evidence and artist review
 
@@ -54,7 +54,7 @@ The audit found low-bit differences in Blender's evaluated bevel UV coordinates 
 
 The evaluator captures the same three views before and after. Its render preset is fixed in a disposable process; it first records and flags any actual checkpoint preset violation. Reserve capture/render budget for these independent captures. Compare hard-check results separately from aesthetic preference and do not feed comparative grades back to production agents.
 
-`dcc_harness.blind_review.export_review(entries, public_folder, private_receipt)` exports six anonymous image slots with randomized labels, stripped PNG descriptive metadata, a common gallery and score form. The private receipt retains the source mapping and hashes. Missing or invalid images remain explicit unavailable cells. The public package excludes method names, source paths, scripts and technical reports. Image-only review cannot score native editability; leave it unassessed until a separate native review. AI critiques can supplement, but cannot replace, the artist's scores or measured repair time.
+`dcc_harness_trials.blind_review.export_review(entries, public_folder, private_receipt)` exports six anonymous image slots with randomized labels, stripped PNG descriptive metadata, a common gallery and score form. The private receipt retains the source mapping and hashes. Missing or invalid images remain explicit unavailable cells. The public package excludes method names, source paths, scripts and technical reports. Image-only review cannot score native editability; leave it unassessed until a separate native review. AI critiques can supplement, but cannot replace, the artist's scores or measured repair time.
 
 The two-repeat investment gate in the build plan remains unchanged. Separate agents and passing engineering tests do not establish that one method wins, that long-horizon production is qualified, or that an unseen brief will succeed.
 

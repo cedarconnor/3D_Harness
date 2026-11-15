@@ -15,7 +15,7 @@ import re
 import secrets
 from typing import Any
 
-from .files import copy_verified, file_hash, reject_links
+from dcc_harness.files import copy_verified, file_hash, reject_links
 
 
 SCHEMA = "dcc.blind-round.v1"

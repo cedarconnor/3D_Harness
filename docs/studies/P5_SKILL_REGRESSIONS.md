@@ -66,3 +66,38 @@ Rerun after the skill and guide changes in 0.18.1, 0.19.0 and P17. The packets w
 - **Limits.** Still one run per situation. These traps remain covered by direct refusals, so passing again shows no regression, not robustness.
 
 Evidence is under `runs/p5-skill-regressions-2026-10-15/` and the session scratch folder, excluded from Git.
+
+## Rerun with the short entry skill, November 14
+
+Rerun for build-plan item G1, which cut `dcc-harness/SKILL.md` from 1,429 to 502 words and moved its conditional rules into `references/`. The runtime is the unreleased source tree at 0.24.0. Each packet ran in a fresh agent with the same one-line prompt. All six passed.
+
+| | Result | Minutes | Turns | Cache-read share | References read |
+|---|---|---|---|---|---|
+| S1 | Observed and rendered the saved candidate, then `finish-edit --reconciled`; 0 script reruns; crate +0.050 m | 1.4 | 8 | 90.8% | none |
+| S2 | Roughness 0.8 published on the second reservation; the response cites renders of the published file, never `renders/latest/` | 3.9 | 24 | 96.1% | none |
+| S3 | Made `timber.aged` for the crate only; bench and shelf materials identical | 2.5 | 18 | 95.4% | none |
+| S4 | Wall warmed and published; rendered through a views file with the existing camera; no camera added; responded with renders | 4.5 | 25 | 96.2% | none |
+| S5 | Accepted the shelf through `preview-revision`/`accept-revision` (+0.100 m), then raised the crate (+0.020 m) | 3.1 | 20 | 95.7% | `external-revisions` |
+| S6 | No edit; a `deferred` response explains the conflict with `bench_locked`; left the decision to the artist's terminal | 1.4 | 10 | 92.1% | `review-and-approval` |
+
+- **Routing.** Only the two agents whose situation matched a routing row opened a reference file, and each opened the right one. The other four worked from the entry skill and the quick reference.
+- **Builder changes.** The fixture's stored observation came from the 0.6.0 observer. The 0.24.0 observer records shader graphs and world nodes in more detail, so `begin-edit` refused with "Fresh observation differs from the accepted baseline" before any agent ran. The builder now observes the fixture with the runtime under test and starts each project from that. It also copies each skill's whole folder, not only `SKILL.md`. Projects that hold pre-0.24 observations will meet the same refusal; that is outside P5 and is not addressed here.
+- **Contract defect.** S2, S4 and the timing run below each found that the quick reference's `allowed_material_inputs` contract is rejected for a correct single-input change. The check in `continuity_checks.py` rewrites the node's `inputs` value but not the matching `sockets.inputs[].default_value` that the 0.24.0 observer also records. S2 and the timing run lost one reservation to it and republished with `allowed_material_graphs`; S4 found it in a dry run first. It lengthened those three runs. It was fixed in source after them: the check now expects the requested value in both places, and the timing run's rejected contract passes on its retained observations. The packets were not rerun with the fix.
+- **S4 views.** This agent passed a views file to `render` and did not record a `review_views` decision, where the two earlier runs recorded one. The grader accepts either.
+- **Limits.** One run per situation, on packets whose baseline now differs from the October runs, so the minutes are not comparable with the tables above.
+
+### Edit-start timing
+
+G1's second criterion was that a fresh agent on the 0.7.0 one-parameter task reserves its edit no later than the recorded 51 seconds. Packet C was rebuilt with the same change of baseline: a fresh project from the same checkpoint and the same note text, with a new note ID in `BRIEF.md`.
+
+| | 0.7.0, October 10 | Short skill, November 14 |
+|---|---|---|
+| First `python -m dcc_harness` command | 10 s | 25 s |
+| Edit reserved (`begin-edit`) | 51 s | 57 s |
+| Wall time | 3 min 1 s | 3 min 39 s |
+| Tool calls | 34 | 29 |
+| Runtime source files read | 1 | 2 |
+
+The criterion was missed by six seconds. About a minute of the wall time went on the rejected reservation described above. The agent read the `managed-execution` and `review-and-approval` references, neither of which this task needed, so the routing table did not stop it reading ahead. One run per arm, so this is directional.
+
+Evidence (grades, handoffs, the packet manifest and the timing measurement) is under `runs/g1-short-entry-skill-2026-11-14/`, excluded from Git. The packets and transcripts are in the session scratch folder.
