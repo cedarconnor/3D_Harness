@@ -34,22 +34,23 @@ The owner approved implementation and selected direct editing in the open scene.
 | Version | 0.23.0 follow-up on `codex/managed-execution-overhaul`; historical release evidence retained, local integrated gate passed; scoped rereview/CI/delivery pending; `main` unchanged at this record |
 | Active | External branch-review follow-up: authority, durable live outcomes, capability attribution and packaging/docs corrections implemented; full source/installed/native proof retained. At this documentation checkpoint, broad review completed; I1 corrected and final8 qualified; scoped rereview/CI/delivery pending. P16/P18 remain open from the [Scenario review](reference/SCENARIO_BLENDER_PLUGIN_REVIEW_2026-10-15.md). |
 | Next | Complete scoped I1/M2/M3 rereview, hosted CI and authorized GitHub delivery after final8 and the final documentation-package parity proof. Real-project adoption and the separate artist-quality comparison remain open. |
-| Waiting on the user | E1–E3 artist review session; E4 decision on the realistic comparison; E5 artist repair time |
-| Investment gate | Open |
+| Waiting on the user | Nothing |
+| Investment gate | Retired November 14, 2026 by the owner ([decision](DESIGN_DECISIONS.md#investment-gate-retired--november-14-2026)). No work waits on artist scoring or a method comparison. |
+| Generation quality | [G1–G8 plan](plans/G_GENERATION_QUALITY.md), drafted November 14. G1–G6 are implemented and unreleased; G7 is done; G8 is implemented and unreleased |
 
 ## Tracker
 
-### E: Evidence for the investment gate
+### E: Evidence originally gathered for the investment gate
 
-These need artist time or a user decision rather than new code. Every stage after B depends on them.
+Closed November 14, 2026. The owner completed the artist review session and reported that the differences were minimal, because the scenes were simple and the increments small. The owner also reported better results elsewhere when work is tracked across context sessions, and retired the gate on that basis. No scores or repair times were supplied, so none are recorded. Nothing below blocks other work any longer; the rows keep their original exit criteria as history.
 
 | ID | Item | Owner | Status | Exit criteria |
 |---|---|---|---|---|
-| E1 | Score existing outputs: both anonymous galleries and production checkpoint 9 | Artist | todo | Five-point scores recorded before method labels are revealed ([session guide](studies/ARTIST_REVIEW_SESSION.md)) |
-| E2 | Timed repair of one plain-MCP and one continuity final scene | Artist | todo | Minutes, fixed and remaining defects recorded per scene, with methods hidden |
-| E3 | Critic calibration set | Artist | todo | About twenty ranked image pairs retained as a held-out set |
-| E4 | Resume or retire the [realistic comparison](studies/REALISM_COMPARISON.md) | User | blocked: decision | Decision recorded in the decision log. A resumed run logs the interruption as a protocol deviation and keeps the frozen settings. |
-| E5 | Fresh-agent continuation on the production garden | Agent, then artist | blocked: artist repair time | Sealed continuation on an owned copy: elapsed and inspection time, forgotten notes and remaining artist repair recorded. Agent part done October 11 ([results](studies/E5_CONTINUATION_RESULTS.md)): 32 min, edit reserved after 7 min, 3 of 3 notes found and answered, two visual rejections retained, all three responses verified by a separate agent review. Artist repair time not yet measured |
+| E1 | Score existing outputs: both anonymous galleries and production checkpoint 9 | Artist | done | Five-point scores recorded before method labels are revealed ([session guide](studies/ARTIST_REVIEW_SESSION.md)) |
+| E2 | Timed repair of one plain-MCP and one continuity final scene | Artist | dropped | Minutes, fixed and remaining defects recorded per scene, with methods hidden |
+| E3 | Critic calibration set | Artist | dropped | About twenty ranked image pairs retained as a held-out set |
+| E4 | Resume or retire the [realistic comparison](studies/REALISM_COMPARISON.md) | User | dropped | Retired November 14 with the gate; the interrupted candidate stays as retained evidence. Original criterion: Decision recorded in the decision log. A resumed run logs the interruption as a protocol deviation and keeps the frozen settings. |
+| E5 | Fresh-agent continuation on the production garden | Agent, then artist | done | Sealed continuation on an owned copy: elapsed and inspection time, forgotten notes and remaining artist repair recorded. Agent part done October 11 ([results](studies/E5_CONTINUATION_RESULTS.md)): 32 min, edit reserved after 7 min, 3 of 3 notes found and answered, two visual rejections retained, all three responses verified by a separate agent review. Artist repair time not yet measured |
 
 ### M: Maintenance
 
@@ -64,7 +65,7 @@ These need artist time or a user decision rather than new code. Every stage afte
 
 ### P: Product increments, ranked
 
-Ranked by expected effect on the gate. Each ships as its own version.
+Ranked, when written, by expected effect on the investment gate, which was retired on November 14, 2026. Each ships as its own version.
 
 | ID | Item | Owner | Status | Exit criteria |
 |---|---|---|---|---|
@@ -83,9 +84,24 @@ Ranked by expected effect on the gate. Each ships as its own version.
 | P13 | Native UV overlap, texel density and fine-grained modifier and node permissions (moved from P6) | Agent | done | Permissions in 0.17.0 ([report](archive/releases/MODIFIERS_0_17_0_RESULTS.md)); UV overlap and texel density in 0.18.0 as the separate `uv-report` measurement rather than observer fields, so earlier checkpoints are unaffected ([report](archive/releases/UV_0_18_0_RESULTS.md)) |
 | P14 | Blender craft skill library across modeling, surfaces, look, motion, characters, effects and delivery, requested by the owner ([guide](guides/BLENDER_SKILL_LIBRARY.md)) | Agent | done | Done October 11: 25 `blender-*` skills and a `blender-craft` index, synthesized from 30 supplied sources and the Blender docs. Every skill's `python verify` block passed on Blender 5.1.1 and 5.2.1 through `scripts/qualify_blender_skills.py`; running them corrected thirteen claims. Craft quality and fresh-agent use are not yet measured, and P5 should be rerun because `dcc-harness` now links the index |
 | P15 | Attribute-complete geometry hash ([details](#p15p18-and-m6-from-the-scenario-review)) | Agent | done | Done in 0.19.0: `source_attribute_hash` on every mesh with `source_attributes` coverage, skipped against older observations; `source_mesh_hash` permission includes it. Seven native variants pass unnoticed on 0.18.1 and fail on the field alone on 0.19.0, on Blender 5.1.1 and 5.2.1. Earlier checkpoints re-observe with a new revision, which the exit criterion had excluded; the report explains why ([report](archive/releases/ATTRIBUTES_0_19_0_RESULTS.md)) |
-| P16 | Blockout spec for the planning stage ([details](#p15p18-and-m6-from-the-scenario-review)) | Agent | todo | A versioned greybox JSON schema with clamped validation, a helper that builds it into an owned, tagged collection with stable IDs and refuses to rebuild an edited collection, and `relations` run on the built blockout. Native positive and negative fixtures; an implementation plan in `docs/plans/` first |
+| P16 | Blockout spec for the planning stage ([details](#p15p18-and-m6-from-the-scenario-review)) | Agent | active | Delivered through G5 on November 15, unreleased; see that row. Original scope: A versioned greybox JSON schema with clamped validation, a helper that builds it into an owned, tagged collection with stable IDs and refuses to rebuild an edited collection, and `relations` run on the built blockout. Native positive and negative fixtures; an implementation plan in `docs/plans/` first |
 | P17 | Skill notes from the Scenario review: texture-set and World conventions, Blender 5.x image decoding defects, and the undo push after Python edits ([details](#p15p18-and-m6-from-the-scenario-review)) | Agent | done | Done October 15: notes with verify blocks in `blender-shading`, `blender-lighting` and `blender-python`, and a pointer in `dcc-materials`; the full library passed on 5.1.1 and 5.2.1 (28 blocks). The ICC and JPEG-stall claims were dropped as unreproduced. P5 passed again on 0.19.0 ([guide](guides/BLENDER_SKILL_LIBRARY.md#notes-added-from-the-scenario-review), [P5 rerun](studies/P5_SKILL_REGRESSIONS.md#rerun-on-0190-october-15)) |
 | P18 | Skill provenance and drift record ([details](#p15p18-and-m6-from-the-scenario-review)) | Agent | todo | Every skill records its sources and the Blender versions its verify blocks passed on; a check flags a skill whose sources changed after its recorded revision, and fails in the source suite |
+
+### G: Generation quality
+
+Added November 14, 2026. Scope, order and exit criteria are in the [plan](plans/G_GENERATION_QUALITY.md).
+
+| ID | Item | Owner | Status | Exit criteria |
+|---|---|---|---|---|
+| G1 | Short default entry skill; managed, live and add-on rules move to references | Agent | active | Implemented November 14, not yet released as a version: the entry skill is 502 words, down from 1,429, with five new reference files and a skill lint test. All six P5 situations passed ([P5 rerun](studies/P5_SKILL_REGRESSIONS.md#rerun-with-the-short-entry-skill-november-14)). The timing criterion missed: the fresh agent reserved its edit at 57 s against the recorded 51 s; one run, directional. Open: the release steps. The contract defect the runs exposed is fixed in source |
+| G2 | Unsupported node groups and empty slots become recorded coverage gaps, not refusals | Agent | active | Implemented November 14, not yet released: undescribed Geometry Nodes modifiers and empty slots observe `READY` as listed gaps, a change to either fails an ungranted contract, and a missing texture still refuses. `scripts/qualify_coverage_gaps.py` passed on Blender 5.1.1 and 5.2.1 from source ([guide](guides/EVERYDAY_WORKFLOW.md#coverage-gaps)). Nested shader groups needed no change; 0.24.0 already measures them. Open: the release steps |
+| G3 | `audit` command: profile-based geometry defect checks | Agent | active | Implemented November 15, not yet released: 18 codes under `render`, `game` and `print` profiles, each with a cause, a fix and an evidence class. `scripts/qualify_audit.py` passed on Blender 5.1.1 and 5.2.1 from source ([guide](guides/AUDIT.md)). The production garden audits in 18 s and fails with real errors: 519 parts built inside out. Open: the release steps, and a P5 rerun for the entry skill's new clause |
+| G4 | Contact-sheet review renders | Agent | active | Implemented November 15, not yet released: `review-sheet` renders one image of chosen objects from four or six sides as silhouette, clay, wireframe and backface rows, with a receipt bound to the file hash. `scripts/qualify_review_sheet.py` passed on Blender 5.1.1 and 5.2.1 from source, byte-identical on both ([guide](guides/REVIEW_SHEET.md)). Open: the release steps, and a P5 rerun for the entry skill |
+| G5 | Blockout spec and scene-against-spec check (absorbs P16) | Agent | active | Implemented November 15, not yet released: `dcc.blockout.v1`, `spec-check`, `blockout-build` and `spec-compare`, with a primitive pitfalls section in `blender-python`. `scripts/qualify_blockout.py` passed on Blender 5.1.1 and 5.2.1 from source ([guide](guides/BLOCKOUT_SPEC.md)). The potting-shed study passes against checkpoint 9 after the owner judged its two door findings to be a fault in the spec's ranges, not the door. Open: the release steps |
+| G6 | Target-led judge loop with a rubric and stall rule | Agent | active | Implemented November 15, not yet released: four `judge-*` commands and the `dcc-judge-loop` skill. `scripts/qualify_judge.py` passed on Blender 5.1.1 and 5.2.1 from source; one held-out brief ran to a stop and a sealed resume passed ([guide](guides/JUDGE_LOOP.md), [first run](studies/JUDGE_LOOP_FIRST_RUN.md)). The owner narrowed the repeated-gap rule on November 15 to require no gain as well. Open: the release steps and the plain-MCP comparison |
+| G7 | Trial geometry-script and StableGen as installed extensions on Blender 5.2 | Agent | done | Both trials run on November 15 on Blender 5.2.1. geometry-script: ten of ten first-attempt passes, so no difference in success; recommendation drop as a dependency and read `modifier.node_warnings` in our own verify step ([results](studies/G7_GEOMETRY_SCRIPT_TRIAL.md)). StableGen: works per object from a script in a windowed Blender, at 32 GB of disk; recommendation keep as an optional owner-run tool ([results](studies/G7_STABLEGEN_TRIAL.md)). Decided by the owner on November 15: geometry-script dropped as a dependency; StableGen kept as an optional, owner-run tool. Possible follow-ups, not started: read `modifier.node_warnings` in the Geometry Nodes verify step, and a craft-skill reference for texturing one object with StableGen |
+| G8 | Freeze add-on capability growth; move comparison tooling out of the package | Agent | active | Implemented November 15, not yet released: the five trial modules are the separate `dcc_harness_trials` package, outside the wheel; the README and the add-on recipes guide state the freeze at 0.24.0 behaviour; the quick reference starts managed runs in `autonomous` mode. The source suite passes. Open: the wheel, installed-suite and package-parity results, which were still running when this was committed |
 
 ### R: Repository
 
@@ -97,7 +113,7 @@ Ranked by expected effect on the gate. Each ships as its own version.
 
 ### X: Originally deferred work and current dispositions
 
-Completed entries remain here under their original IDs. Remaining work is deferred until its named gate or explicit authorization; shipping bounded execution does not pass the artistic-quality gate.
+Completed entries remain here under their original IDs. Since November 14, 2026 the remaining items no longer wait on the retired investment gate. Each still needs its own plan and qualification before it ships, and X2 keeps its fault-soak criteria.
 
 | ID | Item | Reference |
 |---|---|---|
@@ -176,6 +192,8 @@ Trial ceilings are set in dollars and minutes, but reports record only elapsed t
 
 ## Investment gate
 
+**Retired November 14, 2026.** The owner removed this gate and every restriction that depended on it ([decision](DESIGN_DECISIONS.md#investment-gate-retired--november-14-2026)). Stages C–E and the X items may proceed on their own technical criteria. The definition below is kept as history and no longer governs sequencing. The comparison results under [Evidence so far](#evidence-so-far) are unchanged: retiring the gate is an owner decision, not a measured result.
+
 This is the single definition, restated from the October 3 rules, which the archived text paraphrased three different ways.
 
 Run a held-out realistic brief with a fixed asset kit, matched cameras and budgets, two independent trials per method and fresh-context late revisions. Compare harness-assisted work with plain MCP; the October 3 rule compared the measured loop with skills alone, but plain MCP is now the standing alternative.
@@ -222,7 +240,7 @@ An advisory, supervised prototype: one cooperating native writer, Blender 5.1.1 
 | External revision acceptance | `preview-revision`, `accept-revision` | 0.4.10 | [External revisions](guides/EXTERNAL_REVISIONS.md) |
 | Structured feedback and a pinned seven-stage environment workflow | `feedback-*`, `workflow-*`, `stage-*` | 0.5.0 | [Structured feedback](guides/STRUCTURED_FEEDBACK.md) |
 | Nine project skills and bounded recipes: walls, roof laps, ground, terrain, broadleaf | `.agents/skills/`, `dcc_harness.craft` and recipe modules | 0.4.0–0.4.7 | [Craft skills](guides/CRAFT_SKILLS.md) |
-| Comparison tooling: frozen packets, fresh-context revisions, anonymous galleries | `python -m dcc_harness.blind`, `python -m dcc_harness.continuity_trial` | Pilot–0.1.1 | [Trial protocol](archive/studies/BLIND_TRIALS.md) |
+| Comparison tooling: frozen packets, fresh-context revisions, anonymous galleries | `python -m dcc_harness_trials.blind`, `python -m dcc_harness_trials.continuity_trial` (a separate package since G8; in the wheel through 0.24.0) | Pilot–0.1.1 | [Trial protocol](archive/studies/BLIND_TRIALS.md) |
 
 ## Standing rules
 
@@ -252,6 +270,15 @@ Capture fixed views at blockout, surface and lighting completion, pre-revision a
 
 ## Log
 
+- **November 15, 2026:** G8 implemented: trial tooling moved out of the package, add-on capabilities declared frozen, `autonomous` shown first. Release check results pending.
+- **November 15, 2026:** G7 trials run. geometry-script did not change first-attempt success on five small tasks. StableGen textured one pot well by script and four pots as one job badly. The owner decided the same day: drop geometry-script as a dependency, keep StableGen as an optional tool.
+- **November 15, 2026:** G6 implemented: the judge loop and its skill, qualified from source on Blender 5.1.1 and 5.2.1. A first held-out run stopped at round 4 and a sealed resume passed. The owner then narrowed the stall rule: a repeated gap forces a change of approach only when less than one point was gained.
+- **November 15, 2026:** G5 implemented: the blockout spec and its three commands, qualified from source on Blender 5.1.1 and 5.2.1. P16 is delivered through it.
+- **November 15, 2026:** G4 implemented: the `review-sheet` command, qualified from source on Blender 5.1.1 and 5.2.1 with byte-identical sheets on both. A sheet of the garden's potting bench shows it red in the backface row, the same inside-out geometry G3's audit measured.
+- **November 15, 2026:** G3 implemented: the `audit` command, qualified from source on Blender 5.1.1 and 5.2.1. Its first run on the production garden found that 519 of 1,285 meshes are closed parts with every face pointing inward, which no earlier check measured.
+- **November 14, 2026:** G2 implemented: coverage gaps for undescribed Geometry Nodes modifiers and empty material slots, qualified from source on Blender 5.1.1 and 5.2.1. The work found and fixed two Blender 5.2 defects in the observer: modifier inputs moved to `modifier.properties.inputs`, and `panel_states` made every Principled BSDF material an issue.
+- **November 14, 2026:** G1 implemented: `dcc-harness/SKILL.md` cut from 1,429 to 502 words, its managed, live, new-project, external-revision, review and add-on rules moved to `references/`, and `tests/test_skill_lint.py` added. Six P5 packets passed; edit reserved at 57 s against the 51 s target ([P5 rerun](studies/P5_SKILL_REGRESSIONS.md#rerun-with-the-short-entry-skill-november-14)). The P5 builder now observes its fixture with the current runtime and copies whole skill folders. The runs exposed that `allowed_material_inputs` could not pass against 0.24.0 observations; fixed in source the same day with a regression test, unreleased.
+- **November 14, 2026:** The owner retired the investment gate after completing the artist review session, which showed minimal differences on a simple scene, and after finding continuity across context sessions useful in other work. E1 and E5 closed; E2–E4 dropped. Drafted the [generation-quality plan](plans/G_GENERATION_QUALITY.md) (G1–G8) from a whole-repository review and a review of eight external repositories.
 - **October 23, 2026, final correction:** Complete whole-branch review identified I1; the corrected durable recovery and checked path-equivalence runtime passed fresh final8 with 688 source/installed tests and all 22 stages. At this documentation checkpoint, scoped correction rereview, hosted CI and delivery remain pending; historical final6/final7 evidence remains retained.
 
 - **October 23, 2026:** External-review follow-up frozen at `2cebdb1`: source 680 tests (678 passed, two skips), installed 680 (677 passed, three skips), all 22 release stages and all 27 live scenarios passed, including both native path stages and every capability group. Final docs-only package parity is recorded in the [release ledger](archive/releases/EXTERNAL_REVIEW_0_23_RESULTS.md). At this historical final6 checkpoint, whole-branch review/hosted CI/delivery remained pending; no artistic-quality gate is closed. The owner authorized eventual commit/push/merge after completion and instructed leaving real preferences untouched.

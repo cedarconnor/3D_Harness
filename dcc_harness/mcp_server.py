@@ -23,7 +23,7 @@ COMMANDS = frozenset(('brief', 'next', 'requirements', 'resume', 'review', 'star
     'run-create', 'run-status', 'run-execute', 'run-submit', 'run-cancel', 'run-reconcile',
     'workflow-template', 'workflow-bind', 'stage-reopen',
     'feedback-add', 'feedback-respond', 'feedback-verify', 'feedback-decide', 'check-propose',
-    'observe', 'render', 'render-wait', 'relations', 'uv-report', 'deliver-glb',
+    'observe', 'render', 'render-wait', 'relations', 'uv-report', 'audit', 'review-sheet', 'spec-check', 'blockout-build', 'spec-compare', 'judge-start', 'judge-round', 'judge-verdict', 'judge-status', 'deliver-glb',
     'adopt-preview', 'adopt-apply', 'review-page', 'check', 'diff', 'fill-hashes', 'pack-observation',
     'live-sessions', 'live-inspect', 'live-attach', 'live-refresh', 'live-execute', 'live-status',
     'live-cancel', 'live-reconcile', 'live-preview', 'run-operation')) | frozenset(

@@ -126,6 +126,35 @@ def build_parser():
     targets = p.add_mutually_exclusive_group(required=True)
     targets.add_argument("--project", help="Use the project's uv_targets decision")
     targets.add_argument("--targets", help="A dcc.uv.targets.v1 file")
+    p = sub.add_parser("audit", help="Check a saved .blend for geometry defects in fresh background Blender; never saves")
+    p.add_argument("source"); p.add_argument("--blender", required=True, help="Path to Blender executable")
+    p.add_argument("--output-dir", required=True, help="New folder for the measurement, report and log")
+    p.add_argument("--profile", choices=("render", "game", "print"), default="render", help="Which checks are errors, warnings or skipped")
+    p.add_argument("--select", help="Report only objects whose stable ID (or name, without one) matches this glob")
+    p = sub.add_parser("review-sheet", help="Render one contact sheet of chosen objects from all sides in fresh background Blender; never saves")
+    p.add_argument("source"); p.add_argument("--blender", required=True, help="Path to Blender executable")
+    p.add_argument("--output-dir", required=True, help="New folder for the image, receipt and log")
+    p.add_argument("--targets", nargs="+", default=[], metavar="ID", help="ID globs (names for objects without an ID); default: everything render-visible")
+    p.add_argument("--views", type=int, choices=(4, 6), default=4, help="4 orbit views, or 6 with top and bottom")
+    p.add_argument("--color", choices=("clay", "random"), default="clay", help="random gives each object its own colour in the clay row")
+    p.add_argument("--width", type=int, default=1600, help="Sheet width in pixels, 400 to 1600")
+    p = sub.add_parser("spec-check", help="Validate a dcc.blockout.v1 spec alone, including its own proportions and never rules")
+    p.add_argument("spec")
+    p = sub.add_parser("blockout-build", help="Build a blockout spec into an owned, tagged collection in a new saved file")
+    p.add_argument("spec"); p.add_argument("--blender", required=True, help="Path to Blender executable")
+    p.add_argument("--output", required=True, help="New .blend to save"); p.add_argument("--output-dir", required=True, help="New folder for the receipt and log")
+    p.add_argument("--source", help="Saved .blend to add the blockout to; it is opened and never written")
+    p = sub.add_parser("spec-compare", help="Measure a saved .blend against a blockout spec in fresh background Blender; never saves")
+    p.add_argument("spec"); p.add_argument("source"); p.add_argument("--blender", required=True, help="Path to Blender executable")
+    p.add_argument("--output-dir", required=True, help="New folder for the measurement, report and log")
+    p = sub.add_parser("judge-start", help="Fix a judge loop's target and open the loop in a new folder")
+    p.add_argument("loop"); p.add_argument("--target", required=True, help="A dcc.judge.target.v1 file")
+    p = sub.add_parser("judge-round", help="Bind a candidate to its checks and images; failed checks record a gated round that is not judged")
+    p.add_argument("loop"); p.add_argument("--evidence", required=True, help="A dcc.judge.evidence.v1 file")
+    p = sub.add_parser("judge-verdict", help="Record a judge's score and gaps for the waiting round and say what happens next")
+    p.add_argument("loop"); p.add_argument("--verdict", required=True, help="A dcc.judge.verdict.v1 file")
+    p = sub.add_parser("judge-status", help="Where a judge loop stands: rounds, scores, open gaps and the next step")
+    p.add_argument("loop")
     p = sub.add_parser("deliver-glb", help="Export a saved .blend to GLB, reimport it in a fresh scene and compare; never saves")
     p.add_argument("source"); p.add_argument("--blender", required=True, help="Path to Blender executable")
     p.add_argument("--output-dir", required=True, help="New folder for the GLB, records, logs and receipt")
@@ -303,6 +332,25 @@ def main():
     elif args.command == 'uv-report':
         from .uv_report import measure_file
         result = measure_file(args.source, args.output_dir, args.blender, targets=args.targets, project=args.project)
+    elif args.command == 'audit':
+        from .audit import audit_file
+        result = audit_file(args.source, args.output_dir, args.blender, profile=args.profile, select=args.select)
+    elif args.command == 'review-sheet':
+        from .review_sheet import sheet_file
+        result = sheet_file(args.source, args.output_dir, args.blender, targets=args.targets, views=args.views, colour=args.color, width=args.width)
+    elif args.command in ('spec-check', 'blockout-build', 'spec-compare'):
+        from . import blockout
+        if args.command == 'spec-check':
+            result = blockout.check_file(args.spec)
+        elif args.command == 'blockout-build':
+            result = blockout.build_file(args.spec, args.output, args.output_dir, args.blender, source=args.source)
+        else:
+            result = blockout.compare_file(args.spec, args.source, args.output_dir, args.blender)
+    elif args.command in ('judge-start', 'judge-round', 'judge-verdict', 'judge-status'):
+        from . import judge
+        result = (judge.start(args.loop, args.target) if args.command == 'judge-start' else
+                  judge.add_round(args.loop, args.evidence) if args.command == 'judge-round' else
+                  judge.add_verdict(args.loop, args.verdict) if args.command == 'judge-verdict' else judge.status(args.loop))
     elif args.command == 'deliver-glb':
         from .delivery import deliver
         result = deliver(args.source, args.output_dir, args.blender, project=args.project)

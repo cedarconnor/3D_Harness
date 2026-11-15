@@ -91,6 +91,27 @@ def _rna_value(value):
         return {"unmeasured_type": type(value).__name__}
 
 
+def _opaque_nodes(modifier):
+    """Hash a Geometry Nodes modifier this version cannot describe: its tree, nested groups and inputs.
+
+    The second value is false when the generic reader met something it could not record, so a
+    change there may go unnoticed. Animation, drivers and referenced datablocks' contents are not hashed.
+    """
+    from .blender import graph
+    from .shader_graph import graph_issues
+    from .node_asset_blender import stored_input
+    tree = modifier.node_group
+    inputs = {}
+    for socket in (tree.interface.items_tree if tree is not None else ()):
+        if socket.item_type == 'SOCKET' and socket.in_out == 'INPUT':
+            stored, driven, attribute = stored_input(modifier, socket.identifier)
+            inputs[socket.identifier] = {"value": _rna_value(stored), "attribute": attribute if driven else None}
+    record = {"graph": graph(tree) if tree is not None else None,
+              "library": tree.library.filepath if tree is not None and tree.library else None,
+              "inputs": inputs}
+    return digest(record), not graph_issues(record["graph"])
+
+
 def _normalize_packed(item):
     if isinstance(item, dict):
         if item.get("packed") is True and item.get("sha256"):
@@ -113,7 +134,8 @@ def enhance(raw, *, saved=True):
     # Authored data is shared by linked objects; evaluated data is not. Only
     # reuse source hashes inside this call, while retaining per-object checks.
     source_hashes = {}
-    for record in obs["objects"].values():
+    gaps = list(obs["coverage"].get("gaps", {}).get("records", []))
+    for iid, record in obs["objects"].items():
         if record["type"] != "MESH":
             continue
         obj = bpy.context.scene.objects[record["name"]]
@@ -147,8 +169,11 @@ def enhance(raw, *, saved=True):
                 try:
                     settings['node_asset'] = modifier_record(modifier)
                 except ValueError as exc:
-                    settings['node_asset'] = {'unmeasured': str(exc)}
-                    obs['issues'].append(str(exc) + ': ' + obj.name)
+                    # Outside the described subset: keep an opaque hash so a later change is still detected.
+                    opaque, complete = _opaque_nodes(modifier)
+                    settings['node_asset'] = {'unmeasured': str(exc), 'opaque_sha256': opaque}
+                    gaps.append({'code': 'GEOMETRY_NODES_UNDESCRIBED', 'object': iid, 'modifier': modifier.name,
+                                 'detail': str(exc), 'opaque_sha256': opaque, 'hash_complete': complete})
         evaluated = obj.evaluated_get(deps)
         evaluated_mesh = evaluated.to_mesh(preserve_all_data_layers=True, depsgraph=deps)
         try:
@@ -169,6 +194,8 @@ def enhance(raw, *, saved=True):
     obs["scene"]["render"].update(seed=scene.cycles.seed,
         denoising=scene.cycles.use_denoising,
         file_format=scene.render.image_settings.file_format)
+    if gaps:
+        obs["coverage"]["gaps"] = {"version": 1, "records": gaps}
     obs["coverage"]["continuity_observation"] = 2
     obs["coverage"]["dimensions_measurement"] = "world_linear_extents_v2"
     obs["coverage"]["source_attributes"] = copy.deepcopy(ATTRIBUTE_COVERAGE)

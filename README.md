@@ -32,7 +32,7 @@
 - **Delivers checked GLB files:** exports an accepted checkpoint with unit scale 1 metre per Blender unit, imports it into an empty scene, and checks object identity, triangle counts and bounds. Other scene scales are rejected until physical conversion is qualified.
 - **Separates technical and visual acceptance:** a candidate can pass its native checks and still be retained as a visual rejection without replacing the accepted checkpoint.
 - **Supplies practical methods:** project skills cover planning, building, review, architecture, materials, environment assembly, and lighting. Python helpers support bounded construction, planting, ground, roof, terrain, and visibility tasks.
-- **Supports evaluation:** frozen trial packets, fresh-context revisions, anonymous galleries, retained failures, per-session cost receipts and a regression suite of sealed failure situations support controlled comparisons.
+- **Supports evaluation:** frozen trial packets, fresh-context revisions, anonymous galleries, retained failures, per-session cost receipts and a regression suite of sealed failure situations support controlled comparisons. In the unreleased source tree this trial tooling is the separate `dcc_harness_trials` package, run from a checkout and no longer shipped in the wheel.
 
 The host agent provides reasoning and tool calls. The harness supplies project state, evidence and a combined MCP endpoint; it does not start a separate autonomous agent.
 
@@ -87,6 +87,8 @@ Manual edits require an explicit refresh before continuing. After a lost respons
 
 ### Make add-on use part of the workflow
 
+**Frozen at 0.24.0 behaviour.** Add-on capabilities (provider discovery, version-one and version-two recipes, asynchronous operations and capability routing) get fixes only. No new capability features are planned until a real third-party add-on has been qualified through them. The fixtures qualified so far are this project's own. See [add-on recipes](docs/guides/ADDON_RECIPES.md).
+
 Discover an installed provider with `blender_capabilities`, pin its environment, and qualify a reusable function, operator or node-asset recipe with `blender_recipe`. Then bind its capability to the relevant objects and stages:
 
 - **`require`:** the stage cannot complete without a verified effect from the named qualified provider.
@@ -135,6 +137,10 @@ python -m dcc_harness review ./my-project/state
 | `review-page` / `review-import` | Write a local before/after page for the artist, with renders, changes by stable ID, notes and stage questions; bring their notes back, and their approval through their own terminal |
 | `check-propose` / `check-approve` / `checks` / `check-occurrence` | Propose a learned check from an artist note, approve it into a library (owner only), list and export the library, or count a repeat |
 | `uv-report` | Measure texel density, UV overlap and UVs outside the unit square of a saved file against targets |
+| `audit` | Unreleased. Check a saved file for geometry defects (flipped or inward faces, doubled surfaces, floating parts, scale, empty slots, data maps tagged sRGB) under a `render`, `game` or `print` profile |
+| `review-sheet` | Unreleased. Render one contact sheet of chosen objects from all sides: silhouette, clay, wireframe and a backface pass that paints flipped faces red |
+| `spec-check` / `blockout-build` / `spec-compare` | Unreleased. Validate a blockout spec (named primitives in metres, proportions, never rules), build it into an owned collection with stable IDs, and measure a saved file against it |
+| `judge-start` / `judge-round` / `judge-verdict` / `judge-status` | Unreleased. Record a target-led judge loop: code checks gate each round, a fresh judge scores a fixed rubric and names gaps, and the record says when to continue, change approach or stop |
 | `deliver-glb` | Export a saved file to GLB, reimport it into an empty scene and compare by stable ID, with a receipt bound to the checkpoint |
 | `fill-hashes` | Fill and verify `{path, sha256}` file references in a payload, writing a new file |
 | `adopt-preview` / `adopt-apply` | Preview initial identity assignments, then save and independently observe a new Blender file |
@@ -210,14 +216,14 @@ The harness's own overhead has improved. On the same one-parameter revision, a f
 
 Current boundaries:
 
-- Whole-scene checkpoint validation still refuses material node groups, unsupported Geometry Nodes setups, empty material slots and missing textures. An unrelated unsupported object can therefore block a capability. Supporting realistic node groups is the next priority; this recovery fix does not expand observation coverage.
+- Whole-scene checkpoint validation refuses missing textures, unsaved image pixels, and shader graphs that exceed the reader's limits or carry animation. Nested material node groups are measured since 0.24.0. In the unreleased source tree, Geometry Nodes setups outside the described subset and empty material slots are recorded as [coverage gaps](docs/guides/EVERYDAY_WORKFLOW.md#coverage-gaps) and no longer refuse: the scene observes `READY`, the gaps are listed, and a later change to them is still detected.
 - The follow-up review also reports modifier-panel state affecting effect reuse, mutable provider-call provenance, incomplete declared dependencies, inconsistent cancellation markers, non-atomic outcome writes and self-attributed network review. These remain outside the recovery correction; add-on receipts must not be treated as proof against hostile adapters.
 - Managed execution enforces reservations, verification, publication and stage policy. It is not a native sandbox, an unconditional exactly-once guarantee, an external-write interceptor or an unattended agent scheduler.
 - Windows deep Python evidence and recipe-bundle I/O are qualified at retained paths. Long native Blender `.blend`/asset paths remain unsupported; deep provider discovery/import remains unqualified.
 - Real add-ons require provider-specific qualification. Managed recipes initially cover measured MESH cases and qualified engines/contexts; arbitrary custom properties and GUI-only providers without independent background verification remain unsupported. Provider-dependent preview/recovery beyond the retained fixtures needs additional native proof.
 - Collection instances, local or from linked libraries, are observed since 0.10.0. Vertex, face, particle and Geometry Nodes instancing and library overrides are still reported as issues. External revisions pack their textures since 0.16.0 but still reject linked libraries, because packing one changes its collections' asset identity. Libraries are referenced, not copied into the project store.
 - Blender qualification only; Unreal and other DCC adapters remain planned.
-- Observation coverage is explicit and incomplete: animation over time, arbitrary procedural instances, rig semantics and general topology quality are not certified. UV overlap and texel density are measured by the separate `uv-report`, as grid and per-mesh estimates, not in observations ([UV report](docs/guides/UV_REPORT.md)).
+- Observation coverage is explicit and incomplete: animation over time, arbitrary procedural instances, rig semantics and general topology quality are not certified. UV overlap and texel density are measured by the separate `uv-report`, as grid and per-mesh estimates, not in observations ([UV report](docs/guides/UV_REPORT.md)). In the unreleased source tree, `audit` reports a fixed list of geometry defects beside the observation ([audit](docs/guides/AUDIT.md)); it does not certify topology quality either.
 - Hashes bind evidence to files; they do not authenticate producer truthfulness or establish artistic quality.
 - Agent reviews are caller-attributed. Since 0.12.0 an artist's approval needs the artist's own terminal, and agent sessions are refused. This guards against an agent approving its own work through the commands; an agent with an unrestricted shell on the same account could still get around it ([owner approval](docs/guides/OWNER_APPROVAL.md)).
 - Learned checks cover object fields and supported-by relations only. A project keeps the library version it was bound with, and repeats are counted by hand ([learned checks](docs/guides/LEARNED_CHECKS.md)).

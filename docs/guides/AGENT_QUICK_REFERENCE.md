@@ -2,7 +2,15 @@
 
 For the combined MCP endpoint and bundled rules, start with [MCP operation](COMBINED_MCP.md).
 
-For managed projects, follow the backend-specific execution/recovery actions returned by `brief`/`next` and use `run-submit` for stages. The [managed execution guide](MANAGED_EXECUTION.md) selects autonomous or approval-gated policy; the [live Blender guide](LIVE_BLENDER.md) covers paired open scenes and stable target discovery. The direct `begin-edit`/`finish-edit` sequence below remains for advisory projects and is refused on managed projects. `requirements` reports the effective policy, including owner review for every gated stage.
+For managed projects, follow the backend-specific execution/recovery actions returned by `brief`/`next` and use `run-submit` for stages. The [managed execution guide](MANAGED_EXECUTION.md) covers both policies; the [live Blender guide](LIVE_BLENDER.md) covers paired open scenes and stable target discovery. The direct `begin-edit`/`finish-edit` sequence below remains for advisory projects and is refused on managed projects. `requirements` reports the effective policy, including owner review for every gated stage.
+
+**Start in `autonomous` mode.** It is the default for a single-user setup: the agent advances evidence-backed stages within the brief, and only the owner accepts the work.
+
+```powershell
+python -m dcc_harness run-create "<project>" --mode autonomous --max-operations 20 --seconds 3600
+```
+
+Use `--mode approval_gated` only when the artist must approve every stage in their own terminal. The mode is fixed when the run is created.
 
 Version 0.18.0. The exact command sequences for the most common work, for an agent continuing a 3D Harness project. Every command below is checked against the real parser by `tests/test_quick_reference.py`. Values in `<angle brackets>` and capitalized placeholders such as `PARENT_ID` are yours to fill; quote every path.
 
@@ -175,14 +183,37 @@ python -m dcc_harness check-occurrence "<library>" --project "<project>" --note 
 
 Only the owner approves a check, with `check-approve` in their own terminal; give them the proposal revision. If an existing library check covers the error, count it with `check-occurrence` instead of proposing it again.
 
-## 9. Check UVs and deliver
+## 9. Audit, look from all sides, check UVs and deliver
 
 ```powershell
+python -m dcc_harness audit "<saved .blend>" --blender "<BLENDER>" --output-dir "<work>/audit-1"
+python -m dcc_harness review-sheet "<saved .blend>" --blender "<BLENDER>" --output-dir "<work>/sheet-1" --targets "ID*"
 python -m dcc_harness uv-report "<saved .blend>" --blender "<BLENDER>" --output-dir "<work>/uv-1" --project "<project>"
 python -m dcc_harness deliver-glb "<project>/checkpoints/<NNNNNN>/checkpoint.blend" --blender "<BLENDER>" --output-dir "<work>/delivery-1" --project "<project>"
 ```
 
-`uv-report` checks texel density, UV overlap and UVs outside the unit square against the project's `uv_targets` decision ([UV report](UV_REPORT.md)). `deliver-glb` exports an accepted checkpoint to GLB, imports it into an empty scene and compares by stable ID ([GLB delivery](GLB_DELIVERY.md)). Both exit 1 on findings and never save the scene.
+`audit` (unreleased) checks any saved file for geometry defects, with no project or targets needed; repair its errors, and treat a `bounds_only` finding as something to look at, not to fix blind ([audit](AUDIT.md)). `review-sheet` (unreleased) renders one image of the targets from four sides as silhouette, clay, wireframe and backface rows; red in the last row is a face pointing away from the viewer ([review sheet](REVIEW_SHEET.md)). `uv-report` checks texel density, UV overlap and UVs outside the unit square against the project's `uv_targets` decision ([UV report](UV_REPORT.md)). `deliver-glb` exports an accepted checkpoint to GLB, imports it into an empty scene and compares by stable ID ([GLB delivery](GLB_DELIVERY.md)). `audit`, `uv-report` and `deliver-glb` exit 1 on failing findings; none of the four saves the scene.
+
+## 10. Plan and check a layout with a blockout spec
+
+```powershell
+python -m dcc_harness spec-check "<spec.json>"
+python -m dcc_harness blockout-build "<spec.json>" --blender "<BLENDER>" --output "<work>/blockout.blend" --output-dir "<work>/build-1"
+python -m dcc_harness spec-compare "<spec.json>" "<saved .blend>" --blender "<BLENDER>" --output-dir "<work>/compare-1"
+```
+
+Unreleased. A blockout spec states a layout as named primitives in metres with proportions and never rules. `blockout-build` saves a new file with one object per part, IDs included, and refuses to replace a blockout that has been edited. `spec-compare` exits 1 with a code, path, message and remediation per finding, and fails on any part it cannot measure ([blockout spec](BLOCKOUT_SPEC.md)).
+
+## 11. Improve toward a look with a judge loop
+
+```powershell
+python -m dcc_harness judge-status "<work>/loop"
+python -m dcc_harness judge-start "<work>/loop" --target "<work>/target.json"
+python -m dcc_harness judge-round "<work>/loop" --evidence "<work>/round1/evidence.json"
+python -m dcc_harness judge-verdict "<work>/loop" --verdict "<work>/round1/verdict.json"
+```
+
+Unreleased. Load the `dcc-judge-loop` skill. Run `judge-status` first when a loop exists and do what `next` says. A round with an `audit` error or a failed `spec-compare` is gated and not judged. The judge is a separate agent that sees only the packet. A judge score is an agent's opinion, never owner acceptance ([judge loop](JUDGE_LOOP.md)).
 
 ## Stops
 
@@ -203,4 +234,4 @@ python -m dcc_harness deliver-glb "<project>/checkpoints/<NNNNNN>/checkpoint.ble
 | `Taste stays project direction` | The note is taste, not an error | Record it in the brief or decisions |
 | `Pinned library checks failed or were not measured` | A pinned check fails, or a relation check has no measurement | Fix the scene, or add the measurement `requirements` names, then submit again |
 | `Missing library` | A collection instance's library file is not where its stored relative path points | Work on the copy beside its libraries, never the stored checkpoint |
-| `HAS_ISSUES` from `observe`, exit 1 | The saved file has missing IDs or unsupported data | Read the issues; see the scene adoption guide |
+| `HAS_ISSUES` from `observe`, exit 1 | The saved file has missing IDs or unsupported data | Read the issues; see the scene adoption guide. Entries under `coverage_gaps` are not issues and need no repair |

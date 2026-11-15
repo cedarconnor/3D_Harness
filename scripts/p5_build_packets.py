@@ -123,6 +123,9 @@ move_shelf = HERE / 'move_shelf.py'
 move_shelf.write_text("import bpy, sys\ntarget = sys.argv[sys.argv.index('--') + 1]\n"
                       "obj = next(o for o in bpy.data.objects if o.get('dcc_instance_id') == 'shelf')\n"
                       "obj.location.x += 0.1\nbpy.ops.wm.save_as_mainfile(filepath=target)\n")
+# Observe the fixture with this runtime: an observation stored by an older observer no longer
+# matches a fresh one field for field, and `begin-edit` would refuse every packet's first edit.
+BASELINE = cli('observe', FIXTURE / 'checkpoint.blend', '--blender', BLENDER, '--output-dir', HERE / 'baseline-observe')['observation']
 manifest = {}
 for key, (title, request) in REQUESTS.items():
     packet = PACKETS / f'packet-{key}'
@@ -136,7 +139,7 @@ for key, (title, request) in REQUESTS.items():
     (HERE / f'{key}-decisions.json').write_text(json.dumps(decisions))
     (HERE / f'{key}-BRIEF.md').write_text('A workbench corner: bench, crate and shelf in shared timber against a plaster wall.\n')
     (HERE / f'{key}-HANDOFF.md').write_text('Accepted baseline. Nothing pending.\n')
-    cli('start', packet / 'project', '--checkpoint', FIXTURE / 'checkpoint.blend', '--observation', FIXTURE / 'observation.json',
+    cli('start', packet / 'project', '--checkpoint', FIXTURE / 'checkpoint.blend', '--observation', BASELINE,
         '--brief-file', HERE / f'{key}-BRIEF.md', '--decisions', HERE / f'{key}-decisions.json', '--handoff', HERE / f'{key}-HANDOFF.md')
     if key != 'S4':
         (packet / 'views').mkdir()
@@ -171,9 +174,8 @@ for key, (title, request) in REQUESTS.items():
     (packet / 'BRIEF.md').write_text(f"# Task: {title}\n\n{COMMON}{VIEWS_LINE if key != 'S4' else ''}\n## Request\n\n{request}\n{CLOSING}")
     shutil.copytree(RUNTIME / 'dcc_harness', packet / 'runtime/dcc_harness', ignore=shutil.ignore_patterns('__pycache__'))
     for skill in SKILLS:
-        target = packet / '.agents/skills' / skill / 'SKILL.md'
-        target.parent.mkdir(parents=True)
-        shutil.copyfile(REPO / '.agents/skills' / skill / 'SKILL.md', target)
+        # The whole folder: the entry skill routes to files under its references/.
+        shutil.copytree(REPO / '.agents/skills' / skill, packet / '.agents/skills' / skill)
     for guide in GUIDES:
         target = packet / 'docs/guides' / f'{guide}.md'
         target.parent.mkdir(parents=True, exist_ok=True)

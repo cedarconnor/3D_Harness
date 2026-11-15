@@ -1,5 +1,7 @@
 # Artist review session
 
+**Closed November 14, 2026.** The owner completed the session and reported that the differences were minimal on these simple scenes and small increments. No scores, repair times or ranked pairs are recorded here, and the investment gate this session fed has been retired ([decision](../DESIGN_DECISIONS.md#investment-gate-retired--november-14-2026)). The protocol below is kept as written.
+
 Updated October 6, 2026, for build-plan items E1–E3. The whole session now runs in one private review page: [Courtyard and Shed Review](https://claude.ai/artifact/3pWckj3MYMRxfrWzMqHNRJ). It shows one large image at a time, opens any image full screen with zoom to 200%, and saves each answer as you give it, so you can stop and resume on any device.
 
 It takes about 25 minutes, plus an optional 40:

@@ -203,7 +203,7 @@ def observe(scene=None):
     bpy.context.view_layer.update()
     rendered = collection_rendered(bpy.context.view_layer)
     deps = bpy.context.evaluated_depsgraph_get()
-    objects, materials, issues = {}, {}, []
+    objects, materials, issues, gaps = {}, {}, [], []
     # Cache by real datablock, never caller-owned IDs. Keep this local so the
     # next observation re-reads shaders and external image contents.
     material_records = {}
@@ -244,10 +244,12 @@ def observe(scene=None):
         if obj.type == "CAMERA":
             rec["camera"] = {key:value(getattr(obj.data,key)) for key in ("type","lens","sensor_width","sensor_height","sensor_fit","shift_x","shift_y","ortho_scale","clip_start","clip_end")}
             rec["camera"]["dof"] = {"enabled":obj.data.dof.use_dof,"distance":value(obj.data.dof.focus_distance),"fstop":value(obj.data.dof.aperture_fstop),"object":obj.data.dof.focus_object.name if obj.data.dof.focus_object else None}
-        for slot in obj.material_slots:
+        for index, slot in enumerate(obj.material_slots):
             mat = slot.material
             if mat is None:
-                issues.append(f"Unbound material slot: {obj.name}"); rec["material_ids"].append(None); continue
+                # Nothing is unknown about an empty slot: material_ids records it and any later binding.
+                gaps.append({"code":"EMPTY_MATERIAL_SLOT","object":iid,"slot":index,"detail":f"Unbound material slot: {obj.name}"})
+                rec["material_ids"].append(None); continue
             mid = mat.get("dcc_material_id")
             if not mid:
                 issues.append(f"Missing material ID: {mat.name}"); mid = "unbound:" + mat.name
@@ -280,6 +282,9 @@ def observe(scene=None):
                         "world extent of instanced geometry","library stored path, existence and SHA-256"],
             "not_measured":["Geometry Nodes, particle and vertex or face instancing","library override properties",
                             "per-member shader inputs of instanced definitions beyond material names and the library hash"]}
+    if gaps:
+        # Present only when the scene has such content, so other scenes observe exactly as before.
+        coverage["gaps"] = {"version":1,"records":gaps}
     payload = {"objects":objects,"materials":materials,"scene":config,"issues":sorted(set(issues)),"coverage":coverage}
     return {"schema":"dcc.observation.v1","observed_at":now(),"blender":bpy.app.version_string,
             "file":bpy.data.filepath,"revision":digest(payload),**payload}

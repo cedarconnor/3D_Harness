@@ -1,6 +1,7 @@
 """Portable evidence, assertions and declared-change checks (no bpy dependency)."""
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import math
@@ -67,11 +68,30 @@ def validate_observation(observation):
             raise ValueError('Observation field must be an object: ' + field)
     if not isinstance(observation['issues'], list):
         raise ValueError('Observation issues must be a list')
+    coverage_gaps(observation)
     for obj in observation['objects'].values():
         if not isinstance(obj, dict):
             raise ValueError('Observed object must be an object')
         if 'dimensions' in obj or obj.get('type') == 'MESH':
             vector3(obj.get('dimensions'))
+
+
+def coverage_gaps(observation):
+    """Content the observer could not describe but still recorded: listed, never a failure.
+
+    Present only when a scene has such content. Each record names its object; the object's own
+    fields carry whatever was measured, such as an opaque hash, so a change is still detected.
+    """
+    gaps = observation['coverage'].get('gaps')
+    if gaps is None:
+        return []
+    if not isinstance(gaps, dict) or gaps.get('version') != 1 or not isinstance(gaps.get('records'), list):
+        raise ValueError('Unsupported coverage gap record')
+    for record in gaps['records']:
+        if not isinstance(record, dict) or any(not isinstance(record.get(key), str) or not record[key]
+                                               for key in ('code', 'object', 'detail')):
+            raise ValueError('Coverage gap needs a code, an object and a detail')
+    return copy.deepcopy(gaps['records'])
 
 
 def evaluate(observation, spec):
@@ -171,10 +191,13 @@ def compare(before, after, allowed=None):
     for optional in ("collection_instances", "source_attributes"):
         if (optional in old_coverage) != (optional in new_coverage):
             old_coverage.pop(optional, None); new_coverage.pop(optional, None)
+    # Gap records summarize fields the objects already carry and are compared there.
+    old_coverage.pop("gaps", None); new_coverage.pop("gaps", None)
     coverage_matches = old_coverage == new_coverage
     issues = before["issues"] + after["issues"]
     return {"schema":"dcc.delta.v1","before":before["revision"],"after":after["revision"],
             "changes":changes,"coverage_matches":coverage_matches,"issues":issues,
+            "coverage_gaps":coverage_gaps(after),
             "passed":coverage_matches and not issues and all(c["allowed"] for c in changes),
             "limits":before["coverage"]["not_measured"]}
 

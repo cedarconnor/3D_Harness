@@ -10,8 +10,9 @@ import unittest
 from unittest.mock import patch
 import zlib
 
-from dcc_harness.blind_review import _chunk, _strip_png_metadata
-from dcc_harness.continuity_review import CRITERIA, STAGES, VIEWS, export_review
+import trial_path  # noqa: F401  (puts the checkout on the path for dcc_harness_trials)
+from dcc_harness_trials.blind_review import _chunk, _strip_png_metadata
+from dcc_harness_trials.continuity_review import CRITERIA, STAGES, VIEWS, export_review
 
 
 SECRET = "PRIVATE_METHOD_CONTEXT_DO_NOT_PUBLISH"
@@ -225,14 +226,14 @@ class ContinuityReviewTests(unittest.TestCase):
             self.publish()
 
     def test_size_budget_failure_precedes_publication(self):
-        with patch("dcc_harness.continuity_review._MAX_EXPORT_BYTES", len(_strip_png_metadata(png()))):
+        with patch("dcc_harness_trials.continuity_review._MAX_EXPORT_BYTES", len(_strip_png_metadata(png()))):
             with self.assertRaisesRegex(ValueError, "memory budget"):
                 self.publish()
         self.assertFalse(self.out.exists())
         self.assertFalse(self.receipt.exists())
 
     def test_colliding_random_label_is_replaced(self):
-        with patch("dcc_harness.continuity_review.secrets.token_hex", side_effect=["1" * 16, "1" * 16, "2" * 16, "3" * 16, "4" * 16]):
+        with patch("dcc_harness_trials.continuity_review.secrets.token_hex", side_effect=["1" * 16, "1" * 16, "2" * 16, "3" * 16, "4" * 16]):
             self.publish()
         self.assertEqual({r["label"] for r in self.document()["reviews"]}, {"R-" + n * 16 for n in "1234"})
 

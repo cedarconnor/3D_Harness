@@ -242,6 +242,10 @@ def evaluate_stage(before, after, contract):
                     failures.append(f"Material input target is linked: {mid}/{name}/{socket}")
                 else:
                     node["inputs"][socket] = copy.deepcopy(value)
+                    # Recursive graph evidence records the same value on the socket itself.
+                    for recorded in (node.get("sockets") or {}).get("inputs", []):
+                        if recorded.get("identifier") == socket and "default_value" in recorded:
+                            recorded["default_value"] = copy.deepcopy(value)
         if expected != after["materials"].get(mid):
             failures.append(f"Material differs beyond requested inputs or desired values: {mid}")
         allow["materials"][mid] = ["graph"]
@@ -273,7 +277,7 @@ def evaluate_stage(before, after, contract):
         if any(obj.get("type") != "MESH" or not obj.get("mesh_datablock") for obj in records) or any(
                 obj.get("mesh_datablock") != records[0].get("mesh_datablock") for obj in records[1:]):
             failures.append("Mesh sharing group differs or missing: " + ", ".join(group))
-    check.update(passed=not failures, preservation=preservation,
+    check.update(passed=not failures, preservation=preservation, coverage_gaps=preservation["coverage_gaps"],
                  evaluated_uv_noise={"objects": uv_noise, "policy_version": 3,
                                      "absolute_tolerance": UV_NOISE_TOLERANCE,
                                      "adjacent_float32_max_delta": UV_ADJACENT_MAX_DELTA},

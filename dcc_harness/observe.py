@@ -8,7 +8,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .continuity import _plain
-from .evidence import file_hash, read_json, validate_observation
+from .evidence import coverage_gaps, file_hash, read_json, validate_observation
 from .native import run_worker
 
 WORKER = Path(__file__).with_name('_observe_blender.py')
@@ -34,5 +34,5 @@ def observe_file(source, out, blender, *, expanded=False):
             'source': descriptor, 'source_unchanged': True, 'observation': str(path),
             'checkpoint_sha256': observation['checkpoint_sha256'], 'revision': observation['revision'],
             'objects': len(observation['objects']), 'materials': len(observation['materials']),
-            'issues': observation['issues'], 'coverage': observation['coverage'],
+            'issues': observation['issues'], 'coverage_gaps': coverage_gaps(observation), 'coverage': observation['coverage'],
             'artistic_acceptance': 'not_assessed'}

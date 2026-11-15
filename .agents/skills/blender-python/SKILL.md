@@ -134,3 +134,40 @@ assert not bpy.data.is_dirty
 assert bpy.ops.ed.undo_push(message='Scripted edit') == {'FINISHED'}
 assert bpy.data.is_dirty
 ```
+
+## Primitive pitfalls
+
+Three defaults of the `primitive_*_add` operators put objects at the wrong size or place without an error.
+
+- **`size` is an edge length, `radius` is half a width.** `primitive_cube_add(size=2)` and `primitive_plane_add(size=2)` are 2 m across; `primitive_uv_sphere_add(radius=1)`, `primitive_cylinder_add(radius=1, depth=2)` and `primitive_cone_add(radius1=1, depth=2)` are also 2 m across. Passing a wanted width as `radius` doubles it.
+- **`scale=` at creation is baked into the mesh; `dimensions` afterwards is not.** `primitive_cube_add(size=1, scale=(3, 2, 0.5))` gives a 3 × 2 × 0.5 m mesh with object scale 1. Setting `obj.dimensions` later leaves the mesh alone and changes `obj.scale`, which bevels, textures and exports then inherit. Apply the scale, or build at size.
+- **Primitives appear at the 3D cursor.** Without `location=`, a new primitive lands wherever the cursor is, which in a reused file is rarely the origin. Always pass `location`.
+
+Building from the data API with explicit vertices, as a harness blockout does, avoids all three.
+
+```python verify
+import bpy
+
+def across(obj):
+    return tuple(round(v, 4) for v in obj.dimensions)
+
+bpy.ops.mesh.primitive_cube_add(size=2, location=(0, 0, 0)); assert across(bpy.context.object) == (2, 2, 2)
+bpy.ops.mesh.primitive_plane_add(size=2, location=(0, 0, 0)); assert across(bpy.context.object) == (2, 2, 0)
+bpy.ops.mesh.primitive_uv_sphere_add(radius=1, location=(0, 0, 0)); assert across(bpy.context.object) == (2, 2, 2)
+bpy.ops.mesh.primitive_cylinder_add(radius=1, depth=2, location=(0, 0, 0)); assert across(bpy.context.object) == (2, 2, 2)
+bpy.ops.mesh.primitive_cone_add(radius1=1, depth=2, location=(0, 0, 0)); assert across(bpy.context.object) == (2, 2, 2)
+
+# scale= at creation changes the mesh and leaves the object scale at 1.
+bpy.ops.mesh.primitive_cube_add(size=1, scale=(3, 2, 0.5), location=(0, 0, 0)); box = bpy.context.object
+assert across(box) == (3, 2, 0.5) and tuple(box.scale) == (1, 1, 1)
+# dimensions afterwards changes the object scale and leaves the mesh.
+box.dimensions = (1, 1, 1)
+bpy.context.view_layer.update()
+assert tuple(round(v, 4) for v in box.scale) == (0.3333, 0.5, 2.0)
+assert max(v.co.x for v in box.data.vertices) == 1.5
+
+# Without location, a primitive lands on the 3D cursor.
+bpy.context.scene.cursor.location = (5, 0, 0)
+bpy.ops.mesh.primitive_cube_add(size=1); assert tuple(bpy.context.object.location) == (5, 0, 0)
+bpy.ops.mesh.primitive_cube_add(size=1, location=(0, 0, 0)); assert tuple(bpy.context.object.location) == (0, 0, 0)
+```

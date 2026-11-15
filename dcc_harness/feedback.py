@@ -68,6 +68,7 @@ def _targets(note, observation):
     materials = set(anchor.get('material_ids', []))
     for record in objects.values():
         materials.update((record or {}).get('material_ids', []))
+    materials.discard(None)  # an empty slot is measured on the object, not as a material
     return {'objects': objects, 'materials': {m: observation['materials'].get(m) for m in sorted(materials)}}
 
 

@@ -4,7 +4,8 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from dcc_harness import session_cost
+import trial_path  # noqa: F401  (puts the checkout on the path for dcc_harness_trials)
+from dcc_harness_trials import session_cost
 
 
 def row(kind, at, **extra):

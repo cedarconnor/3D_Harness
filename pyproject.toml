@@ -23,7 +23,7 @@ dcc-harness-mcp = "dcc_harness.mcp_server:main"
 build_py = "build_support.BundleBuild"
 
 [tool.setuptools.packages.find]
-include = ["dcc_harness*"]
+include = ["dcc_harness", "dcc_harness.*"]
 
 [tool.setuptools.package-data]
 dcc_harness = ["data/*.json", "data/*.zip", "data/bridge/*.py", "data/bridge/LICENSE.upstream", "data/capabilities/*.json"]

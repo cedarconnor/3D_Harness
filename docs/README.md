@@ -11,7 +11,7 @@ Documents are split by whether they are still in use:
 | [`recipes/`](recipes/) | Bounded construction helpers used by the craft skills |
 | [`studies/`](studies/) | Open evaluation work: the interrupted realistic comparison and the artist review session |
 | [`reference/`](reference/) | Research and designs behind upcoming stages |
-| `plans/` | Implementation plans for active tracked items, created when work starts and archived when it finishes; currently empty |
+| `plans/` | Implementation plans for active tracked items, created when work starts and archived when it finishes; currently the [generation-quality plan](plans/G_GENERATION_QUALITY.md) |
 | [`archive/`](archive/) | Work already addressed: release reports, completed studies, implemented plans and superseded inputs |
 
 Archived documents stay as written. They remain the evidence for the claims in the plan, README and changelog; only their links were updated when files moved.
@@ -26,6 +26,10 @@ Archived documents stay as written. They remain the evidence for the claims in t
 | Document | Covers | Since |
 |---|---|---|
 | [Agent quick reference](guides/AGENT_QUICK_REFERENCE.md) | `brief`, `next`, `requirements`, `render`, `relations` and the exact sequences for an edit, review renders, relation measurements, a feedback response and a stage submission | 0.7.0 |
+| [Audit](guides/AUDIT.md) | `audit`: geometry defects in a saved file under a `render`, `game` or `print` profile, each with a cause and a fix | Unreleased |
+| [Review sheet](guides/REVIEW_SHEET.md) | `review-sheet`: one image of chosen objects from all sides, as silhouette, clay, wireframe and backface passes | Unreleased |
+| [Blockout spec](guides/BLOCKOUT_SPEC.md) | `spec-check`, `blockout-build` and `spec-compare`: a layout as named primitives with proportions and never rules, built with stable IDs and measured against a saved file | Unreleased |
+| [Judge loop](guides/JUDGE_LOOP.md) | `judge-start`, `judge-round`, `judge-verdict` and `judge-status`: a bounded improvement loop with code gates, a fresh-context judge, a stall rule and a five-round cap | Unreleased |
 | [UV report](guides/UV_REPORT.md) | `uv-report`: texel density, UV overlap and UVs outside the unit square against targets | 0.18.0 |
 | [GLB delivery](guides/GLB_DELIVERY.md) | `deliver-glb`: export, fresh reimport, comparison by stable ID and a receipt bound to the checkpoint | 0.14.0 |
 | [Learned checks](guides/LEARNED_CHECKS.md) | Proposing a check from an artist note, owner approval into a versioned library, pinning it in a project and counting repeats | 0.13.0 |
@@ -50,9 +54,9 @@ Each was qualified on one production scene: [ground](recipes/GROUND_RECIPE.md), 
 
 | Document | Status |
 |---|---|
-| [Artist review session](studies/ARTIST_REVIEW_SESSION.md) | Protocol for build-plan items E1–E3: scores, timed repair and ranked pairs from finished work |
-| [Realistic comparison](studies/REALISM_COMPARISON.md) and [progress](studies/REALISM_PROGRESS.md) | Interrupted after one partial build. Resuming or retiring it is item E4. |
-| [P5 skill regressions](studies/P5_SKILL_REGRESSIONS.md) | Six sealed failure situations graded on actions and artifacts; all passed on 0.16.0 |
+| [Artist review session](studies/ARTIST_REVIEW_SESSION.md) | Protocol for build-plan items E1–E3. The owner completed the session and reported minimal differences; the gate it fed was retired on November 14, 2026 |
+| [Realistic comparison](studies/REALISM_COMPARISON.md) and [progress](studies/REALISM_PROGRESS.md) | Interrupted after one partial build. Retired unfinished on November 14, 2026 (item E4). |
+| [P5 skill regressions](studies/P5_SKILL_REGRESSIONS.md) | Six sealed failure situations graded on actions and artifacts; all passed on 0.16.0, on 0.19.0, and on November 14, 2026 with the short entry skill |
 | [E5 continuation results](studies/E5_CONTINUATION_RESULTS.md) | One sealed fresh-agent continuation of the production garden: all three notes found and answered in 32 minutes; artist repair time pending |
 
 ## Reference
@@ -114,7 +118,7 @@ One report per version. The [changelog](../CHANGELOG.md) summarizes counts and n
 | Continuity comparison, October 4 | [Experiment protocol](archive/studies/CONTINUITY_EXPERIMENT.md) | [Results](archive/studies/CONTINUITY_RESULTS.md), [review guide](archive/studies/CONTINUITY_REVIEW.md), [coordinator assessment](archive/studies/QUALITY_AND_ARCHITECTURE_REVIEW.md) |
 | Overnight courtyard, October 4 | [Evaluation](archive/studies/OVERNIGHT_EVALUATION.md) | [Quality assessment](archive/studies/OVERNIGHT_QUALITY_ASSESSMENT.md) |
 
-Artist scoring for the first two studies is still open; it is item E1.
+Artist scoring for the first two studies was closed without recorded scores on November 14, 2026, when the owner retired the investment gate.
 
 ## Archive: plans and superseded inputs
 

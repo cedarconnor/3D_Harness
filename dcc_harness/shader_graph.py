@@ -12,7 +12,8 @@ _UI = frozenset(('rna_type', 'bl_rna', 'name', 'name_full', 'label', 'location',
                  'location_absolute', 'width', 'width_hidden', 'height', 'dimensions', 'select', 'show_options',
                  'show_preview', 'show_texture', 'hide', 'use_custom_color', 'color',
                  'parent', 'warning_propagation', 'bl_idname', 'bl_label',
-                 'bl_description', 'bl_icon', 'bl_static_type', 'type'))
+                 'bl_description', 'bl_icon', 'bl_static_type', 'type',
+                 'panel_states'))  # Blender 5.2: which node panels are open in the editor
 _NODE_EXPLICIT = frozenset(('inputs', 'outputs', 'internal_links', 'node_tree', 'image',
                             'color_ramp', 'mute', 'texture_mapping', 'color_mapping', 'image_user'))
 

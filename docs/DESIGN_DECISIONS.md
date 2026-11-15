@@ -2,6 +2,16 @@
 
 Decision log, started October 3, 2026 and updated through version 0.5.0 on October 6. D1–D9 incorporate the user's goals and the supplied Claude critique; they were proposed before implementation. D10–D17 record choices made while building. The [build plan](BUILD_PLAN.md) owns sequencing and experiment budgets; this log owns architecture decisions. Supporting studies do not override either.
 
+## Investment gate retired — November 14, 2026
+
+The owner retired the creative investment gate defined in D1 and the build plan, and with it the restriction in D17 that held stage C–E breadth until artist scores, repair times or a completed held-out comparison existed.
+
+Reasons, as the owner gave them: the artist review session was completed and its differences were minimal, because the scenes were simple and the increments small; and in other work the owner gets better results when progress is tracked across context sessions. Continuity is therefore accepted as a default part of the workflow on the owner's experience.
+
+This is an owner decision, not a measurement. The comparison results stand as recorded: no study here shows a quality or repair-time advantage over plain MCP, and no scores were supplied. D13's realistic comparison is retired unfinished, with its interrupted candidate retained.
+
+Unchanged: each increment keeps its own qualification, failed results are retained, and D18's owner-only approval channel still applies to projects that use approval-gated stages. Work now sequences by expected effect on generation quality; see the [G plan](plans/G_GENERATION_QUALITY.md).
+
 ## Qualified add-on capabilities — October 22, 2026
 
 Version 0.23.0 separates discovery, environment activation, recipe qualification,
@@ -73,7 +83,7 @@ Reviewed October 6, 2026. The table records how each decision held up; the entri
 
 Run plain MCP, three focused skills, and those skills plus a minimal measurement helper on matched creative tasks in week one. Select the smallest method that materially improves artist-accepted output or reduces repair effort. A skills-only outcome is a valid first product.
 
-Keep basic native checkpoints and a call log from the start. Defer comprehensive recovery, multiple clients, independent workers and unattended scheduling until the creative gate justifies them. Reliability remains a release gate for unattended work, not a prerequisite for supervised quality experiments.
+Keep basic native checkpoints and a call log from the start. Defer comprehensive recovery, multiple clients, independent workers and unattended scheduling until the creative gate justifies them (gate retired November 14, 2026; see the top of this log). Reliability remains a release gate for unattended work, not a prerequisite for supervised quality experiments.
 
 ## D2 Reuse the transport and implement native observation
 
@@ -192,7 +202,7 @@ The fresh-context exercise found that a view-settings hash without the underlyin
 
 On October 5, after reviewing the comparison evidence, the user authorized improving the harness and skills. Until now, that authorization appeared only in build-plan status notes. It covers the bounded usability, craft and continuity increments of versions 0.4.0–0.5.0: everyday entry points, visual rejection, recipes, observation performance, adoption, external revisions and structured feedback.
 
-It does not pass the creative investment gate (D1). No artist scores, repair-time measurements or completed held-out comparison exist, and D13's comparison remains interrupted. Stage C–E breadth still waits for that gate: linked publishing at scale, managed execution, unattended runs, client packaging and other DCCs. Each increment keeps its own qualification and states that it establishes no comparative quality advantage.
+(The gate described here was retired on November 14, 2026; see the top of this log.) It does not pass the creative investment gate (D1). No artist scores, repair-time measurements or completed held-out comparison exist, and D13's comparison remains interrupted. Stage C–E breadth still waits for that gate: linked publishing at scale, managed execution, unattended runs, client packaging and other DCCs. Each increment keeps its own qualification and states that it establishes no comparative quality advantage.
 
 ## D18 Artist authority comes only through the owner's terminal
 
