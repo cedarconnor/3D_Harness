@@ -3,11 +3,15 @@ import argparse
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import hashlib
 import zipfile
 import venv
+
+
+TRIAL_MODULES = {'blind.py', 'blind_review.py', 'continuity_trial.py', 'continuity_review.py', 'session_cost.py'}
 
 
 def release_environment(out, parent=None):
@@ -58,8 +62,15 @@ def main():
         run_check(name, command, out=out, results=results, cwd=cwd, base_env=base_env, env=env)
 
     run('source-tests', [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-q'])
+    # setuptools reuses the git-ignored build/ folder, so a module deleted from the package would linger in the wheel.
+    for stale in (repo / 'build' / 'lib', *(repo / 'build').glob('bdist.*')):
+        shutil.rmtree(stale, ignore_errors=True)
     run('wheel-build', [sys.executable, '-m', 'pip', 'wheel', '.', '--no-deps', '--no-build-isolation', '--wheel-dir', str(out / 'wheels')])
     wheel, = (out / 'wheels').glob('*.whl')
+    with zipfile.ZipFile(wheel) as archive:
+        shipped = {Path(name).name for name in archive.namelist() if name.startswith('dcc_harness/')}
+        assert not shipped & TRIAL_MODULES, f'wheel ships trial tooling: {sorted(shipped & TRIAL_MODULES)}'
+        assert not any(name.startswith('dcc_harness_trials/') for name in archive.namelist()), 'wheel ships dcc_harness_trials'
     run('sdist-build', [sys.executable, '-c', f"from setuptools.build_meta import build_sdist; build_sdist({str(out / 'sdist')!r})"])
     sdist, = (out / 'sdist').glob('*.tar.gz')
     run('sdist-wheel', [sys.executable, '-m', 'pip', 'wheel', str(sdist), '--no-deps', '--no-build-isolation', '--wheel-dir', str(out / 'sdist-wheels')])

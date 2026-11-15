@@ -27,6 +27,8 @@ Each version is a bounded increment with its own qualification report. Test coun
 - Moved the trial tooling (`blind`, `blind_review`, `continuity_trial`, `continuity_review`, `session_cost`) out of the `dcc_harness` package into `dcc_harness_trials`, which is not shipped in the wheel and runs from a checkout: `python -m dcc_harness_trials.blind`. The modules were already outside the runtime digest, so pinned projects are unaffected. `python -m dcc_harness.blind` and its siblings no longer exist.
 - Add-on capabilities are declared frozen at 0.24.0 behaviour, fixes only, until a real third-party add-on is qualified through them (README and add-on recipes guide).
 - The agent quick reference starts managed runs in `autonomous` mode and names `approval_gated` as the exception.
+- `scripts/verify_release.py` clears stale `build/lib` and `build/bdist.*` output before building, and fails if the wheel ships the trial modules. Without this, a module deleted from the package stayed in wheels built from a checkout with an old `build/` folder, which is how the first G8 check failed package parity. With it, all ten non-native stages pass: source and installed suites at 885 tests each.
+- The three long-standing local test errors (`mcp.server.fastmcp`) come from a system MCP SDK 2.0.0; the project pins 1.26.0, and both suites pass with no errors in an environment that has the pinned version.
 
 ## 0.24.0 - October 30, 2026
 

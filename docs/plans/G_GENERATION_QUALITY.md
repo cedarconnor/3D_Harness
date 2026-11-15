@@ -137,7 +137,7 @@ Two bounded trials, each ending in a written keep-or-drop decision. Both tools a
 - Move `blind.py`, `blind_review.py`, `continuity_trial.py`, `continuity_review.py` and `session_cost.py` from the package to `scripts/` or a separate `dcc_harness_trials` package. They are already excluded from the runtime digest, so pinned projects are unaffected. Update `dcc-blind-test` to match.
 - Make `autonomous` the mode the quick reference shows first.
 
-**Status, November 15:** implemented, unreleased. The trial modules are the `dcc_harness_trials` package and the source suite passes. The wheel, installed-suite and package-parity results were pending when this was committed.
+**Status, November 15:** implemented, unreleased. All three done-when parts are met: the wheel ships none of the trial modules, both suites pass (885 tests each, with the pinned MCP SDK), and the package-parity check passes. The first check failed parity because a stale `build/` folder put the moved modules back into the wheel; `verify_release.py` now clears it and asserts their absence. The native stages of the release check were not run.
 
 **Done when:** the wheel no longer ships the trial modules, both suites pass, and the release gate's package-parity check passes.
 
