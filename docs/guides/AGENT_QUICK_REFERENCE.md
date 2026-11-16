@@ -192,7 +192,7 @@ python -m dcc_harness uv-report "<saved .blend>" --blender "<BLENDER>" --output-
 python -m dcc_harness deliver-glb "<project>/checkpoints/<NNNNNN>/checkpoint.blend" --blender "<BLENDER>" --output-dir "<work>/delivery-1" --project "<project>"
 ```
 
-`audit` (unreleased) checks any saved file for geometry defects, with no project or targets needed; repair its errors, and treat a `bounds_only` finding as something to look at, not to fix blind ([audit](AUDIT.md)). `review-sheet` (unreleased) renders one image of the targets from four sides as silhouette, clay, wireframe and backface rows; red in the last row is a face pointing away from the viewer ([review sheet](REVIEW_SHEET.md)). `uv-report` checks texel density, UV overlap and UVs outside the unit square against the project's `uv_targets` decision ([UV report](UV_REPORT.md)). `deliver-glb` exports an accepted checkpoint to GLB, imports it into an empty scene and compares by stable ID ([GLB delivery](GLB_DELIVERY.md)). `audit`, `uv-report` and `deliver-glb` exit 1 on failing findings; none of the four saves the scene.
+`audit` (since 0.25.0) checks any saved file for geometry defects, with no project or targets needed; repair its errors, and treat a `bounds_only` finding as something to look at, not to fix blind ([audit](AUDIT.md)). `review-sheet` (since 0.25.0) renders one image of the targets from four sides as silhouette, clay, wireframe and backface rows; red in the last row is a face pointing away from the viewer ([review sheet](REVIEW_SHEET.md)). `uv-report` checks texel density, UV overlap and UVs outside the unit square against the project's `uv_targets` decision ([UV report](UV_REPORT.md)). `deliver-glb` exports an accepted checkpoint to GLB, imports it into an empty scene and compares by stable ID ([GLB delivery](GLB_DELIVERY.md)). `audit`, `uv-report` and `deliver-glb` exit 1 on failing findings; none of the four saves the scene.
 
 ## 10. Plan and check a layout with a blockout spec
 
@@ -202,7 +202,7 @@ python -m dcc_harness blockout-build "<spec.json>" --blender "<BLENDER>" --outpu
 python -m dcc_harness spec-compare "<spec.json>" "<saved .blend>" --blender "<BLENDER>" --output-dir "<work>/compare-1"
 ```
 
-Unreleased. A blockout spec states a layout as named primitives in metres with proportions and never rules. `blockout-build` saves a new file with one object per part, IDs included, and refuses to replace a blockout that has been edited. `spec-compare` exits 1 with a code, path, message and remediation per finding, and fails on any part it cannot measure ([blockout spec](BLOCKOUT_SPEC.md)).
+Since 0.25.0. A blockout spec states a layout as named primitives in metres with proportions and never rules. `blockout-build` saves a new file with one object per part, IDs included, and refuses to replace a blockout that has been edited. `spec-compare` exits 1 with a code, path, message and remediation per finding, and fails on any part it cannot measure ([blockout spec](BLOCKOUT_SPEC.md)).
 
 ## 11. Improve toward a look with a judge loop
 
@@ -213,7 +213,7 @@ python -m dcc_harness judge-round "<work>/loop" --evidence "<work>/round1/eviden
 python -m dcc_harness judge-verdict "<work>/loop" --verdict "<work>/round1/verdict.json"
 ```
 
-Unreleased. Load the `dcc-judge-loop` skill. Run `judge-status` first when a loop exists and do what `next` says. A round with an `audit` error or a failed `spec-compare` is gated and not judged. The judge is a separate agent that sees only the packet. A judge score is an agent's opinion, never owner acceptance ([judge loop](JUDGE_LOOP.md)).
+Since 0.25.0. Load the `dcc-judge-loop` skill. Run `judge-status` first when a loop exists and do what `next` says. A round with an `audit` error or a failed `spec-compare` is gated and not judged. The judge is a separate agent that sees only the packet. A judge score is an agent's opinion, never owner acceptance ([judge loop](JUDGE_LOOP.md)).
 
 ## Stops
 

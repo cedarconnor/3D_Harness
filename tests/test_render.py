@@ -250,6 +250,16 @@ class QueueTests(unittest.TestCase):
         final = render.wait(self.base / 'job', timeout=60)
         self.assertEqual(final['state'], 'failed', final)
         self.assertTrue(final['error'])
+        # The job records its state before its process exits. On Windows the child still holds job.log
+        # for a moment, and removing the temporary folder then fails; wait until the log can be renamed.
+        log, deadline = self.base / 'job' / 'job.log', time.monotonic() + 30
+        while True:
+            try:
+                log.rename(log.with_suffix('.released'))
+                break
+            except PermissionError:
+                self.assertLess(time.monotonic(), deadline, 'the detached job never released its log')
+                time.sleep(0.1)
 
     def test_detached_child_handle_is_retained_until_exit_and_reaped(self):
         """Dropping a running Popen emits a warning and abandons explicit reaping."""

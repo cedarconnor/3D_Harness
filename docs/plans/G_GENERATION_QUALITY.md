@@ -1,6 +1,6 @@
 # G: Generation quality plan
 
-Drafted November 14, 2026, for [build-plan](../BUILD_PLAN.md) items G1–G8. Status: draft, not started. It follows the owner's [retirement of the investment gate](../DESIGN_DECISIONS.md#investment-gate-retired--november-14-2026) and a review of this repository and eight external ones.
+Drafted November 14, 2026, for [build-plan](../BUILD_PLAN.md) items G1–G8. Status: implemented and released in 0.25.0 ([report](../archive/releases/GENERATION_QUALITY_0_25_0_RESULTS.md)). It follows the owner's [retirement of the investment gate](../DESIGN_DECISIONS.md#investment-gate-retired--november-14-2026) and a review of this repository and eight external ones.
 
 ## Goal
 
@@ -45,7 +45,7 @@ Each item ships as its own version under the build plan's standing rules: source
 
 **Done when:** the six P5 sealed failure situations still pass with the short skill, and a fresh agent on the 0.7.0 one-parameter revision task starts its edit no later than the recorded 51 seconds. One run each, reported as directional.
 
-**Status, November 14:** implemented, unreleased. The entry skill is 502 words; the lint budget is 550, since the routing table and the seven standing rules did not fit in 400. All six P5 situations passed. The fresh agent reserved its edit at 57 seconds, so the 51-second criterion was missed by six seconds on one run ([results](../studies/P5_SKILL_REGRESSIONS.md#rerun-with-the-short-entry-skill-november-14)).
+**Status, November 14:** implemented, released in 0.25.0. The entry skill is 502 words; the lint budget is 550, since the routing table and the seven standing rules did not fit in 400. All six P5 situations passed. The fresh agent reserved its edit at 57 seconds, so the 51-second criterion was missed by six seconds on one run ([results](../studies/P5_SKILL_REGRESSIONS.md#rerun-with-the-short-entry-skill-november-14)).
 
 **Risk:** the P5 situations depend on rules that move to references. If one fails, restore that rule to the entry skill as a single sentence rather than restoring the section.
 
@@ -57,7 +57,7 @@ Whole-scene validation refuses material node groups, unsupported Geometry Nodes 
 - For the second class, record the object with an opaque content hash and an explicit `coverage_gap` entry. Preservation contracts can then still detect that it changed, without describing how.
 - A stage can complete with coverage gaps listed in its evidence. Missing textures and non-finite coordinates keep refusing.
 
-**Status, November 14:** implemented, unreleased. The fixture observes `READY` with two gaps, not three: 0.24.0 already measures nested shader groups in full, so that case needed no gap and changing the group fails a contract through the material's own record. Shader graphs past the reader's limits or with animation still refuse, because nothing below the limit is recorded to hash. The gap records are an optional `coverage.gaps` key, present only when a scene has such content, following the collection-instances precedent. Passed natively on Blender 5.1.1 and 5.2.1 ([guide](../guides/EVERYDAY_WORKFLOW.md#coverage-gaps)).
+**Status, November 14:** implemented, released in 0.25.0. The fixture observes `READY` with two gaps, not three: 0.24.0 already measures nested shader groups in full, so that case needed no gap and changing the group fails a contract through the material's own record. Shader graphs past the reader's limits or with animation still refuse, because nothing below the limit is recorded to hash. The gap records are an optional `coverage.gaps` key, present only when a scene has such content, following the collection-instances precedent. Passed natively on Blender 5.1.1 and 5.2.1 ([guide](../guides/EVERYDAY_WORKFLOW.md#coverage-gaps)).
 
 **Done when:** a fixture scene with a nested shader group, a scatter Geometry Nodes tree and an empty slot observes `READY` with three listed gaps; changing the node group fails a preservation contract; older observations still read. This changes the observation format, so it needs a new coverage version, never an in-place change.
 
@@ -72,7 +72,7 @@ A read-only geometry defect check on a saved file, in the style of `uv-report`.
 
 Sources for the idea: `bx_audit.deliverable` in scenario-labs/skills and `qa_check.py` in EL4CTEO/blender-skills. Both are MIT. Reimplement against this project's observer and identities rather than copying; record both in `THIRD_PARTY_NOTICES.md` if any code is adapted.
 
-**Status, November 15:** implemented, unreleased. Eighteen native fixtures each report their own code alone and the control reports nothing, on Blender 5.1.1 and 5.2.1 ([guide](../guides/AUDIT.md)). Differences from the list above: unapplied scale is three codes (uniform, non-uniform, negative); a coplanar overlap between objects of the same materials is a warning, since it does not show; and tolerances are capped at 0.5 mm and 5 mm so a whole scene is not judged loosely. The garden does not pass under `render`: it has 522 errors, reviewed as real (519 parts built inside out, three coincident pairs), so there is no false error but also no clean run. No code was adapted from the two source repositories.
+**Status, November 15:** implemented, released in 0.25.0. Eighteen native fixtures each report their own code alone and the control reports nothing, on Blender 5.1.1 and 5.2.1 ([guide](../guides/AUDIT.md)). Differences from the list above: unapplied scale is three codes (uniform, non-uniform, negative); a coplanar overlap between objects of the same materials is a warning, since it does not show; and tolerances are capped at 0.5 mm and 5 mm so a whole scene is not judged loosely. The garden does not pass under `render`: it has 522 errors, reviewed as real (519 parts built inside out, three coincident pairs), so there is no false error but also no clean run. No code was adapted from the two source repositories.
 
 **Done when:** one native fixture per check fails on that check alone and a clean control passes; the production garden runs without a false error under `render`; the report binds to the file hash like `uv-report`.
 
@@ -84,7 +84,7 @@ Fixed review cameras show the scene as composed. They do not show a single asset
 - A `random` colour mode gives each object its own colour so detached or duplicated parts stand out.
 - Workbench only, about 1600 px wide, one image per call, with a receipt bound to the file hash. The size limit is there to protect the agent's context.
 
-**Status, November 15:** implemented, unreleased. The qualification reads the sheet's pixels: the flipped face is red in the backface row, the detached block is a separate silhouette, repeat renders are byte-identical and the source hash is unchanged, on Blender 5.1.1 and 5.2.1 ([guide](../guides/REVIEW_SHEET.md)). Differences from the list above: the default is four views with `--views 6` adding top and bottom; `--color random` colours the clay row per object; and over 300,000 faces the wireframe row is left out.
+**Status, November 15:** implemented, released in 0.25.0. The qualification reads the sheet's pixels: the flipped face is red in the backface row, the detached block is a separate silhouette, repeat renders are byte-identical and the source hash is unchanged, on Blender 5.1.1 and 5.2.1 ([guide](../guides/REVIEW_SHEET.md)). Differences from the list above: the default is four views with `--views 6` adding top and bottom; `--color random` colours the clay row per object; and over 300,000 faces the wireframe row is left out.
 
 **Done when:** a fixture with one flipped face and one detached part shows both in the sheet; repeat renders are byte-identical; the source file hash is unchanged.
 
@@ -100,7 +100,7 @@ This absorbs P16, which stays in the tracker under its own ID and points here.
 
 Sources for the idea: the blockout schema noted in the [Scenario review](../reference/SCENARIO_BLENDER_PLUGIN_REVIEW_2026-10-15.md), and dcc-mcp's `dcc-modeling-spec` and assembly-pitfalls skill (MIT).
 
-**Status, November 15:** implemented, unreleased. Positive and negative native fixtures pass for all three commands on Blender 5.1.1 and 5.2.1 ([guide](../guides/BLOCKOUT_SPEC.md)). Differences from the list above: `position` is the centre of the base; parts carry `ids` so a detailed scene can be compared, and `rests_on` so the build writes a `relations` definition; never rules are three measurable kinds, with unmeasurable sentences kept under `avoid`; and a spec must satisfy its own rules. The potting-shed brief has no numbers, so its spec takes part sizes from checkpoint 9 and tests ten human-scale proportions and four never rules. Two door proportions failed at first; the owner judged the door right on November 15, the ranges were corrected, and checkpoint 9 passes.
+**Status, November 15:** implemented, released in 0.25.0. Positive and negative native fixtures pass for all three commands on Blender 5.1.1 and 5.2.1 ([guide](../guides/BLOCKOUT_SPEC.md)). Differences from the list above: `position` is the centre of the base; parts carry `ids` so a detailed scene can be compared, and `rests_on` so the build writes a `relations` definition; never rules are three measurable kinds, with unmeasurable sentences kept under `avoid`; and a spec must satisfy its own rules. The potting-shed brief has no numbers, so its spec takes part sizes from checkpoint 9 and tests ten human-scale proportions and four never rules. Two door proportions failed at first; the owner judged the door right on November 15, the ranges were corrected, and checkpoint 9 passes.
 
 **Done when:** positive and negative native fixtures pass for each command; the potting-shed brief is expressed as a spec and `spec-compare` passes on checkpoint 9 or reports defects a person agrees are real.
 
@@ -116,7 +116,7 @@ A skill and a small record format, with no scheduler and no new agent runtime.
 
 Source for the idea: achimala/dream-loop (MIT), which is prompts only. The third-party report in its issue 6 found the judge names symptoms well and causes badly, which is why code checks gate each round here.
 
-**Status, November 15:** implemented, unreleased. All three done-when parts are met on one run each ([guide](../guides/JUDGE_LOOP.md), [first run](../studies/JUDGE_LOOP_FIRST_RUN.md)). Differences from the list above: the loop record is its own append-only folder, and verdict gaps become feedback-note drafts only when the round names a published checkpoint, because a note must anchor to one; the round needs both fixed views and a review sheet; a default pass score of 9 adds a met-target stop; and gated rounds count toward the cap. The first run showed the repeated-gap rule forcing a change of approach after a three-point gain, which then ended the loop; the owner narrowed the rule on November 15 to a repeated gap with less than one point gained. The plain-MCP comparison under Measuring was not run.
+**Status, November 15:** implemented, released in 0.25.0. All three done-when parts are met on one run each ([guide](../guides/JUDGE_LOOP.md), [first run](../studies/JUDGE_LOOP_FIRST_RUN.md)). Differences from the list above: the loop record is its own append-only folder, and verdict gaps become feedback-note drafts only when the round names a published checkpoint, because a note must anchor to one; the round needs both fixed views and a review sheet; a default pass score of 9 adds a met-target stop; and gated rounds count toward the cap. The first run showed the repeated-gap rule forcing a change of approach after a three-point gain, which then ended the loop; the owner narrowed the rule on November 15 to a repeated gap with less than one point gained. The plain-MCP comparison under Measuring has since been run once.
 
 **Done when:** on one held-out brief the loop runs to a stop condition with every round's score, gaps and evidence retained; a deliberately stalled fixture triggers the stall rule; a P5-style sealed packet shows a fresh agent resuming mid-loop from the notes alone.
 
@@ -137,7 +137,7 @@ Two bounded trials, each ending in a written keep-or-drop decision. Both tools a
 - Move `blind.py`, `blind_review.py`, `continuity_trial.py`, `continuity_review.py` and `session_cost.py` from the package to `scripts/` or a separate `dcc_harness_trials` package. They are already excluded from the runtime digest, so pinned projects are unaffected. Update `dcc-blind-test` to match.
 - Make `autonomous` the mode the quick reference shows first.
 
-**Status, November 15:** implemented, unreleased. All three done-when parts are met: the wheel ships none of the trial modules, both suites pass (885 tests each, with the pinned MCP SDK), and the package-parity check passes. The first check failed parity because a stale `build/` folder put the moved modules back into the wheel; `verify_release.py` now clears it and asserts their absence. The native stages of the release check were not run.
+**Status, November 15:** implemented, released in 0.25.0. All three done-when parts are met: the wheel ships none of the trial modules, both suites pass (885 tests each, with the pinned MCP SDK), and the package-parity check passes. The first check failed parity because a stale `build/` folder put the moved modules back into the wheel; `verify_release.py` now clears it and asserts their absence. The full release check, native stages included, has since passed all 22 stages on Blender 5.1.1 against the installed wheel.
 
 **Done when:** the wheel no longer ships the trial modules, both suites pass, and the release gate's package-parity check passes.
 
@@ -150,6 +150,8 @@ Two bounded trials, each ending in a written keep-or-drop decision. Both tools a
 ## Measuring whether it worked
 
 The gate is retired, so this is a check on the plan, not a condition for continuing.
+
+**Status, November 15:** run once ([results](../studies/PLAIN_VS_HARNESS_COMPARISON.md)). Two blind judges each scored the harness scene 9 of 10 and the plain scene 7, at about twice the builder time; neither file had an `audit` error. One brief and one run per arm, so it is a single data point. It also showed the loop's own judges scoring the same final scene 7, which means loop scores and comparison scores are not calibrated to each other.
 
 After G6, run one held-out brief twice: once with plain MCP and once with the harness, on Blender 5.2, with the same asset kit, cameras and budgets. Record `audit` errors at finish, judge score per round, rounds to stop, tokens and elapsed time. Keep both results whatever they show.
 

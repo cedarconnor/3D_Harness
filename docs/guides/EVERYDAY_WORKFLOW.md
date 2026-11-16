@@ -97,7 +97,7 @@ Version 0.4.3 adds the [seeded broadleaf study](../recipes/VEGETATION_RECIPE.md)
 
 ## Coverage gaps
 
-Unreleased, build-plan item G2. Some content is valid but outside what the observer can describe. It used to make the whole scene `HAS_ISSUES`, so one unrelated object could block every checkpoint. It is now recorded and listed.
+Version 0.25.0, build-plan item G2. Some content is valid but outside what the observer can describe. It used to make the whole scene `HAS_ISSUES`, so one unrelated object could block every checkpoint. It is now recorded and listed.
 
 | Code | What it is | How a later change is detected |
 |---|---|---|

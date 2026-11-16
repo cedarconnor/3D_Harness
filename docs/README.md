@@ -26,10 +26,10 @@ Archived documents stay as written. They remain the evidence for the claims in t
 | Document | Covers | Since |
 |---|---|---|
 | [Agent quick reference](guides/AGENT_QUICK_REFERENCE.md) | `brief`, `next`, `requirements`, `render`, `relations` and the exact sequences for an edit, review renders, relation measurements, a feedback response and a stage submission | 0.7.0 |
-| [Audit](guides/AUDIT.md) | `audit`: geometry defects in a saved file under a `render`, `game` or `print` profile, each with a cause and a fix | Unreleased |
-| [Review sheet](guides/REVIEW_SHEET.md) | `review-sheet`: one image of chosen objects from all sides, as silhouette, clay, wireframe and backface passes | Unreleased |
-| [Blockout spec](guides/BLOCKOUT_SPEC.md) | `spec-check`, `blockout-build` and `spec-compare`: a layout as named primitives with proportions and never rules, built with stable IDs and measured against a saved file | Unreleased |
-| [Judge loop](guides/JUDGE_LOOP.md) | `judge-start`, `judge-round`, `judge-verdict` and `judge-status`: a bounded improvement loop with code gates, a fresh-context judge, a stall rule and a five-round cap | Unreleased |
+| [Audit](guides/AUDIT.md) | `audit`: geometry defects in a saved file under a `render`, `game` or `print` profile, each with a cause and a fix | 0.25.0 |
+| [Review sheet](guides/REVIEW_SHEET.md) | `review-sheet`: one image of chosen objects from all sides, as silhouette, clay, wireframe and backface passes | 0.25.0 |
+| [Blockout spec](guides/BLOCKOUT_SPEC.md) | `spec-check`, `blockout-build` and `spec-compare`: a layout as named primitives with proportions and never rules, built with stable IDs and measured against a saved file | 0.25.0 |
+| [Judge loop](guides/JUDGE_LOOP.md) | `judge-start`, `judge-round`, `judge-verdict` and `judge-status`: a bounded improvement loop with code gates, a fresh-context judge, a stall rule and a five-round cap | 0.25.0 |
 | [UV report](guides/UV_REPORT.md) | `uv-report`: texel density, UV overlap and UVs outside the unit square against targets | 0.18.0 |
 | [GLB delivery](guides/GLB_DELIVERY.md) | `deliver-glb`: export, fresh reimport, comparison by stable ID and a receipt bound to the checkpoint | 0.14.0 |
 | [Learned checks](guides/LEARNED_CHECKS.md) | Proposing a check from an artist note, owner approval into a versioned library, pinning it in a project and counting repeats | 0.13.0 |

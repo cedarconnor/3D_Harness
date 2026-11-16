@@ -1,6 +1,6 @@
 # Audit
 
-Unreleased, build-plan item G3. `audit` checks a saved file for geometry defects: flipped faces, doubled surfaces, parts that touch nothing, and a few material mistakes that show up as geometry problems. It works like `uv-report`: a fresh background Blender measures the file, never saving it, and the runtime turns the numbers into findings. It needs no project, no targets file and no stable IDs.
+Version 0.25.0, build-plan item G3. `audit` checks a saved file for geometry defects: flipped faces, doubled surfaces, parts that touch nothing, and a few material mistakes that show up as geometry problems. It works like `uv-report`: a fresh background Blender measures the file, never saving it, and the runtime turns the numbers into findings. It needs no project, no targets file and no stable IDs.
 
 ```powershell
 python -m dcc_harness audit "<saved .blend>" --blender "<BLENDER>" --output-dir "<work>/audit-1"
