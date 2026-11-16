@@ -2,7 +2,9 @@
 
 Each version is a bounded increment with its own qualification report. Test counts are portable-suite results on Windows; the two skips in each count are host symlink-permission cases. Native qualification uses Blender 5.1.1 on Windows. Studies are listed with the versions they exercised. The [build plan](docs/BUILD_PLAN.md) explains what remains open, and reports that link into `runs/` refer to local evidence excluded from Git.
 
-## Unreleased
+## 0.25.0 - November 15, 2026
+
+Generation quality plan G1 to G8. See the [release report](docs/archive/releases/GENERATION_QUALITY_0_25_0_RESULTS.md).
 
 - Shortened the `dcc-harness` entry skill from 1,429 to 502 words. Managed execution, live scenes, new projects, external revisions, review and approval, and add-on effects are now reference files that the skill names with the condition for reading each.
 - Added `tests/test_skill_lint.py`: per-skill word budgets, link resolution across every skill, and a check that commands named in the entry skill exist in the CLI.
@@ -11,7 +13,7 @@ Each version is a bounded increment with its own qualification report. Test coun
 - Geometry Nodes modifiers outside the described subset and empty material slots are recorded as coverage gaps and no longer refuse a scene. An undescribed modifier carries an opaque hash of its tree, nested groups and inputs, so changing it still fails a contract that does not grant `modifier_settings`. Missing textures still refuse. Scenes without such content observe exactly as before ([guide](docs/guides/EVERYDAY_WORKFLOW.md#coverage-gaps)).
 - The project store and technical-note targets accept an object with an empty material slot.
 - Blender 5.2: Geometry Nodes modifier inputs are read from `modifier.properties.inputs`, where 5.2 moved them, and the editor's `panel_states` on shader nodes is no longer treated as unmeasured content. Before this, any Principled BSDF material made a scene `HAS_ISSUES` on 5.2.
-- `scripts/qualify_coverage_gaps.py` passed on Blender 5.1.1 and 5.2.1 from source. Not yet run: the installed-wheel suite and the other native qualifications.
+- `scripts/qualify_coverage_gaps.py` passed on Blender 5.1.1 and 5.2.1 from source.
 - Added `audit`: a read-only geometry defect check of a saved file with `render`, `game` and `print` profiles. It reports inconsistent and inward normals, open and non-manifold edges, loose and zero-area geometry, coplanar overlapping faces, parts that touch nothing, object scale, faces on empty material slots, data maps tagged sRGB and UV-mapped images on meshes without UVs. Each finding has a stable code, the object, a cause, a fix and an evidence class; the report binds to the file hash ([guide](docs/guides/AUDIT.md)). The command is also available through the MCP server.
 - `scripts/qualify_audit.py` passed on Blender 5.1.1 and 5.2.1 from source. On the production garden it found 519 closed parts built inside out and three coincident pairs of different materials; these are real and are not repaired here.
 - The entry skill's measure step names `audit`.
@@ -28,7 +30,11 @@ Each version is a bounded increment with its own qualification report. Test coun
 - Add-on capabilities are declared frozen at 0.24.0 behaviour, fixes only, until a real third-party add-on is qualified through them (README and add-on recipes guide).
 - The agent quick reference starts managed runs in `autonomous` mode and names `approval_gated` as the exception.
 - `scripts/verify_release.py` clears stale `build/lib` and `build/bdist.*` output before building, and fails if the wheel ships the trial modules. Without this, a module deleted from the package stayed in wheels built from a checkout with an old `build/` folder, which is how the first G8 check failed package parity. With it, all ten non-native stages pass: source and installed suites at 885 tests each.
+- The full release check passed all 22 stages against the installed wheel on Blender 5.1.1: the ten above plus native config, paths, recipe paths, units, adoption, execution, MCP, the 26-case live matrix, live preservation, live transport, review capabilities and capabilities.
 - The three long-standing local test errors (`mcp.server.fastmcp`) come from a system MCP SDK 2.0.0; the project pins 1.26.0, and both suites pass with no errors in an environment that has the pinned version.
+- Fixed a flaky Windows test: `test_detached_job_runs_in_another_process_and_records_failure` now waits for the detached job to release its log before the temporary folder is removed. It had failed one hosted CI job.
+- The 0.25.0 tree passed the full release check: all 22 stages, 885 tests in each suite.
+- Ran the plan's plain-against-harness comparison once on a held-out brief, with the same cameras and budgets. Two blind judges each scored the harness scene 9 of 10 and the plain scene 7; the harness arm took about twice the builder time, and neither file had an `audit` error. One brief and one run per arm ([results](docs/studies/PLAIN_VS_HARNESS_COMPARISON.md)).
 
 ## 0.24.0 - October 30, 2026
 

@@ -1,6 +1,6 @@
 # Review sheet
 
-Unreleased, build-plan item G4. `review-sheet` renders one image that shows chosen objects from all sides, four ways. The project's fixed review views show the scene as composed; this shows a single asset's shape, topology and face direction. It needs no project and no stable IDs, and it never saves the file.
+Version 0.25.0, build-plan item G4. `review-sheet` renders one image that shows chosen objects from all sides, four ways. The project's fixed review views show the scene as composed; this shows a single asset's shape, topology and face direction. It needs no project and no stable IDs, and it never saves the file.
 
 ```powershell
 python -m dcc_harness review-sheet "<saved .blend>" --blender "<BLENDER>" --output-dir "<work>/sheet-1" --targets "ext.bench.*"

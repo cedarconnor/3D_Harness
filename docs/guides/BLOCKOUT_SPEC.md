@@ -1,6 +1,6 @@
 # Blockout spec
 
-Unreleased, build-plan item G5 (which absorbs P16). A blockout spec states a layout as numbers before any detailed modelling: named primitives in metres, proportions with tolerances, and rules for what must never happen. Three commands use it.
+Version 0.25.0, build-plan item G5 (which absorbs P16). A blockout spec states a layout as numbers before any detailed modelling: named primitives in metres, proportions with tolerances, and rules for what must never happen. Three commands use it.
 
 ```powershell
 python -m dcc_harness spec-check "<spec.json>"

@@ -1,6 +1,6 @@
 # Judge loop
 
-Unreleased, build-plan item G6. A judge loop improves a result toward a stated look over a bounded number of attempts. It is a folder of append-only records and four commands. It launches nothing: the calling agent builds each candidate, hands a packet to a fresh-context judge, and records the answer. The record then says what happens next.
+Version 0.25.0, build-plan item G6. A judge loop improves a result toward a stated look over a bounded number of attempts. It is a folder of append-only records and four commands. It launches nothing: the calling agent builds each candidate, hands a packet to a fresh-context judge, and records the answer. The record then says what happens next.
 
 ```powershell
 python -m dcc_harness judge-start "<work>/loop" --target "<work>/target.json"
